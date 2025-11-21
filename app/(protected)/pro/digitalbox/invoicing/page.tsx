@@ -1,0 +1,407 @@
+"use client";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Badge } from "@/components/ui/Badge";
+import {
+  FileText,
+  Plus,
+  Search,
+  Filter,
+  DollarSign,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  XCircle,
+  Send,
+  Download,
+  Eye,
+  MoreVertical,
+  Building2,
+} from "lucide-react";
+import { motion } from "framer-motion";
+import { useState } from "react";
+import { formatCurrency } from "@/lib/utils";
+
+const invoices = [
+  {
+    id: 1,
+    invoiceNumber: "INV-000001",
+    client: "TechStart Inc.",
+    clientEmail: "contact@techstart.com",
+    project: "SEO Optimization Campaign",
+    items: [
+      { description: "SEO Audit & Strategy", quantity: 1, unitPrice: 1500, total: 1500 },
+      { description: "Technical SEO Implementation", quantity: 1, unitPrice: 1000, total: 1000 },
+    ],
+    subtotal: 2500,
+    tax: 0,
+    total: 2500,
+    currency: "GBP",
+    status: "paid",
+    dueDate: "2024-01-15",
+    paidAt: "2024-01-14",
+    createdAt: "2024-01-01",
+  },
+  {
+    id: 2,
+    invoiceNumber: "INV-000002",
+    client: "E-Commerce Pro",
+    clientEmail: "hello@ecommercepro.co.uk",
+    project: "PPC Management",
+    items: [
+      { description: "PPC Campaign Setup", quantity: 1, unitPrice: 800, total: 800 },
+      { description: "Monthly Management Fee", quantity: 1, unitPrice: 1000, total: 1000 },
+    ],
+    subtotal: 1800,
+    tax: 0,
+    total: 1800,
+    currency: "GBP",
+    status: "sent",
+    dueDate: "2024-01-25",
+    createdAt: "2024-01-10",
+  },
+  {
+    id: 3,
+    invoiceNumber: "INV-000003",
+    client: "Local Business Hub",
+    clientEmail: "info@localbusinesshub.com",
+    project: "Social Media Strategy",
+    items: [
+      { description: "Social Media Strategy Development", quantity: 1, unitPrice: 1200, total: 1200 },
+    ],
+    subtotal: 1200,
+    tax: 0,
+    total: 1200,
+    currency: "GBP",
+    status: "overdue",
+    dueDate: "2024-01-10",
+    createdAt: "2024-01-01",
+  },
+  {
+    id: 4,
+    invoiceNumber: "INV-000004",
+    client: "Digital Solutions",
+    clientEmail: "contact@digitalsolutions.uk",
+    project: "Content Marketing Campaign",
+    items: [
+      { description: "Content Strategy & Planning", quantity: 1, unitPrice: 1000, total: 1000 },
+      { description: "Content Creation (10 articles)", quantity: 10, unitPrice: 120, total: 1200 },
+    ],
+    subtotal: 2200,
+    tax: 0,
+    total: 2200,
+    currency: "GBP",
+    status: "draft",
+    dueDate: "2024-02-01",
+    createdAt: "2024-01-18",
+  },
+  {
+    id: 5,
+    invoiceNumber: "INV-000005",
+    client: "Startup Ventures",
+    clientEmail: "hello@startupventures.com",
+    project: "Email Marketing Automation",
+    items: [
+      { description: "Email Automation Setup", quantity: 1, unitPrice: 800, total: 800 },
+      { description: "Email Template Design (5 templates)", quantity: 5, unitPrice: 140, total: 700 },
+    ],
+    subtotal: 1500,
+    tax: 0,
+    total: 1500,
+    currency: "GBP",
+    status: "sent",
+    dueDate: "2024-01-30",
+    createdAt: "2024-01-15",
+  },
+];
+
+const statusConfig = {
+  draft: { label: "Draft", color: "default", icon: FileText },
+  sent: { label: "Sent", color: "info", icon: Send },
+  paid: { label: "Paid", color: "success", icon: CheckCircle2 },
+  overdue: { label: "Overdue", color: "default", icon: XCircle },
+  cancelled: { label: "Cancelled", color: "default", icon: XCircle },
+};
+
+const stats = [
+  { label: "Total Revenue", value: "£9,200", color: "from-emerald-500 to-teal-500" },
+  { label: "Outstanding", value: "£5,500", color: "from-amber-500 to-orange-500" },
+  { label: "Overdue", value: "£1,200", color: "from-red-500 to-pink-500" },
+  { label: "This Month", value: "£4,300", color: "from-blue-500 to-cyan-500" },
+];
+
+export default function InvoicingPage() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  const filteredInvoices = invoices.filter((invoice) => {
+    const matchesSearch =
+      invoice.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      invoice.client.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      invoice.project.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === "all" || invoice.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  const getDaysUntilDue = (dueDate: string) => {
+    const today = new Date();
+    const due = new Date(dueDate);
+    const diffTime = due.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <div className="flex items-center gap-2 mb-2">
+          <FileText className="h-6 w-6 text-[#0a9396]" />
+          <h1 className="text-3xl font-bold text-gray-900">Invoicing</h1>
+          <Badge variant="primary" size="sm">DigitalBOX</Badge>
+        </div>
+        <p className="text-gray-600">
+          Create, send, and track invoices for your clients
+        </p>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {stats.map((stat, index) => {
+          const Icon = index === 0 ? DollarSign : index === 1 ? Clock : index === 2 ? XCircle : Calendar;
+          return (
+            <motion.div
+              key={stat.label}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+            >
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600 mb-1">{stat.label}</p>
+                      <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                    </div>
+                    <div className={`rounded-lg bg-gradient-to-br ${stat.color} p-3`}>
+                      <Icon className="h-5 w-5 text-white" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {/* Search and Actions */}
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <Input
+            type="search"
+            placeholder="Search invoices by number, client, or project..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <div className="flex gap-2">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm text-gray-900 focus:border-[#0a9396] focus:outline-none focus:ring-2 focus:ring-[#0a9396]/20"
+          >
+            <option value="all">All Status</option>
+            <option value="draft">Draft</option>
+            <option value="sent">Sent</option>
+            <option value="paid">Paid</option>
+            <option value="overdue">Overdue</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+          <Button size="sm" className="bg-[#0a9396] hover:bg-[#087579] text-white">
+            <Plus className="mr-2 h-4 w-4" />
+            Create Invoice
+          </Button>
+        </div>
+      </div>
+
+      {/* Invoices List */}
+      <div className="grid grid-cols-1 gap-4">
+        {filteredInvoices.map((invoice, index) => {
+          const statusInfo = statusConfig[invoice.status as keyof typeof statusConfig];
+          const StatusIcon = statusInfo.icon;
+          const daysUntilDue = getDaysUntilDue(invoice.dueDate);
+          const isOverdue = daysUntilDue < 0 && invoice.status !== "paid";
+
+          return (
+            <motion.div
+              key={invoice.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+            >
+              <Card className="hover:border-[#0a9396]/50 transition-colors">
+                <CardContent className="pt-6">
+                  <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+                    <div className="flex-1">
+                      {/* Header */}
+                      <div className="flex items-start justify-between mb-4">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="text-lg font-semibold text-gray-900">
+                              {invoice.invoiceNumber}
+                            </h3>
+                            <Badge variant={statusInfo.color as any} size="sm">
+                              {statusInfo.label}
+                            </Badge>
+                            {isOverdue && (
+                              <Badge variant="default" size="sm" className="bg-red-100 text-red-700">
+                                {Math.abs(daysUntilDue)} days overdue
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-600 flex items-center gap-1 mb-2">
+                            <Building2 className="h-3 w-3" />
+                            {invoice.client}
+                          </p>
+                          <p className="text-sm text-gray-600 mb-1">{invoice.clientEmail}</p>
+                          <p className="text-base font-medium text-gray-900">{invoice.project}</p>
+                        </div>
+                        <button className="text-gray-400 hover:text-gray-600">
+                          <MoreVertical className="h-5 w-5" />
+                        </button>
+                      </div>
+
+                      {/* Invoice Items Summary */}
+                      <div className="mb-4">
+                        <div className="space-y-1">
+                          {invoice.items.slice(0, 2).map((item, idx) => (
+                            <div key={idx} className="flex justify-between text-sm text-gray-600">
+                              <span>
+                                {item.description} {item.quantity > 1 && `(x${item.quantity})`}
+                              </span>
+                              <span>{formatCurrency(item.total)}</span>
+                            </div>
+                          ))}
+                          {invoice.items.length > 2 && (
+                            <p className="text-xs text-gray-500">
+                              +{invoice.items.length - 2} more item{invoice.items.length - 2 !== 1 ? "s" : ""}
+                            </p>
+                          )}
+                        </div>
+                        <div className="border-t border-gray-200 mt-2 pt-2 flex justify-between items-center">
+                          <span className="text-sm font-medium text-gray-900">Total</span>
+                          <span className="text-lg font-bold text-gray-900">
+                            {formatCurrency(invoice.total)}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Dates */}
+                      <div className="flex flex-wrap gap-4 text-xs text-gray-500">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          Due: {new Date(invoice.dueDate).toLocaleDateString()}
+                          {!isOverdue && invoice.status !== "paid" && (
+                            <span className="text-gray-400">
+                              ({daysUntilDue} day{daysUntilDue !== 1 ? "s" : ""} remaining)
+                            </span>
+                          )}
+                        </span>
+                        {invoice.paidAt && (
+                          <span className="flex items-center gap-1">
+                            <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                            Paid: {new Date(invoice.paidAt).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex flex-col gap-2 lg:ml-4">
+                      {invoice.status === "draft" && (
+                        <>
+                          <Button size="sm" className="bg-[#0a9396] hover:bg-[#087579] text-white">
+                            <Send className="mr-2 h-4 w-4" />
+                            Send Invoice
+                          </Button>
+                          <Button variant="outline" size="sm">
+                            <Eye className="mr-2 h-4 w-4" />
+                            Preview
+                          </Button>
+                          <Button variant="ghost" size="sm">Edit</Button>
+                        </>
+                      )}
+                      {invoice.status === "sent" && (
+                        <>
+                          <Button variant="outline" size="sm">
+                            <Eye className="mr-2 h-4 w-4" />
+                            View
+                          </Button>
+                          <Button variant="outline" size="sm">
+                            <Download className="mr-2 h-4 w-4" />
+                            Download PDF
+                          </Button>
+                          <Button variant="ghost" size="sm">Send Reminder</Button>
+                        </>
+                      )}
+                      {invoice.status === "paid" && (
+                        <>
+                          <Button variant="outline" size="sm">
+                            <Eye className="mr-2 h-4 w-4" />
+                            View
+                          </Button>
+                          <Button variant="outline" size="sm">
+                            <Download className="mr-2 h-4 w-4" />
+                            Download PDF
+                          </Button>
+                        </>
+                      )}
+                      {invoice.status === "overdue" && (
+                        <>
+                          <Button size="sm" className="bg-[#0a9396] hover:bg-[#087579] text-white">
+                            Send Reminder
+                          </Button>
+                          <Button variant="outline" size="sm">
+                            <Eye className="mr-2 h-4 w-4" />
+                            View
+                          </Button>
+                          <Button variant="outline" size="sm">
+                            <Download className="mr-2 h-4 w-4" />
+                            Download PDF
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {filteredInvoices.length === 0 && (
+        <Card>
+          <CardContent className="pt-6 text-center py-12">
+            <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">No invoices found</h3>
+            <p className="text-gray-600 mb-4">
+              {searchQuery || statusFilter !== "all"
+                ? "Try adjusting your search or filter criteria"
+                : "Create your first invoice to start billing your clients"}
+            </p>
+            <Button className="bg-[#0a9396] hover:bg-[#087579] text-white">
+              <Plus className="mr-2 h-4 w-4" />
+              Create Invoice
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
