@@ -1,27 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import Project from "@/models/Project";
-import mongoose from "mongoose";
+import prisma from "@/lib/prisma";
 
-// Connect to MongoDB
-async function connectDB() {
-  if (mongoose.connections[0].readyState) {
-    return;
-  }
-  await mongoose.connect(process.env.MONGODB_URI || "");
-}
-
-// Helper function to extract ObjectId string from populated or non-populated field
-function getIdString(id: mongoose.Types.ObjectId | { _id: mongoose.Types.ObjectId } | any): string {
-  if (id instanceof mongoose.Types.ObjectId) {
-    return id.toString();
-  }
-  if (id && typeof id === 'object' && '_id' in id) {
-    return id._id.toString();
-  }
-  return String(id);
-}
+type ProjectStatus = "planning" | "active" | "on_hold" | "completed" | "cancelled";
+type DeliverableType = "report" | "document" | "design" | "other";
 
 // GET /api/projects/[id] - Get a specific project
 export async function GET(
@@ -40,18 +23,15 @@ export async function GET(
 
     const { id } = await params;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json(
-        { error: "Invalid project ID" },
-        { status: 400 }
-      );
-    }
-
-    await connectDB();
-
-    const project = await Project.findById(id)
-      .populate("proId", "name email")
-      .populate("clientId", "name email");
+    const project = await prisma.project.findUnique({
+      where: { id },
+      include: {
+        pro: { select: { name: true, email: true } },
+        client: { select: { name: true, email: true } },
+        milestones: true,
+        deliverables: true,
+      },
+    });
 
     if (!project) {
       return NextResponse.json(
@@ -61,10 +41,7 @@ export async function GET(
     }
 
     // Check if user has access to this project
-    const proIdStr = getIdString(project.proId);
-    const clientIdStr = getIdString(project.clientId);
-    
-    if (proIdStr !== session.user.id && clientIdStr !== session.user.id) {
+    if (project.proId !== session.user.id && project.clientId !== session.user.id) {
       return NextResponse.json(
         { error: "Forbidden" },
         { status: 403 }
@@ -72,7 +49,7 @@ export async function GET(
     }
 
     return NextResponse.json({ project });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error fetching project:", error);
     return NextResponse.json(
       { error: "Failed to fetch project" },
@@ -99,16 +76,9 @@ export async function PATCH(
     const { id } = await params;
     const body = await request.json();
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json(
-        { error: "Invalid project ID" },
-        { status: 400 }
-      );
-    }
-
-    await connectDB();
-
-    const project = await Project.findById(id);
+    const project = await prisma.project.findUnique({
+      where: { id },
+    });
 
     if (!project) {
       return NextResponse.json(
@@ -118,36 +88,64 @@ export async function PATCH(
     }
 
     // Check if user has access to this project
-    const proIdStr = getIdString(project.proId);
-    const clientIdStr = getIdString(project.clientId);
-    
-    if (proIdStr !== session.user.id && clientIdStr !== session.user.id) {
+    if (project.proId !== session.user.id && project.clientId !== session.user.id) {
       return NextResponse.json(
         { error: "Forbidden" },
         { status: 403 }
       );
     }
 
-    // Update allowed fields
-    if (body.title) project.title = body.title;
-    if (body.description) project.description = body.description;
-    if (body.status) project.status = body.status;
-    if (body.startDate) project.startDate = new Date(body.startDate);
+    // Prepare update data
+    const updateData: Parameters<typeof prisma.project.update>[0]["data"] = {};
+    if (body.title) updateData.title = body.title;
+    if (body.description) updateData.description = body.description;
+    if (body.status) updateData.status = body.status as ProjectStatus;
+    if (body.startDate) updateData.startDate = new Date(body.startDate);
     if (body.endDate !== undefined) {
-      project.endDate = body.endDate ? new Date(body.endDate) : undefined;
+      updateData.endDate = body.endDate ? new Date(body.endDate) : null;
     }
-    if (body.budget !== undefined) project.budget = body.budget;
-    if (body.milestones) project.milestones = body.milestones;
-    if (body.deliverables) project.deliverables = body.deliverables;
+    if (body.budget !== undefined) updateData.budget = parseFloat(body.budget);
 
-    await project.save();
+    // Handle milestones (replace implementation)
+    if (body.milestones) {
+      updateData.milestones = {
+        deleteMany: {},
+        create: body.milestones.map((m: { title: string; description: string; status?: string; dueDate?: string }) => ({
+          title: m.title,
+          description: m.description,
+          status: m.status || "planning",
+          dueDate: m.dueDate ? new Date(m.dueDate) : null,
+        })),
+      };
+    }
 
-    const updatedProject = await Project.findById(id)
-      .populate("proId", "name email")
-      .populate("clientId", "name email");
+    // Handle deliverables (replace implementation)
+    if (body.deliverables) {
+      updateData.deliverables = {
+        deleteMany: {},
+        create: body.deliverables.map((d: { title: string; description: string; status?: string; type?: DeliverableType; dueDate?: string }) => ({
+          title: d.title,
+          description: d.description,
+          status: d.status || "planning",
+          type: d.type || "other",
+          dueDate: d.dueDate ? new Date(d.dueDate) : null,
+        })),
+      };
+    }
+
+    const updatedProject = await prisma.project.update({
+      where: { id },
+      data: updateData,
+      include: {
+        pro: { select: { name: true, email: true } },
+        client: { select: { name: true, email: true } },
+        milestones: true,
+        deliverables: true,
+      },
+    });
 
     return NextResponse.json({ project: updatedProject });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error updating project:", error);
     return NextResponse.json(
       { error: "Failed to update project" },
@@ -173,16 +171,9 @@ export async function DELETE(
 
     const { id } = await params;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json(
-        { error: "Invalid project ID" },
-        { status: 400 }
-      );
-    }
-
-    await connectDB();
-
-    const project = await Project.findById(id);
+    const project = await prisma.project.findUnique({
+      where: { id },
+    });
 
     if (!project) {
       return NextResponse.json(
@@ -192,20 +183,19 @@ export async function DELETE(
     }
 
     // Check if user has access to this project
-    const proIdStr = getIdString(project.proId);
-    const clientIdStr = getIdString(project.clientId);
-    
-    if (proIdStr !== session.user.id && clientIdStr !== session.user.id) {
+    if (project.proId !== session.user.id && project.clientId !== session.user.id) {
       return NextResponse.json(
         { error: "Forbidden" },
         { status: 403 }
       );
     }
 
-    await Project.findByIdAndDelete(id);
+    await prisma.project.delete({
+      where: { id },
+    });
 
     return NextResponse.json({ message: "Project deleted successfully" });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error deleting project:", error);
     return NextResponse.json(
       { error: "Failed to delete project" },

@@ -1,23 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import mongoose from "mongoose";
-import Invoice from "@/models/Invoice";
-import Project from "@/models/Project";
-import User from "@/models/User";
-
-// Connect to MongoDB
-async function connectDB() {
-  if (mongoose.connections[0].readyState) {
-    return;
-  }
-  try {
-    await mongoose.connect(process.env.MONGODB_URI || "");
-  } catch (error) {
-    console.error("MongoDB connection error:", error);
-    throw error;
-  }
-}
+import prisma from "@/lib/prisma";
 
 export async function GET(request: NextRequest) {
   try {
@@ -31,15 +15,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    await connectDB();
-
-    const proId = new mongoose.Types.ObjectId(session.user.id);
+    const proId = session.user.id;
     const { searchParams } = new URL(request.url);
     const period = searchParams.get("period") || "6months"; // 1month, 3months, 6months, 1year
 
     // Calculate date range based on period
     const now = new Date();
-    let startDate = new Date();
+    const startDate = new Date();
     
     switch (period) {
       case "1month":
@@ -59,89 +41,101 @@ export async function GET(request: NextRequest) {
     }
 
     // Get total revenue from all paid invoices
-    const paidInvoices = await Invoice.find({
-      proId,
-      status: "paid",
+    const revenueAggregation = await prisma.invoice.aggregate({
+      where: {
+        proId,
+        status: "paid",
+      },
+      _sum: {
+        total: true,
+      },
     });
 
-    const totalRevenue = paidInvoices.reduce((sum, invoice) => sum + (invoice.total || 0), 0);
+    const totalRevenue = revenueAggregation._sum.total || 0;
 
     // Get previous period for comparison (same duration before startDate)
     const periodMonths = now.getMonth() - startDate.getMonth() + (now.getFullYear() - startDate.getFullYear()) * 12;
     const previousStartDate = new Date(startDate);
     previousStartDate.setMonth(previousStartDate.getMonth() - periodMonths);
-    const previousEndDate = new Date(startDate);
 
-    const previousPeriodInvoices = await Invoice.find({
-      proId,
-      status: "paid",
-      paidAt: {
-        $gte: previousStartDate,
-        $lt: startDate,
+    const previousRevenueAggregation = await prisma.invoice.aggregate({
+      where: {
+        proId,
+        status: "paid",
+        paidAt: {
+          gte: previousStartDate,
+          lt: startDate,
+        },
+      },
+      _sum: {
+        total: true,
       },
     });
 
-    const previousRevenue = previousPeriodInvoices.reduce((sum, invoice) => sum + (invoice.total || 0), 0);
+    const previousRevenue = previousRevenueAggregation._sum.total || 0;
     const revenueChange = previousRevenue > 0 
       ? ((totalRevenue - previousRevenue) / previousRevenue) * 100 
       : 0;
 
     // Get active clients count
-    const activeClientsSet = new Set();
-    const activeProjects = await Project.find({
-      proId,
-      status: { $in: ["planning", "active"] },
-    });
-    activeProjects.forEach((project) => {
-      if (project.clientId) {
-        activeClientsSet.add(project.clientId.toString());
-      }
+    const activeProjects = await prisma.project.findMany({
+      where: {
+        proId,
+        status: { in: ["planning", "active"] },
+      },
+      select: { clientId: true },
     });
 
-    const recentInvoices = await Invoice.find({
-      proId,
-      createdAt: { $gte: startDate },
+    const recentInvoices = await prisma.invoice.findMany({
+      where: {
+        proId,
+        createdAt: { gte: startDate },
+      },
+      select: { clientId: true },
     });
-    recentInvoices.forEach((invoice) => {
-      if (invoice.clientId) {
-        activeClientsSet.add(invoice.clientId.toString());
-      }
-    });
+
+    const activeClientsSet = new Set([
+      ...activeProjects.map((p: { clientId: string }) => p.clientId),
+      ...recentInvoices.map((i: { clientId: string }) => i.clientId),
+    ]);
 
     const activeClients = activeClientsSet.size;
 
     // Get previous period active clients
-    const previousProjects = await Project.find({
-      proId,
-      status: { $in: ["planning", "active"] },
-      createdAt: {
-        $gte: previousStartDate,
-        $lt: startDate,
+    const previousProjects = await prisma.project.findMany({
+      where: {
+        proId,
+        status: { in: ["planning", "active"] },
+        createdAt: {
+          gte: previousStartDate,
+          lt: startDate,
+        },
       },
+      select: { clientId: true },
     });
-    const previousClientsSet = new Set();
-    previousProjects.forEach((project) => {
-      if (project.clientId) {
-        previousClientsSet.add(project.clientId.toString());
-      }
-    });
+    
+    const previousClientsSet = new Set(previousProjects.map((p: { clientId: string }) => p.clientId));
     const previousActiveClients = previousClientsSet.size;
     const clientsChange = previousActiveClients > 0
       ? ((activeClients - previousActiveClients) / previousActiveClients) * 100
       : 0;
 
     // Get completed projects count
-    const completedProjects = await Project.countDocuments({
-      proId,
-      status: "completed",
+    const completedProjects = await prisma.project.count({
+      where: {
+        proId,
+        status: "completed",
+      },
     });
 
-    const previousCompletedProjects = await Project.countDocuments({
-      proId,
-      status: "completed",
-      updatedAt: {
-        $gte: previousStartDate,
-        $lt: startDate,
+    const previousCompletedProjects = await prisma.project.count({
+      where: {
+        proId,
+        status: "completed",
+        updatedAt: {
+          gte: previousStartDate,
+          lt: startDate,
+        },
       },
     });
 
@@ -150,24 +144,34 @@ export async function GET(request: NextRequest) {
       : 0;
 
     // Calculate average project value
-    const allProjects = await Project.find({ proId });
-    const projectsWithBudget = allProjects.filter(p => p.budget && p.budget > 0);
-    const avgProjectValue = projectsWithBudget.length > 0
-      ? projectsWithBudget.reduce((sum, p) => sum + (p.budget || 0), 0) / projectsWithBudget.length
-      : 0;
-
-    // Get previous period average project value
-    const previousProjectsWithBudget = await Project.find({
-      proId,
-      budget: { $gt: 0 },
-      createdAt: {
-        $gte: previousStartDate,
-        $lt: startDate,
+    const projectAggregation = await prisma.project.aggregate({
+      where: {
+        proId,
+        budget: { gt: 0 },
+      },
+      _avg: {
+        budget: true,
       },
     });
-    const previousAvgProjectValue = previousProjectsWithBudget.length > 0
-      ? previousProjectsWithBudget.reduce((sum, p) => sum + (p.budget || 0), 0) / previousProjectsWithBudget.length
-      : 0;
+    
+    const avgProjectValue = projectAggregation._avg.budget || 0;
+
+    // Get previous period average project value
+    const previousProjectAggregation = await prisma.project.aggregate({
+      where: {
+        proId,
+        budget: { gt: 0 },
+        createdAt: {
+          gte: previousStartDate,
+          lt: startDate,
+        },
+      },
+      _avg: {
+        budget: true,
+      },
+    });
+    
+    const previousAvgProjectValue = previousProjectAggregation._avg.budget || 0;
 
     const avgProjectValueChange = previousAvgProjectValue > 0
       ? ((avgProjectValue - previousAvgProjectValue) / previousAvgProjectValue) * 100
@@ -175,23 +179,27 @@ export async function GET(request: NextRequest) {
 
     // Get monthly revenue data for charts
     const monthlyRevenueData = [];
-    const monthlyProfitData = [];
     const monthlyClientsData = [];
     
     for (let i = 5; i >= 0; i--) {
       const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
       
-      const monthInvoices = await Invoice.find({
-        proId,
-        status: "paid",
-        paidAt: {
-          $gte: monthStart,
-          $lte: monthEnd,
+      const monthRevenueAggregation = await prisma.invoice.aggregate({
+        where: {
+          proId,
+          status: "paid",
+          paidAt: {
+            gte: monthStart,
+            lte: monthEnd,
+          },
+        },
+        _sum: {
+          total: true,
         },
       });
       
-      const monthRevenue = monthInvoices.reduce((sum, invoice) => sum + (invoice.total || 0), 0);
+      const monthRevenue = monthRevenueAggregation._sum.total || 0;
       const monthProfit = monthRevenue * 0.75; // 75% profit margin
       
       monthlyRevenueData.push({
@@ -201,19 +209,19 @@ export async function GET(request: NextRequest) {
       });
 
       // Get clients for this month
-      const monthProjects = await Project.find({
-        proId,
-        createdAt: {
-          $gte: monthStart,
-          $lte: monthEnd,
+      const monthClientsAggregation = await prisma.project.findMany({
+        where: {
+          proId,
+          createdAt: {
+            gte: monthStart,
+            lte: monthEnd,
+          },
         },
+        select: { clientId: true },
       });
-      const monthClientsSet = new Set();
-      monthProjects.forEach((project) => {
-        if (project.clientId) {
-          monthClientsSet.add(project.clientId.toString());
-        }
-      });
+      
+      const monthClientsSet = new Set(monthClientsAggregation.map((p: { clientId: string }) => p.clientId));
+      
       monthlyClientsData.push({
         month: monthStart.toLocaleDateString("en-GB", { month: "short" }),
         clients: monthClientsSet.size,
@@ -221,30 +229,28 @@ export async function GET(request: NextRequest) {
     }
 
     // Get project status distribution
-    const projectStatusCounts = await Project.aggregate([
-      { $match: { proId } },
-      {
-        $group: {
-          _id: "$status",
-          count: { $sum: 1 },
-        },
+    const projectStatusCounts = await prisma.project.groupBy({
+      by: ["status"],
+      where: { proId },
+      _count: {
+        status: true,
       },
-    ]);
+    });
 
-    const projectStatusData = projectStatusCounts.map((item) => {
+    const projectStatusData = projectStatusCounts.map((item: { status: string; _count: { status: number } }) => {
       const statusMap: Record<string, { name: string; color: string }> = {
         completed: { name: "Completed", color: "#10b981" },
         active: { name: "In Progress", color: "#6366f1" },
         planning: { name: "Planning", color: "#f59e0b" },
-        "on-hold": { name: "On Hold", color: "#ef4444" },
+        on_hold: { name: "On Hold", color: "#ef4444" },
         cancelled: { name: "Cancelled", color: "#6b7280" },
       };
       
-      const statusInfo = statusMap[item._id] || { name: item._id, color: "#6b7280" };
+      const statusInfo = statusMap[item.status] || { name: item.status, color: "#6b7280" };
       
       return {
         name: statusInfo.name,
-        value: item.count,
+        value: item._count.status,
         color: statusInfo.color,
       };
     });
@@ -266,7 +272,7 @@ export async function GET(request: NextRequest) {
         projectStatusData,
       },
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error fetching reporting stats:", error);
     return NextResponse.json(
       { error: "Failed to fetch reporting stats" },

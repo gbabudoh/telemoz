@@ -13,10 +13,8 @@ import {
   FolderKanban,
   Download,
   Calendar,
-  Filter,
   FileText,
   PieChart,
-  LineChart,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
@@ -41,7 +39,7 @@ interface ChartData {
 
 export default function ReportingPage() {
   const { data: session } = useSession();
-  const [dateRange, setDateRange] = useState("6months");
+  const [dateRange] = useState("6months");
   const [stats, setStats] = useState<ReportingStats>({
     totalRevenue: 0,
     revenueChange: 0,
@@ -130,11 +128,11 @@ export default function ReportingPage() {
             <Badge variant="primary" size="sm">DigitalBOX</Badge>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" className="cursor-pointer">
               <Calendar className="mr-2 h-4 w-4" />
               Select Date Range
             </Button>
-            <Button size="sm" className="bg-[#0a9396] hover:bg-[#087579] text-white">
+            <Button size="sm" className="bg-[#0a9396] hover:bg-[#087579] text-white cursor-pointer">
               <Download className="mr-2 h-4 w-4" />
               Export Report
             </Button>
@@ -277,7 +275,7 @@ export default function ReportingPage() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Button variant="outline" className="h-auto py-4 flex flex-col items-start">
+            <Button variant="outline" className="h-auto py-4 flex flex-col items-start cursor-pointer">
               <div className="flex items-center gap-2 mb-2">
                 <PieChart className="h-5 w-5 text-[#0a9396]" />
                 <span className="font-semibold text-gray-900">Performance Report</span>
@@ -286,7 +284,7 @@ export default function ReportingPage() {
                 Traffic, leads, and conversion analytics
               </span>
             </Button>
-            <Button variant="outline" className="h-auto py-4 flex flex-col items-start">
+            <Button variant="outline" className="h-auto py-4 flex flex-col items-start cursor-pointer">
               <div className="flex items-center gap-2 mb-2">
                 <DollarSign className="h-5 w-5 text-[#0a9396]" />
                 <span className="font-semibold text-gray-900">Financial Report</span>
@@ -295,7 +293,7 @@ export default function ReportingPage() {
                 Revenue, profit, and billing summary
               </span>
             </Button>
-            <Button variant="outline" className="h-auto py-4 flex flex-col items-start">
+            <Button variant="outline" className="h-auto py-4 flex flex-col items-start cursor-pointer">
               <div className="flex items-center gap-2 mb-2">
                 <Users className="h-5 w-5 text-[#0a9396]" />
                 <span className="font-semibold text-gray-900">Client Report</span>

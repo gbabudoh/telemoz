@@ -13,11 +13,8 @@ import {
   MessageSquare,
   TrendingUp,
   Search,
-  Filter,
   CheckCircle2,
-  AlertCircle,
   Calendar,
-  ArrowRight,
   X,
   Plus,
 } from "lucide-react";
@@ -95,12 +92,27 @@ const projects = [
 ];
 
 export default function ClientProjectsPage() {
-  const { data: session } = useSession();
+  useSession();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showProjectDetails, setShowProjectDetails] = useState(false);
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
-  const [selectedProject, setSelectedProject] = useState<any>(null);
+  const [selectedProject, setSelectedProject] = useState<{
+    id: number;
+    name: string;
+    pro: string;
+    proId: string;
+    status: string;
+    progress: number;
+    budget: number;
+    spent: number;
+    deadline: string;
+    startDate: string;
+    tasks: number;
+    completedTasks: number;
+    nextMilestone: string;
+    description: string;
+  } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [newProject, setNewProject] = useState({
     name: "",
@@ -127,7 +139,7 @@ export default function ClientProjectsPage() {
     totalSpent: projects.reduce((sum, p) => sum + p.spent, 0),
   };
 
-  const handleViewDetails = (project: any) => {
+  const handleViewDetails = (project: NonNullable<typeof selectedProject>) => {
     setSelectedProject(project);
     setShowProjectDetails(true);
   };
@@ -249,7 +261,7 @@ export default function ClientProjectsPage() {
               {["all", "active", "planning", "completed", "on-hold"].map((status) => (
                 <Button
                   key={status}
-                  variant={statusFilter === status ? "default" : "outline"}
+                  variant={statusFilter === status ? "primary" : "outline"}
                   size="sm"
                   onClick={() => setStatusFilter(status)}
                   className={statusFilter === status ? "bg-[#0a9396] hover:bg-[#087579] text-white" : ""}

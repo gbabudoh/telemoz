@@ -1,24 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import mongoose from "mongoose";
-import User from "@/models/User";
-import Project from "@/models/Project";
-import Invoice from "@/models/Invoice";
+import prisma from "@/lib/prisma";
 
-async function connectDB() {
-  if (mongoose.connections[0].readyState) {
-    return;
-  }
-  try {
-    await mongoose.connect(process.env.MONGODB_URI || "");
-  } catch (error) {
-    console.error("MongoDB connection error:", error);
-    throw error;
-  }
-}
-
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
 
@@ -30,25 +15,39 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    await connectDB();
-
     // User Statistics
-    const totalUsers = await User.countDocuments();
-    const totalPros = await User.countDocuments({ userType: "pro" });
-    const totalClients = await User.countDocuments({ userType: "client" });
-    const totalAdmins = await User.countDocuments({ userType: "admin" });
-    const activeUsers = await User.countDocuments({ subscriptionStatus: "active" });
-    const inactiveUsers = await User.countDocuments({ subscriptionStatus: { $ne: "active" } });
+    const [
+      totalUsers,
+      totalPros,
+      totalClients,
+      totalAdmins,
+      activeUsers,
+      inactiveUsers,
+    ] = await Promise.all([
+      prisma.user.count(),
+      prisma.user.count({ where: { userType: "pro" } }),
+      prisma.user.count({ where: { userType: "client" } }),
+      prisma.user.count({ where: { userType: "admin" } }),
+      prisma.user.count({ where: { subscriptionStatus: "active" } }),
+      prisma.user.count({ where: { subscriptionStatus: { not: "active" } } }),
+    ]);
 
     // Project Statistics
-    const activeProjects = await Project.countDocuments({ status: { $in: ["planning", "active"] } });
-    const completedProjects = await Project.countDocuments({ status: "completed" });
+    const [activeProjects, completedProjects] = await Promise.all([
+      prisma.project.count({ where: { status: { in: ["planning", "active"] } } }),
+      prisma.project.count({ where: { status: "completed" } }),
+    ]);
 
     // Revenue Statistics
-    const invoices = await Invoice.find({ status: "paid" });
-    const totalRevenue = invoices.reduce((sum, invoice) => sum + (invoice.total || 0), 0);
+    const revenueAggregation = await prisma.invoice.aggregate({
+      where: { status: "paid" },
+      _sum: { total: true },
+    });
+    const totalRevenue = revenueAggregation._sum.total || 0;
     const totalCommission = totalRevenue * 0.13; // 13% commission
-    const pendingInvoices = await Invoice.countDocuments({ status: "pending" });
+    const pendingInvoices = await prisma.invoice.count({ 
+      where: { status: { in: ["sent", "overdue"] } } 
+    });
 
     return NextResponse.json({
       totalUsers,
@@ -63,7 +62,7 @@ export async function GET(request: NextRequest) {
       activeUsers,
       inactiveUsers,
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error fetching admin stats:", error);
     return NextResponse.json(
       { error: "Failed to fetch admin statistics" },

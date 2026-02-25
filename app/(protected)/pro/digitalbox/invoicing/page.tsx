@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
@@ -8,7 +8,6 @@ import {
   FileText,
   Plus,
   Search,
-  Filter,
   DollarSign,
   Calendar,
   CheckCircle2,
@@ -19,8 +18,9 @@ import {
   Eye,
   MoreVertical,
   Building2,
+  X,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { formatCurrency } from "@/lib/utils";
 
@@ -132,11 +132,61 @@ const stats = [
   { label: "This Month", value: "£4,300", color: "from-blue-500 to-cyan-500" },
 ];
 
+type InvoiceType = typeof invoices[0];
+
 export default function InvoicingPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [invoicesList, setInvoicesList] = useState(invoices);
+  const [selectedInvoice, setSelectedInvoice] = useState<InvoiceType | null>(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [notificationModal, setNotificationModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: "success" | "info" | "error";
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "success",
+  });
 
-  const filteredInvoices = invoices.filter((invoice) => {
+  const showNotification = (title: string, message: string, type: "success" | "info" | "error" = "success") => {
+    setNotificationModal({ isOpen: true, title, message, type });
+  };
+
+  const handleView = (invoice: InvoiceType) => {
+    setSelectedInvoice(invoice);
+    setIsViewModalOpen(true);
+  };
+
+  const handleDownloadPDF = (invoice: InvoiceType) => {
+    setSelectedInvoice(invoice);
+    setIsViewModalOpen(true);
+    setTimeout(() => {
+      window.print();
+    }, 500);
+  };
+
+  const handleSendInvoice = (id: number) => {
+    setInvoicesList(prev => prev.map(inv => inv.id === id ? { ...inv, status: 'sent' } : inv));
+    showNotification("Invoice Sent", "Invoice sent successfully!", "success");
+  };
+
+  const handleSendReminder = (id: number) => {
+    showNotification("Reminder Sent", `Payment reminder sent to the client for invoice ID: ${id}.`, "success");
+  };
+
+  const handleEdit = (id: number) => {
+    showNotification("Edit Invoice", `Opening edit invoice form for invoice ID: ${id}...`, "info");
+  };
+
+  const handleCreateInvoice = () => {
+    showNotification("Create Invoice", "Opening create invoice form...", "info");
+  };
+
+  const filteredInvoices = invoicesList.filter((invoice) => {
     const matchesSearch =
       invoice.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
       invoice.client.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -212,7 +262,7 @@ export default function InvoicingPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm text-gray-900 focus:border-[#0a9396] focus:outline-none focus:ring-2 focus:ring-[#0a9396]/20"
+            className="px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm text-gray-900 focus:border-[#0a9396] focus:outline-none focus:ring-2 focus:ring-[#0a9396]/20 cursor-pointer"
           >
             <option value="all">All Status</option>
             <option value="draft">Draft</option>
@@ -221,8 +271,8 @@ export default function InvoicingPage() {
             <option value="overdue">Overdue</option>
             <option value="cancelled">Cancelled</option>
           </select>
-          <Button size="sm" className="bg-[#0a9396] hover:bg-[#087579] text-white">
-            <Plus className="mr-2 h-4 w-4" />
+          <Button size="sm" onClick={handleCreateInvoice} className="bg-[#0a9396] hover:bg-[#087579] text-white cursor-pointer">
+            <Plus className="mr-2 h-4 w-4 cursor-pointer" />
             Create Invoice
           </Button>
         </div>
@@ -232,7 +282,6 @@ export default function InvoicingPage() {
       <div className="grid grid-cols-1 gap-4">
         {filteredInvoices.map((invoice, index) => {
           const statusInfo = statusConfig[invoice.status as keyof typeof statusConfig];
-          const StatusIcon = statusInfo.icon;
           const daysUntilDue = getDaysUntilDue(invoice.dueDate);
           const isOverdue = daysUntilDue < 0 && invoice.status !== "paid";
 
@@ -254,7 +303,7 @@ export default function InvoicingPage() {
                             <h3 className="text-lg font-semibold text-gray-900">
                               {invoice.invoiceNumber}
                             </h3>
-                            <Badge variant={statusInfo.color as any} size="sm">
+                            <Badge variant={statusInfo.color as "default" | "info" | "success"} size="sm">
                               {statusInfo.label}
                             </Badge>
                             {isOverdue && (
@@ -270,8 +319,8 @@ export default function InvoicingPage() {
                           <p className="text-sm text-gray-600 mb-1">{invoice.clientEmail}</p>
                           <p className="text-base font-medium text-gray-900">{invoice.project}</p>
                         </div>
-                        <button className="text-gray-400 hover:text-gray-600">
-                          <MoreVertical className="h-5 w-5" />
+                        <button onClick={() => alert("Options menu")} className="text-gray-400 hover:text-gray-600 cursor-pointer">
+                          <MoreVertical className="h-5 w-5 cursor-pointer" />
                         </button>
                       </div>
 
@@ -324,53 +373,53 @@ export default function InvoicingPage() {
                     <div className="flex flex-col gap-2 lg:ml-4">
                       {invoice.status === "draft" && (
                         <>
-                          <Button size="sm" className="bg-[#0a9396] hover:bg-[#087579] text-white">
-                            <Send className="mr-2 h-4 w-4" />
+                          <Button size="sm" onClick={() => handleSendInvoice(invoice.id)} className="bg-[#0a9396] hover:bg-[#087579] text-white cursor-pointer">
+                            <Send className="mr-2 h-4 w-4 cursor-pointer" />
                             Send Invoice
                           </Button>
-                          <Button variant="outline" size="sm">
-                            <Eye className="mr-2 h-4 w-4" />
+                          <Button variant="outline" size="sm" onClick={() => handleView(invoice)} className="cursor-pointer">
+                            <Eye className="mr-2 h-4 w-4 cursor-pointer" />
                             Preview
                           </Button>
-                          <Button variant="ghost" size="sm">Edit</Button>
+                          <Button variant="ghost" size="sm" onClick={() => handleEdit(invoice.id)} className="cursor-pointer">Edit</Button>
                         </>
                       )}
                       {invoice.status === "sent" && (
                         <>
-                          <Button variant="outline" size="sm">
-                            <Eye className="mr-2 h-4 w-4" />
+                          <Button variant="outline" size="sm" onClick={() => handleView(invoice)} className="cursor-pointer">
+                            <Eye className="mr-2 h-4 w-4 cursor-pointer" />
                             View
                           </Button>
-                          <Button variant="outline" size="sm">
-                            <Download className="mr-2 h-4 w-4" />
+                          <Button variant="outline" size="sm" onClick={() => handleDownloadPDF(invoice)} className="cursor-pointer">
+                            <Download className="mr-2 h-4 w-4 cursor-pointer" />
                             Download PDF
                           </Button>
-                          <Button variant="ghost" size="sm">Send Reminder</Button>
+                          <Button variant="ghost" size="sm" onClick={() => handleSendReminder(invoice.id)} className="cursor-pointer">Send Reminder</Button>
                         </>
                       )}
                       {invoice.status === "paid" && (
                         <>
-                          <Button variant="outline" size="sm">
-                            <Eye className="mr-2 h-4 w-4" />
+                          <Button variant="outline" size="sm" onClick={() => handleView(invoice)} className="cursor-pointer">
+                            <Eye className="mr-2 h-4 w-4 cursor-pointer" />
                             View
                           </Button>
-                          <Button variant="outline" size="sm">
-                            <Download className="mr-2 h-4 w-4" />
+                          <Button variant="outline" size="sm" onClick={() => handleDownloadPDF(invoice)} className="cursor-pointer">
+                            <Download className="mr-2 h-4 w-4 cursor-pointer" />
                             Download PDF
                           </Button>
                         </>
                       )}
                       {invoice.status === "overdue" && (
                         <>
-                          <Button size="sm" className="bg-[#0a9396] hover:bg-[#087579] text-white">
+                          <Button size="sm" onClick={() => handleSendReminder(invoice.id)} className="bg-[#0a9396] hover:bg-[#087579] text-white cursor-pointer">
                             Send Reminder
                           </Button>
-                          <Button variant="outline" size="sm">
-                            <Eye className="mr-2 h-4 w-4" />
+                          <Button variant="outline" size="sm" onClick={() => handleView(invoice)} className="cursor-pointer">
+                            <Eye className="mr-2 h-4 w-4 cursor-pointer" />
                             View
                           </Button>
-                          <Button variant="outline" size="sm">
-                            <Download className="mr-2 h-4 w-4" />
+                          <Button variant="outline" size="sm" onClick={() => handleDownloadPDF(invoice)} className="cursor-pointer">
+                            <Download className="mr-2 h-4 w-4 cursor-pointer" />
                             Download PDF
                           </Button>
                         </>
@@ -394,13 +443,160 @@ export default function InvoicingPage() {
                 ? "Try adjusting your search or filter criteria"
                 : "Create your first invoice to start billing your clients"}
             </p>
-            <Button className="bg-[#0a9396] hover:bg-[#087579] text-white">
-              <Plus className="mr-2 h-4 w-4" />
+            <Button onClick={handleCreateInvoice} className="bg-[#0a9396] hover:bg-[#087579] text-white cursor-pointer">
+              <Plus className="mr-2 h-4 w-4 cursor-pointer" />
               Create Invoice
             </Button>
           </CardContent>
         </Card>
       )}
+
+      {/* View Invoice Modal */}
+      {isViewModalOpen && selectedInvoice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto"
+          >
+            <div className="p-6 border-b border-gray-200 flex justify-between items-center print:hidden">
+              <h2 className="text-xl font-bold text-gray-900">Invoice {selectedInvoice.invoiceNumber}</h2>
+              <div className="flex gap-2">
+                 <Button onClick={() => window.print()} variant="outline" size="sm" className="cursor-pointer hidden sm:flex">
+                   <Download className="h-4 w-4 mr-2 cursor-pointer" />
+                   Download PDF
+                 </Button>
+                 <button onClick={() => setIsViewModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-lg cursor-pointer">
+                   <X className="h-5 w-5 text-gray-500 cursor-pointer" />
+                 </button>
+              </div>
+            </div>
+            <div className="p-8 print:p-0 bg-white" id="printable-invoice">
+              {/* Invoice Header */}
+              <div className="flex justify-between items-start mb-8 border-b border-gray-200 pb-8">
+                 <div>
+                   <h1 className="text-3xl font-bold text-gray-900 mb-2">INVOICE</h1>
+                   <p className="text-gray-500 font-medium">{selectedInvoice.invoiceNumber}</p>
+                 </div>
+                 <div className="text-right">
+                   <h3 className="font-bold text-gray-900 text-xl">DigitalBOX</h3>
+                   <p className="text-gray-500">123 Tech Street, London</p>
+                 </div>
+              </div>
+              {/* Client & Dates */}
+              <div className="flex justify-between mb-8">
+                 <div>
+                   <p className="text-sm text-gray-500 mb-1">Bill To:</p>
+                   <p className="font-bold text-gray-900 text-lg">{selectedInvoice.client}</p>
+                   <p className="text-gray-600">{selectedInvoice.clientEmail}</p>
+                 </div>
+                 <div className="text-right">
+                   <div className="mb-2">
+                     <p className="text-sm text-gray-500">Invoice Date:</p>
+                     <p className="font-medium text-gray-900">{new Date(selectedInvoice.createdAt).toLocaleDateString()}</p>
+                   </div>
+                   <div>
+                     <p className="text-sm text-gray-500">Due Date:</p>
+                     <p className="font-medium text-gray-900">{new Date(selectedInvoice.dueDate).toLocaleDateString()}</p>
+                   </div>
+                 </div>
+              </div>
+              
+              {/* Items Table */}
+              <table className="w-full mb-8">
+                <thead>
+                  <tr className="border-b-2 border-gray-200 text-left">
+                    <th className="py-3 font-semibold text-gray-900">Description</th>
+                    <th className="py-3 font-semibold text-gray-900 text-center">Qty</th>
+                    <th className="py-3 font-semibold text-gray-900 text-right">Price</th>
+                    <th className="py-3 font-semibold text-gray-900 text-right">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedInvoice.items.map((item: InvoiceType["items"][0], i: number) => (
+                    <tr key={i} className="border-b border-gray-200">
+                      <td className="py-4 text-gray-800">{item.description}</td>
+                      <td className="py-4 text-gray-800 text-center">{item.quantity}</td>
+                      <td className="py-4 text-gray-800 text-right">{formatCurrency(item.unitPrice)}</td>
+                      <td className="py-4 text-gray-900 text-right font-medium">{formatCurrency(item.total)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {/* Totals */}
+              <div className="flex justify-end">
+                <div className="w-64">
+                  <div className="flex justify-between py-2 text-gray-600">
+                    <span>Subtotal</span>
+                    <span className="font-medium text-gray-900">{formatCurrency(selectedInvoice.subtotal)}</span>
+                  </div>
+                  <div className="flex justify-between py-2 border-b border-gray-200 text-gray-600">
+                    <span>Tax (0%)</span>
+                    <span className="font-medium text-gray-900">{formatCurrency(selectedInvoice.tax)}</span>
+                  </div>
+                  <div className="flex justify-between py-4">
+                    <span className="font-bold text-gray-900 text-lg">Total</span>
+                    <span className="font-bold text-2xl text-[#0a9396]">{formatCurrency(selectedInvoice.total)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      <style>{`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          #printable-invoice, #printable-invoice * {
+            visibility: visible;
+          }
+          #printable-invoice {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            padding: 20px;
+            margin: 0;
+          }
+        }
+      `}</style>
+
+      {/* Notification Modal */}
+      <AnimatePresence>
+        {notificationModal.isOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden"
+            >
+              <div className="p-6 text-center">
+                <div className={`mx-auto flex h-16 w-16 items-center justify-center rounded-full mb-4 ${
+                  notificationModal.type === 'success' ? 'bg-emerald-100' :
+                  notificationModal.type === 'error' ? 'bg-red-100' : 'bg-[#0a9396]/10'
+                }`}>
+                  {notificationModal.type === 'success' && <CheckCircle2 className="h-8 w-8 text-emerald-600" />}
+                  {notificationModal.type === 'error' && <XCircle className="h-8 w-8 text-red-600" />}
+                  {notificationModal.type === 'info' && <FileText className="h-8 w-8 text-[#0a9396]" />}
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">{notificationModal.title}</h3>
+                <p className="text-gray-600 mb-6">{notificationModal.message}</p>
+                <Button 
+                  onClick={() => setNotificationModal(prev => ({ ...prev, isOpen: false }))} 
+                  className="w-full bg-[#0a9396] hover:bg-[#087579] text-white cursor-pointer"
+                >
+                  OK
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

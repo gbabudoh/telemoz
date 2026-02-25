@@ -12,18 +12,16 @@ import {
   Users,
   Briefcase,
   CheckCircle2,
-  X,
   TrendingUp,
   DollarSign,
   Clock,
   Mail,
-  Phone,
   Award,
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { allCountries, regions, countriesByRegion } from "@/lib/countries";
+import { regions, countriesByRegion } from "@/lib/countries";
 
 // Categories for filtering
 const categories = [
@@ -36,20 +34,7 @@ const categories = [
   { id: "analytics", name: "Analytics", icon: TrendingUp },
 ];
 
-// Helper to get countries for filter
-const getCountriesForFilter = () => {
-  const result: Array<{ id: string; name: string; region: string }> = [];
-  regions.forEach((region) => {
-    countriesByRegion[region].forEach((country) => {
-      result.push({
-        id: country.name,
-        name: country.name,
-        region: country.region,
-      });
-    });
-  });
-  return result;
-};
+
 
 // Mock data - replace with real data from API
 const pros = [
@@ -399,7 +384,7 @@ export default function MarketplacePage() {
                               </Badge>
                             ))}
                             {pro.specialties.length > 3 && (
-                              <Badge variant="secondary" size="sm">
+                              <Badge variant="default" size="sm">
                                 +{pro.specialties.length - 3} more
                               </Badge>
                             )}
@@ -413,7 +398,7 @@ export default function MarketplacePage() {
                                 {pro.certifications.length} Certification{pro.certifications.length !== 1 ? "s" : ""}
                               </span>
                               <div className="flex gap-1">
-                                {pro.certifications.slice(0, 3).map((cert: any, idx: number) => (
+                                {pro.certifications.slice(0, 3).map((cert: { issuer: string }, idx: number) => (
                                   <Badge key={idx} variant="success" size="sm" className="text-xs">
                                     {cert.issuer}
                                   </Badge>
@@ -505,7 +490,7 @@ export default function MarketplacePage() {
                             </Badge>
                           ))}
                           {request.requirements.length > 2 && (
-                            <Badge variant="secondary" size="sm">
+                            <Badge variant="default" size="sm">
                               +{request.requirements.length - 2} more
                             </Badge>
                           )}

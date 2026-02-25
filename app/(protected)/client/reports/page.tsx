@@ -10,7 +10,6 @@ import {
   Download,
   Calendar,
   Search,
-  Filter,
   FileText,
   Eye,
   BarChart3,
@@ -92,7 +91,7 @@ const chartData = [
 ];
 
 export default function ClientReportsPage() {
-  const { data: session } = useSession();
+  useSession();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
@@ -241,7 +240,7 @@ export default function ClientReportsPage() {
               {["all", "active", "completed"].map((status) => (
                 <Button
                   key={status}
-                  variant={statusFilter === status ? "default" : "outline"}
+                  variant={statusFilter === status ? "primary" : "outline"}
                   size="sm"
                   onClick={() => setStatusFilter(status)}
                   className={statusFilter === status ? "bg-[#0a9396] hover:bg-[#087579] text-white" : ""}

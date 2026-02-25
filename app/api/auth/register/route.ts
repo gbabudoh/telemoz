@@ -1,21 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import mongoose from "mongoose";
-import User from "@/models/User";
+import prisma from "@/lib/prisma";
 import { createHash } from "crypto";
 
-// Connect to MongoDB
-async function connectDB() {
-  if (mongoose.connections[0].readyState) {
-    return;
-  }
-  try {
-    await mongoose.connect(process.env.MONGODB_URI || "");
-    console.log("MongoDB connected");
-  } catch (error) {
-    console.error("MongoDB connection error:", error);
-    throw error;
-  }
-}
+type UserTypeLocal = "pro" | "client" | "admin";
 
 // Hash password using SHA-256 (for production, use bcryptjs)
 function hashPassword(password: string): string {
@@ -24,8 +11,6 @@ function hashPassword(password: string): string {
 
 export async function POST(request: NextRequest) {
   try {
-    await connectDB();
-
     const body = await request.json();
     const { name, email, password, userType, country, city, timezone } = body;
 
@@ -63,7 +48,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user already exists
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    const existingUser = await prisma.user.findUnique({
+      where: { email: email.toLowerCase() },
+    });
+
     if (existingUser) {
       return NextResponse.json(
         { error: "User with this email already exists" },
@@ -73,23 +61,22 @@ export async function POST(request: NextRequest) {
 
     // Create new user
     const hashedPassword = hashPassword(password);
-    const newUser = new User({
-      name,
-      email: email.toLowerCase(),
-      password: hashedPassword,
-      userType,
-      country: country || undefined,
-      city: city || undefined,
-      timezone: timezone || "Europe/London",
-      subscriptionTier: "starter",
-      subscriptionStatus: "active",
+    const newUser = await prisma.user.create({
+      data: {
+        name,
+        email: email.toLowerCase(),
+        password: hashedPassword,
+        userType: userType as UserTypeLocal,
+        country: country || undefined,
+        city: city || undefined,
+        timezone: timezone || "Europe/London",
+        subscriptionTier: "starter",
+        subscriptionStatus: "active",
+      },
     });
 
-    await newUser.save();
-
-    // Return user data (without password)
     const userResponse = {
-      id: newUser._id.toString(),
+      id: newUser.id,
       name: newUser.name,
       email: newUser.email,
       userType: newUser.userType,
@@ -103,11 +90,11 @@ export async function POST(request: NextRequest) {
       },
       { status: 201 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Registration error:", error);
     
-    // Handle duplicate key error
-    if (error.code === 11000) {
+    // Handle Prisma duplicate key error (P2002)
+    if (error && typeof error === "object" && "code" in error && error.code === "P2002") {
       return NextResponse.json(
         { error: "User with this email already exists" },
         { status: 409 }

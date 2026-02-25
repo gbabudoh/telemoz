@@ -15,7 +15,7 @@ import {
   Clock,
   Zap,
 } from "lucide-react";
-import { formatCurrency, formatNumber, formatPercentage } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
@@ -143,11 +143,11 @@ export default function ProDashboard() {
       >
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Welcome back, {userName}</h1>
-          <p className="text-gray-600 mt-1">Here's what's happening with your business today</p>
+          <p className="text-gray-600 mt-1">Here&apos;s what&apos;s happening with your business today</p>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="success">Profile: 95% Complete</Badge>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" className="cursor-pointer">
             Get Telemoz Certified
           </Button>
         </div>
@@ -260,7 +260,7 @@ export default function ProDashboard() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Zap className="h-5 w-5 text-primary-400" />
+              <Zap className="h-5 w-5 text-primary-400 cursor-pointer" />
               Action Center
             </CardTitle>
           </CardHeader>
@@ -276,13 +276,13 @@ export default function ProDashboard() {
                   className="flex items-start gap-3 rounded-lg border border-gray-200 bg-white p-4 hover:border-[#0a9396]/50 transition-colors shadow-sm"
                 >
                   <div className="rounded-lg bg-red-500/20 p-2">
-                    <Icon className="h-4 w-4 text-red-500" />
+                    <Icon className="h-4 w-4 text-red-500 cursor-pointer" />
                   </div>
                   <div className="flex-1">
                     <p className="font-medium text-gray-900">{item.title}</p>
                     <p className="text-sm text-gray-600">{item.description}</p>
                   </div>
-                  <Button variant="ghost" size="sm">
+                  <Button variant="ghost" size="sm" className="cursor-pointer">
                     View
                   </Button>
                 </motion.div>
@@ -295,7 +295,7 @@ export default function ProDashboard() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-primary-400" />
+              <Users className="h-5 w-5 text-primary-400 cursor-pointer" />
               Recent Project Inquiries
             </CardTitle>
           </CardHeader>
@@ -326,10 +326,10 @@ export default function ProDashboard() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="ghost" size="sm">
+                  <Button variant="ghost" size="sm" className="cursor-pointer">
                     View
                   </Button>
-                  <Button size="sm">Respond</Button>
+                  <Button size="sm" className="cursor-pointer">Respond</Button>
                 </div>
               </motion.div>
             ))}
@@ -347,7 +347,7 @@ export default function ProDashboard() {
                 <p className="text-2xl font-bold text-gray-900">4.8/5</p>
               </div>
               <div className="rounded-full bg-emerald-500/20 p-3">
-                <CheckCircle2 className="h-6 w-6 text-emerald-400" />
+                <CheckCircle2 className="h-6 w-6 text-emerald-400 cursor-pointer" />
               </div>
             </div>
           </CardContent>
@@ -360,7 +360,7 @@ export default function ProDashboard() {
                 <p className="text-2xl font-bold text-gray-900">68%</p>
               </div>
               <div className="rounded-full bg-primary-500/20 p-3">
-                <TrendingUp className="h-6 w-6 text-primary-400" />
+                <TrendingUp className="h-6 w-6 text-primary-400 cursor-pointer" />
               </div>
             </div>
           </CardContent>
@@ -373,7 +373,7 @@ export default function ProDashboard() {
                 <p className="text-2xl font-bold text-gray-900">2.4h</p>
               </div>
               <div className="rounded-full bg-cyan-500/20 p-3">
-                <Clock className="h-6 w-6 text-cyan-400" />
+                <Clock className="h-6 w-6 text-cyan-400 cursor-pointer" />
               </div>
             </div>
           </CardContent>

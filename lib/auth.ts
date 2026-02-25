@@ -1,22 +1,8 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
-import mongoose from "mongoose";
-import User from "@/models/User";
+import prisma from "@/lib/prisma";
 import { createHash } from "crypto";
-
-// Connect to MongoDB
-async function connectDB() {
-  if (mongoose.connections[0].readyState) {
-    return;
-  }
-  try {
-    await mongoose.connect(process.env.MONGODB_URI || "");
-  } catch (error) {
-    console.error("MongoDB connection error:", error);
-    throw error;
-  }
-}
 
 // Hash password using SHA-256 (same as registration)
 function hashPassword(password: string): string {
@@ -37,10 +23,10 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
-          await connectDB();
-
-          // Find user by email and include password (password has select: false by default)
-          const user = await User.findOne({ email: credentials.email.toLowerCase() }).select("+password");
+          // Find user by email
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email.toLowerCase() },
+          });
 
           if (!user || !user.password) {
             return null;
@@ -54,7 +40,7 @@ export const authOptions: NextAuthOptions = {
 
           // Return user object for NextAuth
           return {
-            id: user._id.toString(),
+            id: user.id,
             email: user.email,
             name: user.name,
             userType: user.userType,
@@ -82,7 +68,7 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.userType = user.userType;
+        token.userType = (user as { userType: "pro" | "client" | "admin" }).userType;
       }
       return token;
     },

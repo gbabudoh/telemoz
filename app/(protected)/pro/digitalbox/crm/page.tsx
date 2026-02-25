@@ -18,14 +18,27 @@ import {
   MoreVertical,
   Eye,
   ArrowRight,
-  ExternalLink,
+  X,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { X } from "lucide-react";
 
-const clients = [
+interface Client {
+  id: number;
+  clientId: string;
+  name: string;
+  email: string;
+  phone: string;
+  company: string;
+  status: string;
+  value: number;
+  projects: number;
+  lastContact: string;
+  nextFollowUp: string;
+}
+
+const clients: Client[] = [
   {
     id: 1,
     clientId: "client-1",
@@ -92,7 +105,7 @@ export default function CRMPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddClientModal, setShowAddClientModal] = useState(false);
   const [showClientDetailsModal, setShowClientDetailsModal] = useState(false);
-  const [selectedClient, setSelectedClient] = useState<any>(null);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [newClient, setNewClient] = useState({
     name: "",
@@ -102,7 +115,7 @@ export default function CRMPage() {
     status: "lead",
   });
 
-  const handleViewDetails = (client: any) => {
+  const handleViewDetails = (client: Client) => {
     setSelectedClient(client);
     setShowClientDetailsModal(true);
   };
@@ -203,16 +216,16 @@ export default function CRMPage() {
           />
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <Filter className="mr-2 h-4 w-4" />
+          <Button variant="outline" size="sm" className="cursor-pointer">
+            <Filter className="mr-2 h-4 w-4 cursor-pointer" />
             Filter
           </Button>
           <Button
             size="sm"
             onClick={() => setShowAddClientModal(true)}
-            className="bg-[#0a9396] hover:bg-[#087579] text-white"
+            className="bg-[#0a9396] hover:bg-[#087579] text-white cursor-pointer"
           >
-            <Plus className="mr-2 h-4 w-4" />
+            <Plus className="mr-2 h-4 w-4 cursor-pointer" />
             Add Client
           </Button>
         </div>
@@ -247,26 +260,26 @@ export default function CRMPage() {
                           {client.company}
                         </p>
                       </div>
-                      <button className="text-gray-400 hover:text-gray-600">
-                        <MoreVertical className="h-5 w-5" />
+                      <button className="text-gray-400 hover:text-gray-600 cursor-pointer">
+                        <MoreVertical className="h-5 w-5 cursor-pointer" />
                       </button>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                       <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Mail className="h-4 w-4 text-[#0a9396]" />
+                        <Mail className="h-4 w-4 text-[#0a9396] cursor-pointer" />
                         <span>{client.email}</span>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Phone className="h-4 w-4 text-[#0a9396]" />
+                        <Phone className="h-4 w-4 text-[#0a9396] cursor-pointer" />
                         <span>{client.phone}</span>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <DollarSign className="h-4 w-4 text-[#0a9396]" />
+                        <DollarSign className="h-4 w-4 text-[#0a9396] cursor-pointer" />
                         <span>£{client.value.toLocaleString()}/month</span>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <TrendingUp className="h-4 w-4 text-[#0a9396]" />
+                        <TrendingUp className="h-4 w-4 text-[#0a9396] cursor-pointer" />
                         <span>{client.projects} active project{client.projects !== 1 ? "s" : ""}</span>
                       </div>
                     </div>
@@ -287,7 +300,7 @@ export default function CRMPage() {
                       }}
                       className="flex-1 border-gray-200 hover:border-[#0a9396]/50 hover:bg-[#0a9396]/5 hover:text-[#0a9396] transition-all cursor-pointer"
                     >
-                      <Mail className="mr-2 h-4 w-4" />
+                      <Mail className="mr-2 h-4 w-4 cursor-pointer" />
                       Contact
                     </Button>
                     <Button
@@ -295,10 +308,10 @@ export default function CRMPage() {
                       onClick={() => handleViewDetails(client)}
                       className="flex-1 bg-gradient-to-r from-[#0a9396] to-[#087579] hover:from-[#087579] hover:to-[#065a5d] text-white shadow-md hover:shadow-lg transition-all duration-300 group font-medium relative overflow-hidden px-4 py-2.5 min-w-[140px] cursor-pointer"
                     >
-                      <span className="relative z-10 flex items-center justify-center gap-1.5 whitespace-nowrap">
-                        <Eye className="h-3.5 w-3.5 transition-transform group-hover:scale-110 flex-shrink-0" />
+                      <span className="relative z-10 flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer">
+                        <Eye className="h-3.5 w-3.5 transition-transform group-hover:scale-110 flex-shrink-0 cursor-pointer" />
                         <span className="text-sm">View Details</span>
-                        <ArrowRight className="h-3.5 w-3.5 transition-all group-hover:translate-x-1 group-hover:scale-110 flex-shrink-0" />
+                        <ArrowRight className="h-3.5 w-3.5 transition-all group-hover:translate-x-1 group-hover:scale-110 flex-shrink-0 cursor-pointer" />
                       </span>
                       <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></span>
                     </Button>
@@ -322,9 +335,9 @@ export default function CRMPage() {
             </p>
             <Button
               onClick={() => setShowAddClientModal(true)}
-              className="bg-[#0a9396] hover:bg-[#087579] text-white"
+              className="bg-[#0a9396] hover:bg-[#087579] text-white cursor-pointer"
             >
-              <Plus className="mr-2 h-4 w-4" />
+              <Plus className="mr-2 h-4 w-4 cursor-pointer" />
               Add Client
             </Button>
           </CardContent>
@@ -351,7 +364,7 @@ export default function CRMPage() {
                     onClick={() => setShowAddClientModal(false)}
                     className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
                   >
-                    <X className="h-5 w-5 text-gray-600" />
+                    <X className="h-5 w-5 text-gray-600 cursor-pointer" />
                   </button>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -400,16 +413,16 @@ export default function CRMPage() {
                     <Button
                       onClick={handleAddClient}
                       disabled={isLoading || !newClient.name || !newClient.email}
-                      className="flex-1 bg-[#0a9396] hover:bg-[#087579] text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex-1 bg-[#0a9396] hover:bg-[#087579] text-white disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     >
                       {isLoading ? (
                         <>
-                          <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                          <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent cursor-pointer" />
                           Adding...
                         </>
                       ) : (
                         <>
-                          <Plus className="mr-2 h-4 w-4" />
+                          <Plus className="mr-2 h-4 w-4 cursor-pointer" />
                           Add Client
                         </>
                       )}
@@ -426,7 +439,7 @@ export default function CRMPage() {
                           status: "lead",
                         });
                       }}
-                      className="flex-1"
+                      className="flex-1 cursor-pointer"
                     >
                       Cancel
                     </Button>
@@ -471,7 +484,7 @@ export default function CRMPage() {
                     }}
                     className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
                   >
-                    <X className="h-5 w-5 text-gray-600" />
+                    <X className="h-5 w-5 text-gray-600 cursor-pointer" />
                   </button>
                 </CardHeader>
                 <CardContent className="pt-6 space-y-6">
@@ -481,7 +494,7 @@ export default function CRMPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
                         <div className="p-2 rounded-lg bg-[#0a9396]/10">
-                          <Mail className="h-5 w-5 text-[#0a9396]" />
+                          <Mail className="h-5 w-5 text-[#0a9396] cursor-pointer" />
                         </div>
                         <div className="flex-1">
                           <p className="text-xs text-gray-500 mb-1">Email</p>
@@ -490,7 +503,7 @@ export default function CRMPage() {
                               router.push(`/messaging?clientId=${selectedClient.clientId || selectedClient.id}`);
                               setShowClientDetailsModal(false);
                             }}
-                            className="text-sm font-medium text-[#0a9396] hover:text-[#087579] hover:underline transition-colors text-left"
+                            className="text-sm font-medium text-[#0a9396] hover:text-[#087579] hover:underline transition-colors text-left cursor-pointer"
                           >
                             {selectedClient.email}
                           </button>
@@ -498,7 +511,7 @@ export default function CRMPage() {
                       </div>
                       <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
                         <div className="p-2 rounded-lg bg-[#0a9396]/10">
-                          <Phone className="h-5 w-5 text-[#0a9396]" />
+                          <Phone className="h-5 w-5 text-[#0a9396] cursor-pointer" />
                         </div>
                         <div>
                           <p className="text-xs text-gray-500 mb-1">Phone</p>
@@ -507,7 +520,7 @@ export default function CRMPage() {
                       </div>
                       <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
                         <div className="p-2 rounded-lg bg-[#0a9396]/10">
-                          <Building2 className="h-5 w-5 text-[#0a9396]" />
+                          <Building2 className="h-5 w-5 text-[#0a9396] cursor-pointer" />
                         </div>
                         <div>
                           <p className="text-xs text-gray-500 mb-1">Company</p>
@@ -516,7 +529,7 @@ export default function CRMPage() {
                       </div>
                       <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
                         <div className="p-2 rounded-lg bg-[#0a9396]/10">
-                          <DollarSign className="h-5 w-5 text-[#0a9396]" />
+                          <DollarSign className="h-5 w-5 text-[#0a9396] cursor-pointer" />
                         </div>
                         <div>
                           <p className="text-xs text-gray-500 mb-1">Monthly Value</p>
@@ -555,20 +568,20 @@ export default function CRMPage() {
                         router.push(`/messaging?clientId=${selectedClient.clientId || selectedClient.id}`);
                         setShowClientDetailsModal(false);
                       }}
-                      className="flex-1 border-gray-200 hover:border-[#0a9396]/50 hover:bg-[#0a9396]/5 hover:text-[#0a9396]"
+                      className="flex-1 border-gray-200 hover:border-[#0a9396]/50 hover:bg-[#0a9396]/5 hover:text-[#0a9396] cursor-pointer"
                     >
-                      <Mail className="mr-2 h-4 w-4" />
+                      <Mail className="mr-2 h-4 w-4 cursor-pointer" />
                       Send Email
                     </Button>
                     <Button
                       variant="outline"
-                      className="flex-1 border-gray-200 hover:border-[#0a9396]/50 hover:bg-[#0a9396]/5 hover:text-[#0a9396]"
+                      className="flex-1 border-gray-200 hover:border-[#0a9396]/50 hover:bg-[#0a9396]/5 hover:text-[#0a9396] cursor-pointer"
                     >
-                      <Phone className="mr-2 h-4 w-4" />
+                      <Phone className="mr-2 h-4 w-4 cursor-pointer" />
                       Call Client
                     </Button>
-                    <Button className="flex-1 bg-[#0a9396] hover:bg-[#087579] text-white">
-                      <Calendar className="mr-2 h-4 w-4" />
+                    <Button className="flex-1 bg-[#0a9396] hover:bg-[#087579] text-white cursor-pointer">
+                      <Calendar className="mr-2 h-4 w-4 cursor-pointer" />
                       Schedule Meeting
                     </Button>
                   </div>

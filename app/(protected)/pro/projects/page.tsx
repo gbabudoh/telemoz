@@ -9,7 +9,26 @@ import { formatCurrency } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 
-const projects = [
+interface Task {
+  id: number;
+  title: string;
+  completed: boolean;
+}
+
+interface Project {
+  id: number;
+  name: string;
+  client: string;
+  status: string;
+  progress: number;
+  budget: number;
+  deadline: string;
+  tasks: number;
+  completedTasks: number;
+  tasksList?: Task[];
+}
+
+const projects: Project[] = [
   {
     id: 1,
     name: "E-Commerce SEO Optimization",
@@ -50,7 +69,7 @@ export default function ProjectsPage() {
   const [showTaskManagement, setShowTaskManagement] = useState(false);
   const [showAddTaskForm, setShowAddTaskForm] = useState(false);
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
-  const [selectedProject, setSelectedProject] = useState<any>(null);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newProject, setNewProject] = useState({
     name: "",
@@ -65,18 +84,18 @@ export default function ProjectsPage() {
     2: 7,
     3: 10,
   });
-  const [projectTasks, setProjectTasks] = useState<Record<number, Array<{ id: number; title: string; completed: boolean }>>>({
+  const [projectTasks, setProjectTasks] = useState<Record<number, Task[]>>({
     1: Array.from({ length: 12 }, (_, i) => ({ id: i + 1, title: `Task ${i + 1}`, completed: i < 8 })),
     2: Array.from({ length: 15 }, (_, i) => ({ id: i + 1, title: `Task ${i + 1}`, completed: i < 7 })),
     3: Array.from({ length: 10 }, (_, i) => ({ id: i + 1, title: `Task ${i + 1}`, completed: i < 10 })),
   });
 
-  const handleViewDetails = (project: any) => {
+  const handleViewDetails = (project: Project) => {
     setSelectedProject(project);
     setShowProjectDetails(true);
   };
 
-  const handleManageTasks = (project: any) => {
+  const handleManageTasks = (project: Project) => {
     const currentTasks = projectTasks[project.id] || Array.from({ length: project.tasks }, (_, i) => ({
       id: i + 1,
       title: `Task ${i + 1}`,
@@ -94,16 +113,16 @@ export default function ProjectsPage() {
     if (!selectedProject) return;
 
     const currentTasks = projectTasks[selectedProject.id] || selectedProject.tasksList || [];
-    const taskIndex = currentTasks.findIndex((t: any) => t.id === taskId);
+    const taskIndex = currentTasks.findIndex((t: Task) => t.id === taskId);
     
     if (taskIndex === -1 || currentTasks[taskIndex].completed) return;
 
     // Mark task as completed
-    const updatedTasks = currentTasks.map((task: any) =>
+    const updatedTasks = currentTasks.map((task: Task) =>
       task.id === taskId ? { ...task, completed: true } : task
     );
     
-    const newCompleted = updatedTasks.filter((t: any) => t.completed).length;
+    const newCompleted = updatedTasks.filter((t: Task) => t.completed).length;
     const updatedProjectTasks = { ...projectTasks, [selectedProject.id]: updatedTasks };
     setProjectTasks(updatedProjectTasks);
     
@@ -126,7 +145,7 @@ export default function ProjectsPage() {
 
     const currentTasks = projectTasks[selectedProject.id] || selectedProject.tasksList || [];
     const newTask = {
-      id: currentTasks.length > 0 ? Math.max(...currentTasks.map((t: any) => t.id)) + 1 : 1,
+      id: currentTasks.length > 0 ? Math.max(...currentTasks.map((t: Task) => t.id)) + 1 : 1,
       title: newTaskTitle.trim(),
       completed: false,
     };
@@ -192,9 +211,9 @@ export default function ProjectsPage() {
         </div>
         <Button
           onClick={() => setShowNewProjectModal(true)}
-          className="bg-[#0a9396] hover:bg-[#087579] text-white"
+          className="bg-[#0a9396] hover:bg-[#087579] text-white cursor-pointer"
         >
-          <FolderKanban className="mr-2 h-4 w-4" />
+          <FolderKanban className="mr-2 h-4 w-4 cursor-pointer" />
           New Project
         </Button>
       </div>
@@ -229,17 +248,17 @@ export default function ProjectsPage() {
                     
                     <div className="grid grid-cols-3 gap-4 mb-4">
                       <div className="flex items-center gap-2">
-                        <DollarSign className="h-4 w-4 text-gray-500" />
+                        <DollarSign className="h-4 w-4 text-gray-500 cursor-pointer" />
                         <span className="text-sm text-gray-400">
                           {formatCurrency(updatedProject.budget)}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-gray-500" />
+                        <Clock className="h-4 w-4 text-gray-500 cursor-pointer" />
                         <span className="text-sm text-gray-400">{updatedProject.deadline}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4 text-gray-500" />
+                        <Users className="h-4 w-4 text-gray-500 cursor-pointer" />
                         <span className="text-sm text-gray-400">
                           {updatedProject.completedTasks}/{updatedProject.tasks} tasks
                         </span>
@@ -269,7 +288,7 @@ export default function ProjectsPage() {
                     onClick={() => handleViewDetails(updatedProject)}
                     className="cursor-pointer"
                   >
-                    <Eye className="mr-2 h-4 w-4" />
+                    <Eye className="mr-2 h-4 w-4 cursor-pointer" />
                     View Details
                   </Button>
                   <Button
@@ -278,7 +297,7 @@ export default function ProjectsPage() {
                     onClick={() => handleManageTasks(updatedProject)}
                     className="cursor-pointer"
                   >
-                    <CheckSquare className="mr-2 h-4 w-4" />
+                    <CheckSquare className="mr-2 h-4 w-4 cursor-pointer" />
                     Manage Tasks
                   </Button>
                 </div>
@@ -322,7 +341,7 @@ export default function ProjectsPage() {
                     }}
                     className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
                   >
-                    <X className="h-5 w-5 text-gray-600" />
+                    <X className="h-5 w-5 text-gray-600 cursor-pointer" />
                   </button>
                 </CardHeader>
                 <CardContent className="pt-6 space-y-6">
@@ -332,7 +351,7 @@ export default function ProjectsPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
                         <div className="p-2 rounded-lg bg-[#0a9396]/10">
-                          <Users className="h-5 w-5 text-[#0a9396]" />
+                          <Users className="h-5 w-5 text-[#0a9396] cursor-pointer" />
                         </div>
                         <div>
                           <p className="text-xs text-gray-500 mb-1">Client</p>
@@ -341,7 +360,7 @@ export default function ProjectsPage() {
                       </div>
                       <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
                         <div className="p-2 rounded-lg bg-[#0a9396]/10">
-                          <DollarSign className="h-5 w-5 text-[#0a9396]" />
+                          <DollarSign className="h-5 w-5 text-[#0a9396] cursor-pointer" />
                         </div>
                         <div>
                           <p className="text-xs text-gray-500 mb-1">Budget</p>
@@ -352,7 +371,7 @@ export default function ProjectsPage() {
                       </div>
                       <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
                         <div className="p-2 rounded-lg bg-[#0a9396]/10">
-                          <Calendar className="h-5 w-5 text-[#0a9396]" />
+                          <Calendar className="h-5 w-5 text-[#0a9396] cursor-pointer" />
                         </div>
                         <div>
                           <p className="text-xs text-gray-500 mb-1">Deadline</p>
@@ -361,7 +380,7 @@ export default function ProjectsPage() {
                       </div>
                       <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
                         <div className="p-2 rounded-lg bg-[#0a9396]/10">
-                          <CheckSquare className="h-5 w-5 text-[#0a9396]" />
+                          <CheckSquare className="h-5 w-5 text-[#0a9396] cursor-pointer" />
                         </div>
                         <div>
                           <p className="text-xs text-gray-500 mb-1">Tasks</p>
@@ -400,13 +419,13 @@ export default function ProjectsPage() {
                         setShowProjectDetails(false);
                         handleManageTasks(selectedProject);
                       }}
-                      className="flex-1 border-gray-200 hover:border-[#0a9396]/50 hover:bg-[#0a9396]/5 hover:text-[#0a9396]"
+                      className="flex-1 border-gray-200 hover:border-[#0a9396]/50 hover:bg-[#0a9396]/5 hover:text-[#0a9396] cursor-pointer"
                     >
-                      <CheckSquare className="mr-2 h-4 w-4" />
+                      <CheckSquare className="mr-2 h-4 w-4 cursor-pointer" />
                       Manage Tasks
                     </Button>
-                    <Button className="flex-1 bg-[#0a9396] hover:bg-[#087579] text-white">
-                      <TrendingUp className="mr-2 h-4 w-4" />
+                    <Button className="flex-1 bg-[#0a9396] hover:bg-[#087579] text-white cursor-pointer">
+                      <TrendingUp className="mr-2 h-4 w-4 cursor-pointer" />
                       View Reports
                     </Button>
                   </div>
@@ -444,7 +463,7 @@ export default function ProjectsPage() {
                     }}
                     className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
                   >
-                    <X className="h-5 w-5 text-gray-600" />
+                    <X className="h-5 w-5 text-gray-600 cursor-pointer" />
                   </button>
                 </CardHeader>
                 <CardContent className="pt-6 space-y-4">
@@ -457,9 +476,9 @@ export default function ProjectsPage() {
                     <Button
                       size="sm"
                       onClick={() => setShowAddTaskForm(true)}
-                      className="bg-[#0a9396] hover:bg-[#087579] text-white"
+                      className="bg-[#0a9396] hover:bg-[#087579] text-white cursor-pointer"
                     >
-                      <Plus className="mr-2 h-4 w-4" />
+                      <Plus className="mr-2 h-4 w-4 cursor-pointer" />
                       Add Task
                     </Button>
                   </div>
@@ -481,9 +500,9 @@ export default function ProjectsPage() {
                             size="sm"
                             onClick={handleAddTask}
                             disabled={!newTaskTitle.trim()}
-                            className="bg-[#0a9396] hover:bg-[#087579] text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="bg-[#0a9396] hover:bg-[#087579] text-white disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                           >
-                            <Plus className="mr-2 h-4 w-4" />
+                            <Plus className="mr-2 h-4 w-4 cursor-pointer" />
                             Add Task
                           </Button>
                           <Button
@@ -493,6 +512,7 @@ export default function ProjectsPage() {
                               setShowAddTaskForm(false);
                               setNewTaskTitle("");
                             }}
+                            className="cursor-pointer"
                           >
                             Cancel
                           </Button>
@@ -507,7 +527,7 @@ export default function ProjectsPage() {
                       id: i + 1,
                       title: `Task ${i + 1}`,
                       completed: i < selectedProject.completedTasks,
-                    }))).map((task: any) => {
+                    }))).map((task: Task) => {
                       const isCompleted = task.completed;
                       return (
                         <div
@@ -527,7 +547,7 @@ export default function ProjectsPage() {
                               }`}
                             >
                               {isCompleted && (
-                                <CheckSquare className="h-3 w-3 text-white" />
+                                <CheckSquare className="h-3 w-3 text-white cursor-pointer" />
                               )}
                             </div>
                             <div className="flex-1">
@@ -547,7 +567,7 @@ export default function ProjectsPage() {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleMarkTaskComplete(task.id)}
-                                className="border-[#0a9396] text-[#0a9396] hover:bg-[#0a9396] hover:text-white transition-all"
+                                className="border-[#0a9396] text-[#0a9396] hover:bg-[#0a9396] hover:text-white transition-all cursor-pointer"
                               >
                                 Mark Complete
                               </Button>
@@ -611,7 +631,7 @@ export default function ProjectsPage() {
                     }}
                     className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
                   >
-                    <X className="h-5 w-5 text-gray-600" />
+                    <X className="h-5 w-5 text-gray-600 cursor-pointer" />
                   </button>
                 </CardHeader>
                 <CardContent className="pt-6 space-y-4">
@@ -665,9 +685,9 @@ export default function ProjectsPage() {
                     <Button
                       onClick={handleAddNewProject}
                       disabled={!newProject.name || !newProject.client || !newProject.budget || !newProject.deadline}
-                      className="flex-1 bg-[#0a9396] hover:bg-[#087579] text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex-1 bg-[#0a9396] hover:bg-[#087579] text-white disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     >
-                      <Plus className="mr-2 h-4 w-4" />
+                      <Plus className="mr-2 h-4 w-4 cursor-pointer" />
                       Create Project
                     </Button>
                     <Button
@@ -682,7 +702,7 @@ export default function ProjectsPage() {
                           status: "active",
                         });
                       }}
-                      className="flex-1"
+                      className="flex-1 cursor-pointer"
                     >
                       Cancel
                     </Button>

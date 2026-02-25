@@ -1,22 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import mongoose from "mongoose";
-import User from "@/models/User";
+import prisma from "@/lib/prisma";
 
-async function connectDB() {
-  if (mongoose.connections[0].readyState) {
-    return;
-  }
-  try {
-    await mongoose.connect(process.env.MONGODB_URI || "");
-  } catch (error) {
-    console.error("MongoDB connection error:", error);
-    throw error;
-  }
-}
-
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
 
@@ -27,18 +14,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    await connectDB();
-
-    // Validate user ID
-    if (!mongoose.Types.ObjectId.isValid(session.user.id)) {
-      return NextResponse.json(
-        { error: "Invalid user ID" },
-        { status: 400 }
-      );
-    }
-
     // Find user
-    const user = await User.findById(session.user.id).select("-password");
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+    });
 
     if (!user) {
       return NextResponse.json(
@@ -49,7 +28,7 @@ export async function GET(request: NextRequest) {
 
     // Return user data
     const userData = {
-      id: user._id.toString(),
+      id: user.id,
       name: user.name,
       email: user.email,
       country: user.country || "",
@@ -62,7 +41,7 @@ export async function GET(request: NextRequest) {
     };
 
     return NextResponse.json({ user: userData }, { status: 200 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching user profile:", error);
     return NextResponse.json(
       { error: "Failed to fetch user profile" },

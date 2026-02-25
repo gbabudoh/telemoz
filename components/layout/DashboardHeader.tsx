@@ -1,10 +1,8 @@
 "use client";
 
 import { Bell, Search, User } from "lucide-react";
-import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
 import { useSession } from "next-auth/react";
-import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 export function DashboardHeader() {
   const { data: session } = useSession();
@@ -35,12 +33,14 @@ export function DashboardHeader() {
         </button>
 
         {/* Profile */}
-        <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-sm">
+        <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-sm cursor-pointer hover:bg-gray-50 transition-colors">
           <div className="h-8 w-8 rounded-full bg-gradient-to-br from-[#0a9396] to-[#94d2bd] flex items-center justify-center">
             {session?.user?.image ? (
-              <img
+              <Image
                 src={session.user.image}
                 alt={userName}
+                width={32}
+                height={32}
                 className="h-8 w-8 rounded-full object-cover"
               />
             ) : (

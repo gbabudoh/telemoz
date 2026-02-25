@@ -1,9 +1,19 @@
 import { Card, CardContent } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
 import { FileText, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
-const sections = [
+type SectionContent = {
+  subtitle?: string;
+  text: string;
+  list?: string[];
+};
+
+type Section = {
+  title: string;
+  content: SectionContent[];
+};
+
+const sections: Section[] = [
   {
     title: "1. Acceptance of Terms",
     content: [
@@ -259,7 +269,7 @@ export default function TermsOfServicePage() {
           <CardContent className="pt-6">
             <h3 className="text-xl font-semibold text-gray-900 mb-4">Questions About Terms?</h3>
             <p className="text-gray-700 mb-4">
-              If you have any questions or concerns about these Terms of Service, please don't hesitate to contact us.
+              If you have any questions or concerns about these Terms of Service, please don&apos;t hesitate to contact us.
             </p>
             <div className="space-y-2 text-gray-700">
               <p><strong>Email:</strong> legal@telemoz.com</p>

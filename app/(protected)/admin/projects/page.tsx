@@ -7,26 +7,21 @@ import { Input } from "@/components/ui/Input";
 import {
   FolderKanban,
   Search,
-  Filter,
   Eye,
   Edit,
-  Trash2,
-  Users,
   DollarSign,
-  Calendar,
   TrendingUp,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { formatCurrency } from "@/lib/utils";
-import Link from "next/link";
 
 interface Project {
   _id: string;
   name: string;
-  proId: any;
-  clientId: any;
+  proId: { _id: string; name: string; email: string };
+  clientId: { _id: string; name: string; email: string };
   status: string;
   budget: number;
   startDate: string;
@@ -187,7 +182,7 @@ export default function AdminProjectsPage() {
               {["all", "active", "planning", "completed", "on-hold"].map((status) => (
                 <Button
                   key={status}
-                  variant={statusFilter === status ? "default" : "outline"}
+                  variant={statusFilter === status ? "primary" : "outline"}
                   size="sm"
                   onClick={() => setStatusFilter(status)}
                   className={statusFilter === status ? "bg-[#0a9396] hover:bg-[#087579] text-white" : ""}

@@ -1,23 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import mongoose from "mongoose";
-import Invoice from "@/models/Invoice";
-
-async function connectDB() {
-  if (mongoose.connections[0].readyState) {
-    return;
-  }
-  try {
-    await mongoose.connect(process.env.MONGODB_URI || "");
-  } catch (error) {
-    console.error("MongoDB connection error:", error);
-    throw error;
-  }
-}
+import prisma from "@/lib/prisma";
 
 // GET /api/admin/transactions - Get all transactions/invoices
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
 
@@ -29,21 +16,32 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    await connectDB();
-
-    const invoices = await Invoice.find({})
-      .populate("proId", "name email")
-      .populate("clientId", "name email")
-      .populate("projectId", "name")
-      .sort({ createdAt: -1 });
+    const invoices = await prisma.invoice.findMany({
+      include: {
+        pro: { select: { name: true, email: true } },
+        client: { select: { name: true, email: true } },
+        project: { select: { title: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
 
     // Calculate commission (13% of total)
-    const transactions = invoices.map((invoice) => ({
-      _id: invoice._id.toString(),
-      invoiceNumber: invoice.invoiceNumber || `INV-${invoice._id.toString().slice(-6)}`,
-      proId: invoice.proId,
-      clientId: invoice.clientId,
-      projectId: invoice.projectId,
+    const transactions = invoices.map((invoice: {
+      id: string;
+      invoiceNumber: string;
+      pro: { name: string; email: string };
+      client: { name: string; email: string };
+      project: { title: string } | null;
+      total: number | null;
+      status: string;
+      createdAt: Date;
+      paidAt: Date | null;
+    }) => ({
+      id: invoice.id,
+      invoiceNumber: invoice.invoiceNumber,
+      pro: invoice.pro,
+      client: invoice.client,
+      project: invoice.project,
       total: invoice.total || 0,
       commission: (invoice.total || 0) * 0.13,
       status: invoice.status,

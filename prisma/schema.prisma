@@ -1,0 +1,206 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserType {
+  pro
+  client
+  admin
+}
+
+enum SubscriptionTier {
+  starter
+  standard
+  pro
+}
+
+enum SubscriptionStatus {
+  active
+  canceled
+  past_due
+}
+
+enum Availability {
+  available
+  busy
+  unavailable
+}
+
+enum ProjectStatus {
+  planning
+  active
+  on_hold
+  completed
+  cancelled
+}
+
+enum InvoiceStatus {
+  draft
+  sent
+  paid
+  overdue
+  cancelled
+}
+
+enum DeliverableType {
+  report
+  document
+  design
+  other
+}
+
+enum SkillLevel {
+  beginner
+  intermediate
+  advanced
+  expert
+}
+
+model User {
+  id                 String             @id @default(cuid())
+  email              String             @unique
+  name               String
+  password           String?
+  userType           UserType           @default(client)
+  image              String?
+  emailVerified      DateTime?
+  country            String?
+  city               String?
+  timezone           String             @default("Europe/London")
+  stripeCustomerId   String?
+  subscriptionTier   SubscriptionTier   @default(starter)
+  subscriptionStatus SubscriptionStatus @default(active)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  
+  proProfile         ProProfile?
+  projectsAsPro      Project[]          @relation("ProProjects")
+  projectsAsClient   Project[]          @relation("ClientProjects")
+  invoicesAsPro      Invoice[]          @relation("ProInvoices")
+  invoicesAsClient   Invoice[]          @relation("ClientInvoices")
+}
+
+model ProProfile {
+  id             String          @id @default(cuid())
+  userId         String          @unique
+  user           User            @relation(fields: [userId], references: [id])
+  bio            String
+  specialties    String[]
+  location       String
+  website        String?
+  linkedIn       String?
+  portfolio      String?
+  hourlyRate     Float?
+  monthlyRate    Float?
+  availability   Availability    @default(available)
+  rating         Float           @default(0)
+  reviewCount    Int             @default(0)
+  verified       Boolean          @default(false)
+  
+  skills         Skill[]
+  certifications Certification[]
+  
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+model Skill {
+  id           String     @id @default(cuid())
+  name         String
+  level        SkillLevel
+  profileId    String
+  profile      ProProfile @relation(fields: [profileId], references: [id])
+}
+
+model Certification {
+  id           String     @id @default(cuid())
+  name         String
+  issuer       String
+  issueDate    DateTime
+  expiryDate   DateTime?
+  credentialId String?
+  profileId    String
+  profile      ProProfile @relation(fields: [profileId], references: [id])
+}
+
+model Project {
+  id           String        @id @default(cuid())
+  title        String
+  description  String
+  proId        String
+  pro          User          @relation("ProProjects", fields: [proId], references: [id])
+  clientId     String
+  client       User          @relation("ClientProjects", fields: [clientId], references: [id])
+  status       ProjectStatus @default(planning)
+  startDate    DateTime
+  endDate      DateTime?
+  budget       Float?
+  
+  milestones   Milestone[]
+  deliverables Deliverable[]
+  invoices     Invoice[]
+  
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Milestone {
+  id           String        @id @default(cuid())
+  title        String
+  description  String
+  dueDate      DateTime
+  status       String        @default("pending") // pending, in-progress, completed
+  completedAt  DateTime?
+  projectId    String
+  project      Project       @relation(fields: [projectId], references: [id])
+}
+
+model Deliverable {
+  id           String          @id @default(cuid())
+  title        String
+  description  String
+  type         DeliverableType
+  fileUrl      String?
+  deliveredAt  DateTime?
+  projectId    String
+  project      Project         @relation(fields: [projectId], references: [id])
+}
+
+model Invoice {
+  id            String        @id @default(cuid())
+  invoiceNumber String        @unique
+  proId         String
+  pro           User          @relation("ProInvoices", fields: [proId], references: [id])
+  clientId      String
+  client        User          @relation("ClientInvoices", fields: [clientId], references: [id])
+  projectId     String?
+  project       Project?      @relation(fields: [projectId], references: [id])
+  
+  items         InvoiceItem[]
+  subtotal      Float
+  tax           Float?
+  total         Float
+  currency      String        @default("GBP")
+  status        InvoiceStatus @default(draft)
+  dueDate       DateTime
+  paidAt        DateTime?
+  paymentMethod String?
+  notes         String?
+  
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model InvoiceItem {
+  id          String   @id @default(cuid())
+  description String
+  quantity    Int
+  unitPrice   Float
+  total       Float
+  invoiceId   String
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id])
+}

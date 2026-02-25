@@ -1,16 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import Project from "@/models/Project";
-import mongoose from "mongoose";
+import prisma from "@/lib/prisma";
 
-// Connect to MongoDB
-async function connectDB() {
-  if (mongoose.connections[0].readyState) {
-    return;
-  }
-  await mongoose.connect(process.env.MONGODB_URI || "");
-}
 
 // GET /api/projects - Get all projects for the authenticated user
 export async function GET(request: NextRequest) {
@@ -24,37 +16,39 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    await connectDB();
-
     const { searchParams } = new URL(request.url);
     const userType = searchParams.get("userType"); // "pro" or "client"
     const status = searchParams.get("status");
 
-    const query: any = {};
+    const where: NonNullable<Parameters<typeof prisma.project.findMany>[0]>["where"] = {};
     
     if (userType === "pro") {
-      query.proId = session.user.id;
+      where.proId = session.user.id;
     } else if (userType === "client") {
-      query.clientId = session.user.id;
+      where.clientId = session.user.id;
     } else {
       // Return projects where user is either pro or client
-      query.$or = [
+      where.OR = [
         { proId: session.user.id },
         { clientId: session.user.id },
       ];
     }
 
     if (status) {
-      query.status = status;
+      where.status = status as NonNullable<typeof where.status>;
     }
 
-    const projects = await Project.find(query)
-      .populate("proId", "name email")
-      .populate("clientId", "name email")
-      .sort({ createdAt: -1 });
+    const projects = await prisma.project.findMany({
+      where,
+      include: {
+        pro: { select: { name: true, email: true } },
+        client: { select: { name: true, email: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
 
     return NextResponse.json({ projects });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error fetching projects:", error);
     return NextResponse.json(
       { error: "Failed to fetch projects" },
@@ -85,8 +79,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await connectDB();
-
     // Determine proId and clientId based on user type
     let finalProId = proId;
     let finalClientId = clientId;
@@ -109,28 +101,28 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const project = new Project({
-      title,
-      description,
-      proId: finalProId,
-      clientId: finalClientId,
-      startDate: startDate ? new Date(startDate) : new Date(),
-      endDate: endDate ? new Date(endDate) : undefined,
-      budget,
-      status: "planning",
+    const project = await prisma.project.create({
+      data: {
+        title,
+        description,
+        proId: finalProId as string,
+        clientId: finalClientId as string,
+        startDate: startDate ? new Date(startDate) : new Date(),
+        endDate: endDate ? new Date(endDate) : undefined,
+        budget: budget ? parseFloat(budget) : 0,
+        status: "planning",
+      },
+      include: {
+        pro: { select: { name: true, email: true } },
+        client: { select: { name: true, email: true } },
+      },
     });
 
-    await project.save();
-
-    const populatedProject = await Project.findById(project._id)
-      .populate("proId", "name email")
-      .populate("clientId", "name email");
-
     return NextResponse.json(
-      { project: populatedProject },
+      { project },
       { status: 201 }
     );
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error creating project:", error);
     return NextResponse.json(
       { error: "Failed to create project" },

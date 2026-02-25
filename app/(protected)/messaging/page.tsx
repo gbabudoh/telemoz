@@ -10,21 +10,16 @@ import {
   Video,
   Phone,
   Calendar,
-  Clock,
-  User,
   X,
-  CheckCircle2,
   MessageSquare,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
 import { motion } from "framer-motion";
 
 export default function MessagingPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { data: session } = useSession();
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [isCallMode, setIsCallMode] = useState(false);
@@ -42,20 +37,23 @@ export default function MessagingPage() {
     const action = searchParams.get("action");
     const clientId = searchParams.get("clientId");
     const proId = searchParams.get("proId");
-    const requestId = searchParams.get("requestId");
 
-    if (action === "schedule-call" && (clientId || proId)) {
-      setIsSchedulingCall(true);
-      setIsCallMode(true);
-      // Set selected conversation based on who we're contacting
-      if (clientId) {
-        setSelectedConversation(clientId);
-      } else if (proId) {
-        setSelectedConversation(proId);
+    const timer = setTimeout(() => {
+      if (action === "schedule-call" && (clientId || proId)) {
+        setIsSchedulingCall(true);
+        setIsCallMode(true);
+        // Set selected conversation based on who we're contacting
+        if (clientId) {
+          setSelectedConversation(clientId);
+        } else if (proId) {
+          setSelectedConversation(proId);
+        }
+      } else if (clientId || proId) {
+        setSelectedConversation(clientId || proId || null);
       }
-    } else if (clientId || proId) {
-      setSelectedConversation(clientId || proId || null);
-    }
+    }, 0);
+
+    return () => clearTimeout(timer);
   }, [searchParams]);
 
   // Mock conversations
@@ -76,11 +74,6 @@ export default function MessagingPage() {
     alert("Call scheduled successfully!");
     setIsSchedulingCall(false);
     setIsCallMode(false);
-  };
-
-  const handleStartCall = () => {
-    // TODO: Implement actual call functionality
-    alert("Starting call...");
   };
 
   const currentConversation = conversations.find((c) => c.id === selectedConversation);
@@ -107,9 +100,9 @@ export default function MessagingPage() {
                     setIsCallMode(false);
                     router.push("/messaging");
                   }}
-                  className="p-1 rounded hover:bg-gray-100"
+                  className="p-1 rounded hover:bg-gray-100 cursor-pointer"
                 >
-                  <X className="h-4 w-4 text-gray-600" />
+                  <X className="h-4 w-4 text-gray-600 cursor-pointer" />
                 </button>
               </div>
             </CardHeader>
@@ -151,24 +144,24 @@ export default function MessagingPage() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => setCallScheduleData({ ...callScheduleData, type: "video" })}
-                      className={`flex-1 px-4 py-2 rounded-lg border transition-all ${
+                      className={`flex-1 px-4 py-2 rounded-lg border transition-all cursor-pointer ${
                         callScheduleData.type === "video"
                           ? "border-[#0a9396] bg-[#0a9396]/10 text-[#0a9396]"
                           : "border-gray-200 text-gray-700 hover:bg-gray-50"
                       }`}
                     >
-                      <Video className="h-4 w-4 mx-auto mb-1" />
+                      <Video className="h-4 w-4 mx-auto mb-1 cursor-pointer" />
                       <span className="text-xs">Video Call</span>
                     </button>
                     <button
                       onClick={() => setCallScheduleData({ ...callScheduleData, type: "audio" })}
-                      className={`flex-1 px-4 py-2 rounded-lg border transition-all ${
+                      className={`flex-1 px-4 py-2 rounded-lg border transition-all cursor-pointer ${
                         callScheduleData.type === "audio"
                           ? "border-[#0a9396] bg-[#0a9396]/10 text-[#0a9396]"
                           : "border-gray-200 text-gray-700 hover:bg-gray-50"
                       }`}
                     >
-                      <Phone className="h-4 w-4 mx-auto mb-1" />
+                      <Phone className="h-4 w-4 mx-auto mb-1 cursor-pointer" />
                       <span className="text-xs">Audio Call</span>
                     </button>
                   </div>
@@ -185,9 +178,9 @@ export default function MessagingPage() {
               <div className="flex gap-2 pt-4">
                 <Button
                   onClick={handleScheduleCall}
-                  className="flex-1 bg-[#0a9396] hover:bg-[#087579] text-white"
+                  className="flex-1 bg-[#0a9396] hover:bg-[#087579] text-white cursor-pointer"
                 >
-                  <Calendar className="mr-2 h-4 w-4" />
+                  <Calendar className="mr-2 h-4 w-4 cursor-pointer" />
                   Schedule Call
                 </Button>
                 <Button
@@ -197,6 +190,7 @@ export default function MessagingPage() {
                     setIsCallMode(false);
                     router.push("/messaging");
                   }}
+                  className="cursor-pointer"
                 >
                   Cancel
                 </Button>
@@ -226,14 +220,14 @@ export default function MessagingPage() {
                   <p className="text-sm text-gray-600">Call in progress</p>
                 </div>
                 <div className="flex items-center justify-center gap-6 pt-4">
-                  <button className="p-4 rounded-full bg-red-500 hover:bg-red-600 text-white transition-all">
-                    <Phone className="h-6 w-6 rotate-135" />
+                  <button className="p-4 rounded-full bg-red-500 hover:bg-red-600 text-white transition-all cursor-pointer">
+                    <Phone className="h-6 w-6 rotate-135 cursor-pointer" />
                   </button>
-                  <button className="p-4 rounded-full bg-gray-200 hover:bg-gray-300 text-gray-700 transition-all">
-                    <Video className="h-6 w-6" />
+                  <button className="p-4 rounded-full bg-gray-200 hover:bg-gray-300 text-gray-700 transition-all cursor-pointer">
+                    <Video className="h-6 w-6 cursor-pointer" />
                   </button>
-                  <button className="p-4 rounded-full bg-gray-200 hover:bg-gray-300 text-gray-700 transition-all">
-                    <X className="h-6 w-6" />
+                  <button className="p-4 rounded-full bg-gray-200 hover:bg-gray-300 text-gray-700 transition-all cursor-pointer">
+                    <X className="h-6 w-6 cursor-pointer" />
                   </button>
                 </div>
               </div>
@@ -266,7 +260,7 @@ export default function MessagingPage() {
                       setIsCallMode(false);
                       setIsSchedulingCall(false);
                     }}
-                    className={`w-full p-4 text-left hover:bg-gray-50 transition-colors ${
+                    className={`w-full p-4 text-left hover:bg-gray-50 transition-colors cursor-pointer ${
                       selectedConversation === conv.id ? "bg-[#0a9396]/5 border-l-4 border-[#0a9396]" : ""
                     }`}
                   >
@@ -319,8 +313,9 @@ export default function MessagingPage() {
                         setIsSchedulingCall(true);
                         setIsCallMode(true);
                       }}
+                      className="cursor-pointer"
                     >
-                      <Calendar className="mr-2 h-4 w-4" />
+                      <Calendar className="mr-2 h-4 w-4 cursor-pointer" />
                       Schedule Call
                     </Button>
                     <Button
@@ -330,11 +325,12 @@ export default function MessagingPage() {
                         setIsCallMode(true);
                         setIsSchedulingCall(false);
                       }}
+                      className="cursor-pointer"
                     >
                       {callScheduleData.type === "video" ? (
-                        <Video className="h-4 w-4" />
+                        <Video className="h-4 w-4 cursor-pointer" />
                       ) : (
-                        <Phone className="h-4 w-4" />
+                        <Phone className="h-4 w-4 cursor-pointer" />
                       )}
                     </Button>
                   </div>
@@ -367,9 +363,9 @@ export default function MessagingPage() {
                           setMessage("");
                         }
                       }}
-                      className="bg-[#0a9396] hover:bg-[#087579] text-white"
+                      className="bg-[#0a9396] hover:bg-[#087579] text-white cursor-pointer"
                     >
-                      <Send className="h-4 w-4" />
+                      <Send className="h-4 w-4 cursor-pointer" />
                     </Button>
                   </div>
                 </div>

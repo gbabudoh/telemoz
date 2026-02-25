@@ -6,7 +6,7 @@ const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
-  const signature = headers().get("stripe-signature");
+  const signature = (await headers()).get("stripe-signature");
 
   if (!signature || !webhookSecret) {
     return NextResponse.json(
@@ -31,11 +31,13 @@ export async function POST(request: NextRequest) {
   switch (event.type) {
     case "checkout.session.completed":
       // Handle successful checkout
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const session = event.data.object;
       // TODO: Update user subscription in database
       break;
     case "customer.subscription.updated":
       // Handle subscription update
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const subscription = event.data.object;
       // TODO: Update subscription status in database
       break;

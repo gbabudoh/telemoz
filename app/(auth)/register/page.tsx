@@ -95,7 +95,7 @@ export default function RegisterPage() {
             <div className="text-center">
               <div className="flex justify-center mb-4">
                 <div className="rounded-full bg-[#0a9396]/10 p-3">
-                  <CheckCircle2 className="h-12 w-12 text-[#0a9396]" />
+                  <CheckCircle2 className="h-12 w-12 text-[#0a9396] cursor-pointer" />
                 </div>
               </div>
               <h1 className="text-3xl font-bold text-[#0a9396] mb-2">Registration Successful!</h1>
@@ -103,7 +103,7 @@ export default function RegisterPage() {
                 Your account has been created successfully. Redirecting to login...
               </p>
               <div className="flex justify-center">
-                <Loader2 className="h-5 w-5 text-[#0a9396] animate-spin" />
+                <Loader2 className="h-5 w-5 text-[#0a9396] animate-spin cursor-pointer" />
               </div>
             </div>
           </Card>
@@ -126,7 +126,7 @@ export default function RegisterPage() {
             <button
               type="button"
               onClick={() => setUserType("pro")}
-              className={`px-4 py-3 rounded-lg border transition-all font-medium ${
+              className={`px-4 py-3 rounded-lg border transition-all font-medium cursor-pointer ${
                 userType === "pro"
                   ? "border-[#0a9396] bg-[#0a9396]/10 text-[#0a9396]"
                   : "border-[#0a9396]/30 text-gray-900 hover:border-[#0a9396] hover:bg-[#0a9396]/5"
@@ -137,7 +137,7 @@ export default function RegisterPage() {
             <button
               type="button"
               onClick={() => setUserType("client")}
-              className={`px-4 py-3 rounded-lg border transition-all font-medium ${
+              className={`px-4 py-3 rounded-lg border transition-all font-medium cursor-pointer ${
                 userType === "client"
                   ? "border-[#0a9396] bg-[#0a9396]/10 text-[#0a9396]"
                   : "border-[#0a9396]/30 text-gray-900 hover:border-[#0a9396] hover:bg-[#0a9396]/5"
@@ -268,11 +268,11 @@ export default function RegisterPage() {
               />
               <span>
                 I agree to the{" "}
-                <Link href="/terms" className="text-[#0a9396] hover:text-[#087579] hover:underline">
+                <Link href="/terms" className="text-[#0a9396] hover:text-[#087579] hover:underline cursor-pointer">
                   Terms of Service
                 </Link>{" "}
                 and{" "}
-                <Link href="/privacy" className="text-[#0a9396] hover:text-[#087579] hover:underline">
+                <Link href="/privacy" className="text-[#0a9396] hover:text-[#087579] hover:underline cursor-pointer">
                   Privacy Policy
                 </Link>
               </span>
@@ -280,13 +280,13 @@ export default function RegisterPage() {
 
             <Button
               type="submit"
-              className="w-full bg-[#0a9396] hover:bg-[#087579] text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-[#0a9396] hover:bg-[#087579] text-white disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               size="lg"
               disabled={isLoading}
             >
               {isLoading ? (
                 <span className="flex items-center justify-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin cursor-pointer" />
                   Creating Account...
                 </span>
               ) : (
@@ -297,7 +297,7 @@ export default function RegisterPage() {
 
           <div className="mt-6 text-center text-sm text-gray-900">
             Already have an account?{" "}
-            <Link href="/login" className="text-[#0a9396] hover:text-[#087579] font-semibold">
+            <Link href="/login" className="text-[#0a9396] hover:text-[#087579] font-semibold cursor-pointer">
               Sign in
             </Link>
           </div>

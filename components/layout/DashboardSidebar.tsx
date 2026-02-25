@@ -20,9 +20,7 @@ import {
   X,
   LogOut,
   Store,
-  Shield,
   CreditCard,
-  Database,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -91,7 +89,7 @@ export function DashboardSidebar({ userType = "pro" }: DashboardSidebarProps) {
       <div className="lg:hidden fixed top-4 left-4 z-50">
         <button
           onClick={() => setIsMobileOpen(!isMobileOpen)}
-          className="p-2 rounded-lg bg-white border border-gray-200 text-gray-900 shadow-sm"
+          className="p-2 rounded-lg bg-white border border-gray-200 text-gray-900 shadow-sm cursor-pointer"
         >
           {isMobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
@@ -118,7 +116,7 @@ export function DashboardSidebar({ userType = "pro" }: DashboardSidebarProps) {
                 height={40}
                 priority
                 quality={100}
-                className="h-10 w-auto object-contain"
+                className="h-10 w-auto object-contain cursor-pointer"
                 style={{ imageRendering: 'crisp-edges' }}
               />
             </Link>
@@ -127,14 +125,17 @@ export function DashboardSidebar({ userType = "pro" }: DashboardSidebarProps) {
           {/* Navigation */}
           <nav className="flex-1 space-y-1 p-4">
             {navItems.map((item) => {
-              const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+              const isRootPath = item.href === `/${userType}` || item.href === `/${userType === 'admin' ? 'admin' : userType === 'client' ? 'client' : 'pro'}`;
+              const isActive = isRootPath
+                ? pathname === item.href
+                : pathname === item.href || pathname.startsWith(item.href + "/");
               const Icon = item.icon;
 
               return (
                 <Link key={item.href} href={item.href}>
                   <div
                     className={cn(
-                      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
+                      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all cursor-pointer",
                       isActive
                         ? "bg-[#0a9396]/10 text-[#0a9396] border border-[#0a9396]/30"
                         : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"

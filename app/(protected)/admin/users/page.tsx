@@ -5,23 +5,16 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import {
-  Users,
   Search,
-  Filter,
-  MoreVertical,
-  Edit,
-  Trash2,
-  UserCheck,
-  UserX,
-  Mail,
-  Calendar,
-  Shield,
+  Users,
   Eye,
+  Trash2,
+  Shield,
+  UserCheck,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { formatCurrency } from "@/lib/utils";
 
 interface User {
   _id: string;
@@ -40,8 +33,6 @@ export default function AdminUsersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [userTypeFilter, setUserTypeFilter] = useState<string>("all");
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [showUserDetails, setShowUserDetails] = useState(false);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -213,7 +204,7 @@ export default function AdminUsersPage() {
               {["all", "pro", "client", "admin"].map((type) => (
                 <Button
                   key={type}
-                  variant={userTypeFilter === type ? "default" : "outline"}
+                  variant={userTypeFilter === type ? "primary" : "outline"}
                   size="sm"
                   onClick={() => setUserTypeFilter(type)}
                   className={userTypeFilter === type ? "bg-[#0a9396] hover:bg-[#087579] text-white" : ""}
@@ -291,10 +282,6 @@ export default function AdminUsersPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => {
-                              setSelectedUser(user);
-                              setShowUserDetails(true);
-                            }}
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
