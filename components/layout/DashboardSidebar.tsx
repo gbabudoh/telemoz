@@ -43,7 +43,8 @@ const proNavItems: NavItem[] = [
   { title: "AI Tools", href: "/pro/digitalbox/ai-tools", icon: Zap, badge: "New" },
   { title: "Reporting", href: "/pro/digitalbox/reporting", icon: BarChart3 },
   { title: "Marketplace", href: "/marketplace", icon: Store },
-  { title: "Inquiries", href: "/pro/marketplace/inquiries", icon: MessageSquare },
+  { title: "Inquiries", href: "/pro/inquiries", icon: MessageSquare },
+  { title: "Email", href: "/pro/messaging", icon: MessageSquare },
   { title: "Settings", href: "/pro/settings", icon: Settings },
 ];
 
@@ -108,7 +109,7 @@ export function DashboardSidebar({ userType = "pro" }: DashboardSidebarProps) {
         <div className="flex h-full flex-col">
           {/* Logo */}
           <div className="flex h-16 items-center border-b border-gray-200 px-6">
-            <Link href="/" className="flex items-center gap-2">
+            <Link href={`/${userType}`} className="flex items-center gap-2">
               <Image 
                 src="/logos/telemoz.png" 
                 alt="Telemoz" 

@@ -31,6 +31,7 @@ enum Availability {
 }
 
 enum ProjectStatus {
+  under_review
   planning
   active
   on_hold
@@ -131,14 +132,18 @@ model Project {
   id           String        @id @default(cuid())
   title        String
   description  String
-  proId        String
-  pro          User          @relation("ProProjects", fields: [proId], references: [id])
+  category     String?
+  timeline     String?
+  proId        String?
+  pro          User?         @relation("ProProjects", fields: [proId], references: [id])
   clientId     String
   client       User          @relation("ClientProjects", fields: [clientId], references: [id])
-  status       ProjectStatus @default(planning)
-  startDate    DateTime
+  status       ProjectStatus @default(under_review)
+  startDate    DateTime?      @default(now())
   endDate      DateTime?
   budget       Float?
+  currency     String        @default("GBP")
+  country      String?
   
   milestones   Milestone[]
   deliverables Deliverable[]

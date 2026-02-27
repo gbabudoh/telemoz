@@ -41,8 +41,8 @@ export async function GET(request: NextRequest) {
     const projects = await prisma.project.findMany({
       where,
       include: {
-        pro: { select: { name: true, email: true } },
-        client: { select: { name: true, email: true } },
+        pro: { select: { name: true, email: true, image: true } },
+        client: { select: { name: true, email: true, image: true } },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, clientId, proId, startDate, endDate, budget } = body;
+    const { title, description, category, timeline, clientId, proId, startDate, endDate, budget, currency, country } = body;
 
     if (!title || !description) {
       return NextResponse.json(
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
 
     // Determine proId and clientId based on user type
     let finalProId = proId;
-    let finalClientId = clientId;
+    let finalClientId = clientId || session.user.id;
 
     if (session.user.userType === "pro") {
       finalProId = session.user.id;
@@ -93,28 +93,27 @@ export async function POST(request: NextRequest) {
       }
     } else if (session.user.userType === "client") {
       finalClientId = session.user.id;
-      if (!finalProId) {
-        return NextResponse.json(
-          { error: "Pro ID is required" },
-          { status: 400 }
-        );
-      }
+      // For clients, proId is optional (starts as unassigned)
     }
 
     const project = await prisma.project.create({
       data: {
         title,
         description,
-        proId: finalProId as string,
-        clientId: finalClientId as string,
+        category,
+        timeline,
+        proId: finalProId || null,
+        clientId: finalClientId,
         startDate: startDate ? new Date(startDate) : new Date(),
         endDate: endDate ? new Date(endDate) : undefined,
         budget: budget ? parseFloat(budget) : 0,
-        status: "planning",
-      },
+        currency: currency || "GBP",
+        country: country || null,
+        status: "under_review",
+      } as Parameters<typeof prisma.project.create>[0]["data"],
       include: {
-        pro: { select: { name: true, email: true } },
-        client: { select: { name: true, email: true } },
+        pro: { select: { name: true, email: true, image: true } },
+        client: { select: { name: true, email: true, image: true } },
       },
     });
 

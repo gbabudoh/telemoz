@@ -18,14 +18,19 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
+import { useSession } from "next-auth/react";
 
 // Marketing Header Component
 function MarketingHeader() {
+  const { data: session } = useSession();
+  const userType = session?.user?.userType as string;
+  const logoHref = userType ? `/${userType}` : "/";
+
   return (
     <header className="sticky top-0 z-50 border-b border-white/20 bg-white/60 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.03)] transition-all">
       <div className="container mx-auto max-w-7xl px-6">
         <div className="flex h-16 items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
+          <Link href={logoHref} className="flex items-center gap-2 cursor-pointer">
             <Image 
               src="/logos/telemoz.png" 
               alt="Telemoz" 
@@ -39,29 +44,39 @@ function MarketingHeader() {
           </Link>
           
           <nav className="hidden md:flex items-center gap-6">
-            <Link href="/" className="text-gray-700 hover:text-[#0a9396] transition-colors font-medium">
+            <Link href="/" className="text-gray-700 hover:text-[#0a9396] transition-colors font-medium cursor-pointer">
               Home
             </Link>
-            <Link href="/how-it-works" className="text-gray-700 hover:text-[#0a9396] transition-colors font-medium">
+            <Link href="/how-it-works" className="text-gray-700 hover:text-[#0a9396] transition-colors font-medium cursor-pointer">
               How it Works
             </Link>
-            <Link href="/about" className="text-gray-700 hover:text-[#0a9396] transition-colors font-medium">
+            <Link href="/about" className="text-gray-700 hover:text-[#0a9396] transition-colors font-medium cursor-pointer">
               About
             </Link>
-            <Link href="/marketplace" className="text-gray-700 hover:text-[#0a9396] transition-colors font-medium">
+            <Link href="/marketplace" className="text-gray-700 hover:text-[#0a9396] transition-colors font-medium cursor-pointer">
               Marketplace
             </Link>
           </nav>
 
           <div className="flex items-center gap-4">
-            <Link href="/login">
-              <Button variant="ghost" size="sm" className="text-gray-600 hover:text-[#0a9396] hover:bg-[#0a9396]/5 transition-all rounded-full px-4">Log in</Button>
-            </Link>
-            <Link href="/register">
-              <Button size="sm" className="bg-[#0a9396] hover:bg-[#087579] text-white shadow-lg shadow-[#0a9396]/20 hover:shadow-[#0a9396]/40 hover:-translate-y-0.5 transition-all rounded-full px-6">
-                Get Started
-              </Button>
-            </Link>
+            {session ? (
+              <Link className="cursor-pointer" href={logoHref}>
+                <Button size="sm" className="bg-[#0a9396] hover:bg-[#087579] text-white shadow-lg shadow-[#0a9396]/20 hover:shadow-[#0a9396]/40 hover:-translate-y-0.5 transition-all rounded-full px-6 cursor-pointer">
+                  Dashboard
+                </Button>
+              </Link>
+            ) : (
+              <>
+                <Link className="cursor-pointer" href="/login">
+                  <Button variant="ghost" size="sm" className="text-gray-600 hover:text-[#0a9396] hover:bg-[#0a9396]/5 transition-all rounded-full px-4 cursor-pointer">Log in</Button>
+                </Link>
+                <Link className="cursor-pointer" href="/register">
+                  <Button size="sm" className="bg-[#0a9396] hover:bg-[#087579] text-white shadow-lg shadow-[#0a9396]/20 hover:shadow-[#0a9396]/40 hover:-translate-y-0.5 transition-all rounded-full px-6 cursor-pointer">
+                    Get Started
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -96,26 +111,26 @@ function MarketingFooter() {
           <div>
             <h3 className="text-gray-900 font-bold mb-6 tracking-tight">Product</h3>
             <ul className="space-y-3 text-sm">
-              <li><Link href="/how-it-works" className="text-gray-600 hover:text-[#0a9396] hover:translate-x-1 transition-all inline-block">How it Works</Link></li>
-              <li><Link href="/marketplace" className="text-gray-600 hover:text-[#0a9396] hover:translate-x-1 transition-all inline-block">Marketplace</Link></li>
-              <li><Link href="/about" className="text-gray-600 hover:text-[#0a9396] hover:translate-x-1 transition-all inline-block">About</Link></li>
+              <li><Link href="/how-it-works" className="text-gray-600 hover:text-[#0a9396] hover:translate-x-1 transition-all inline-block cursor-pointer">How it Works</Link></li>
+              <li><Link href="/marketplace" className="text-gray-600 hover:text-[#0a9396] hover:translate-x-1 transition-all inline-block cursor-pointer">Marketplace</Link></li>
+              <li><Link href="/about" className="text-gray-600 hover:text-[#0a9396] hover:translate-x-1 transition-all inline-block cursor-pointer">About</Link></li>
             </ul>
           </div>
 
           <div>
             <h3 className="text-gray-900 font-bold mb-6 tracking-tight">Resources</h3>
             <ul className="space-y-3 text-sm">
-              <li><Link href="/documentation" className="text-gray-600 hover:text-[#0a9396] hover:translate-x-1 transition-all inline-block">Documentation</Link></li>
-              <li><Link href="/support" className="text-gray-600 hover:text-[#0a9396] hover:translate-x-1 transition-all inline-block">Support</Link></li>
-              <li><Link href="/blog" className="text-gray-600 hover:text-[#0a9396] hover:translate-x-1 transition-all inline-block">Blog</Link></li>
+              <li><Link href="/documentation" className="text-gray-600 hover:text-[#0a9396] hover:translate-x-1 transition-all inline-block cursor-pointer">Documentation</Link></li>
+              <li><Link href="/support" className="text-gray-600 hover:text-[#0a9396] hover:translate-x-1 transition-all inline-block cursor-pointer">Support</Link></li>
+              <li><Link href="/blog" className="text-gray-600 hover:text-[#0a9396] hover:translate-x-1 transition-all inline-block cursor-pointer">Blog</Link></li>
             </ul>
           </div>
 
           <div>
             <h3 className="text-gray-900 font-bold mb-6 tracking-tight">Legal</h3>
             <ul className="space-y-3 text-sm">
-              <li><Link href="/privacy" className="text-gray-600 hover:text-[#0a9396] hover:translate-x-1 transition-all inline-block">Privacy Policy</Link></li>
-              <li><Link href="/terms" className="text-gray-600 hover:text-[#0a9396] hover:translate-x-1 transition-all inline-block">Terms of Service</Link></li>
+              <li><Link href="/privacy" className="text-gray-600 hover:text-[#0a9396] hover:translate-x-1 transition-all inline-block cursor-pointer">Privacy Policy</Link></li>
+              <li><Link href="/terms" className="text-gray-600 hover:text-[#0a9396] hover:translate-x-1 transition-all inline-block cursor-pointer">Terms of Service</Link></li>
             </ul>
           </div>
         </div>
@@ -195,7 +210,7 @@ export default function HomePage() {
               animate="show"
             >
               <motion.div variants={itemVariants} className="inline-flex items-center gap-2 rounded-full border border-[#0a9396]/30 bg-[#0a9396]/10 px-4 py-2 mb-8 shadow-sm">
-                <Sparkles className="h-4 w-4 text-[#0a9396]" />
+                <Sparkles className="h-4 w-4 text-[#0a9396] cursor-pointer" />
                 <span className="text-sm text-[#0a9396] font-medium">Enterprise-Grade Digital Marketing Platform</span>
               </motion.div>
               
@@ -209,14 +224,14 @@ export default function HomePage() {
               </motion.p>
               
               <motion.div variants={itemVariants} className="flex flex-col sm:flex-row gap-4">
-                <Link href="/register">
-                  <Button size="lg" className="w-full sm:w-auto bg-[#0a9396] hover:bg-[#087579] text-white shadow-xl shadow-[#0a9396]/20 hover:shadow-[#0a9396]/40 hover:-translate-y-1 transition-all rounded-full px-8 h-14 text-base font-semibold">
+                <Link className="cursor-pointer" href="/register">
+                  <Button size="lg" className="w-full sm:w-auto bg-[#0a9396] hover:bg-[#087579] text-white shadow-xl shadow-[#0a9396]/20 hover:shadow-[#0a9396]/40 hover:-translate-y-1 transition-all rounded-full px-8 h-14 text-base font-semibold cursor-pointer">
                     Get Started Free
-                    <ArrowRight className="ml-2 h-5 w-5" />
+                    <ArrowRight className="ml-2 h-5 w-5 cursor-pointer" />
                   </Button>
                 </Link>
-                <Link href="/marketplace">
-                  <Button variant="outline" size="lg" className="w-full sm:w-auto border-2 border-gray-200 text-gray-700 hover:border-[#0a9396] hover:text-[#0a9396] hover:bg-transparent shadow-sm hover:shadow-md hover:-translate-y-1 transition-all rounded-full px-8 h-14 text-base font-semibold">
+                <Link className="cursor-pointer" href="/marketplace">
+                  <Button variant="outline" size="lg" className="w-full sm:w-auto border-2 border-gray-200 text-gray-700 hover:border-[#0a9396] hover:text-[#0a9396] hover:bg-transparent shadow-sm hover:shadow-md hover:-translate-y-1 transition-all rounded-full px-8 h-14 text-base font-semibold cursor-pointer">
                     Browse Marketplace
                   </Button>
                 </Link>
@@ -313,7 +328,7 @@ export default function HomePage() {
                       {/* Interactive Reveal Area (Slides up) */}
                       <div className="transform transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] md:translate-y-12 group-hover:translate-y-0">
                         <div className="rounded-2xl bg-white/80 shadow-sm backdrop-blur-md p-4 w-fit mb-6 ring-1 ring-[#0a9396]/20 group-hover:bg-[#0a9396]/10 group-hover:ring-[#0a9396]/40 transition-all">
-                          <Icon className={`h-8 w-8 transition-colors duration-300 ${isLarge ? 'text-[#0a9396]' : 'text-gray-700 group-hover:text-[#0a9396]'}`} />
+                          <Icon className={`h-8 w-8 transition-colors duration-300 ${isLarge ? 'text-[#0a9396]' : 'text-gray-700 group-hover:text-[#0a9396]'} cursor-pointer`} />
                         </div>
                         
                         <h3 className="text-3xl font-bold text-gray-900 mb-3 tracking-tight drop-shadow-sm">{feature.title}</h3>
@@ -378,21 +393,21 @@ export default function HomePage() {
                         desc: "Client and digital marketing professional agree on contract terms, scope of work, and pricing."
                       },
                       {
-                        icon: <Clock className="h-6 w-6" />,
+                        icon: <Clock className="h-6 w-6 cursor-pointer" />,
                         title: "Set Project Timeline",
                         desc: "The digital marketing professional uses the timeline/project feature bar to set the duration: one-off task, continuous task, or for a set date period."
                       },
                       {
-                        icon: <Shield className="h-6 w-6" />,
+                        icon: <Shield className="h-6 w-6 cursor-pointer" />,
                         title: "Secure Payment",
                         desc: "All payments are held securely by Telemoz to protect both parties. Your funds are safe until the work is completed to your satisfaction."
                       },
                       {
-                        icon: <CheckCircle2 className="h-6 w-6" />,
+                        icon: <CheckCircle2 className="h-6 w-6 cursor-pointer" />,
                         title: "Job Completion & Payment",
                         desc: "Once the task/job is completed and approved, Telemoz releases payment to the digital marketing professional. Telemoz charges a 10% commission from the professional's payment."
                       }
-                    ].map((step, i) => (
+                    ].map((step) => (
                       <motion.div 
                         key={step.title}
                         initial={{ opacity: 0, x: -30 }}
@@ -444,7 +459,7 @@ export default function HomePage() {
 
                 <div className="mt-8 p-4 bg-[#0a9396]/5 rounded-lg border border-[#0a9396]/20">
                   <div className="flex items-start gap-3">
-                    <DollarSign className="h-5 w-5 text-[#0a9396] flex-shrink-0 mt-0.5" />
+                    <DollarSign className="h-5 w-5 text-[#0a9396] flex-shrink-0 mt-0.5 cursor-pointer" />
                     <div>
                       <h4 className="font-semibold text-gray-900 mb-1">Commission Structure</h4>
                       <p className="text-sm text-gray-700">
@@ -457,10 +472,10 @@ export default function HomePage() {
                 </div>
 
                 <div className="mt-8 text-center">
-                  <Link href="/marketplace">
-                    <Button size="lg" className="bg-[#0a9396] hover:bg-[#087579] text-white">
+                  <Link className="cursor-pointer" href="/marketplace">
+                    <Button size="lg" className="bg-[#0a9396] hover:bg-[#087579] text-white cursor-pointer">
                       Browse Marketplace
-                      <ArrowRight className="ml-2 h-5 w-5" />
+                      <ArrowRight className="ml-2 h-5 w-5 cursor-pointer" />
                     </Button>
                   </Link>
                 </div>
@@ -489,10 +504,10 @@ export default function HomePage() {
             <p className="text-white/80 text-xl md:text-2xl mb-10 font-light">
               Join thousands of professionals already using Telemoz to grow their business
             </p>
-            <Link href="/register">
-              <Button size="lg" className="bg-white text-[#005f73] hover:bg-gray-50 shadow-xl shadow-black/10 hover:shadow-black/20 hover:-translate-y-1 transition-all rounded-full px-10 h-14 text-lg font-bold">
+            <Link className="cursor-pointer" href="/register">
+              <Button size="lg" className="bg-white text-[#005f73] hover:bg-gray-50 shadow-xl shadow-black/10 hover:shadow-black/20 hover:-translate-y-1 transition-all rounded-full px-10 h-14 text-lg font-bold cursor-pointer">
                 Start Your Free Trial
-                <ArrowRight className="ml-2 h-6 w-6" />
+                <ArrowRight className="ml-2 h-6 w-6 cursor-pointer" />
               </Button>
             </Link>
           </motion.div>

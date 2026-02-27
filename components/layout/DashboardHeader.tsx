@@ -33,23 +33,39 @@ export function DashboardHeader() {
         </button>
 
         {/* Profile */}
-        <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-sm cursor-pointer hover:bg-gray-50 transition-colors">
-          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-[#0a9396] to-[#94d2bd] flex items-center justify-center">
-            {session?.user?.image ? (
-              <Image
-                src={session.user.image}
-                alt={userName}
-                width={32}
-                height={32}
-                className="h-8 w-8 rounded-full object-cover"
-              />
-            ) : (
-              <User className="h-4 w-4 text-white" />
-            )}
+        <div className="flex items-center gap-3 rounded-[1.2rem] border border-gray-200 bg-white/60 backdrop-blur-md px-3 py-2 shadow-sm cursor-pointer hover:shadow-md hover:bg-white hover:border-gray-200/80 transition-all group overflow-hidden relative">
+          
+          <div className="absolute inset-0 bg-gradient-to-r from-emerald-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+
+          {/* Avatar with Status Ring */}
+          <div className="relative shrink-0">
+             <div className="h-9 w-9 rounded-full bg-gradient-to-br from-[#0a9396] to-[#94d2bd] flex items-center justify-center relative z-10 shadow-sm">
+               {session?.user?.image ? (
+                 <Image
+                   src={session.user.image}
+                   alt={userName}
+                   width={36}
+                   height={36}
+                   className="h-9 w-9 rounded-full object-cover border-2 border-white"
+                 />
+               ) : (
+                 <User className="h-4 w-4 text-white" />
+               )}
+             </div>
+             {/* Glowing Online Ring */}
+             <div className="absolute -inset-1 bg-emerald-400 rounded-full blur opacity-20 animate-pulse pointer-events-none" />
+             <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-500 border-2 border-white z-20 shadow-sm" />
           </div>
-          <div className="hidden md:block text-left">
-            <p className="text-sm font-medium text-gray-900">{userName}</p>
-            <p className="text-xs text-gray-600">{userTypeLabel}</p>
+
+          <div className="hidden md:flex flex-col text-left relative z-10 pr-2">
+            <p className="text-sm font-black text-gray-900 tracking-tight leading-none mb-1 group-hover:text-[#0a9396] transition-colors">{userName}</p>
+            <div className="flex items-center gap-1.5">
+               <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest leading-none">{userTypeLabel}</p>
+               <div className="h-1 w-1 bg-gray-300 rounded-full" />
+               <p className="text-[11px] font-bold text-emerald-600 uppercase tracking-widest leading-none flex items-center gap-1">
+                  Online
+               </p>
+            </div>
           </div>
         </div>
       </div>

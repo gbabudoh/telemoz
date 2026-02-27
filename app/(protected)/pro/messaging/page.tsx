@@ -108,7 +108,7 @@ export default function MessagingPage() {
                    onClick={() => {
                      setIsSchedulingCall(false);
                      setIsCallMode(false);
-                     router.push("/messaging");
+                     router.push("/pro/messaging");
                    }}
                    className="p-2 rounded-full hover:bg-white/60 bg-white/40 border border-gray-100 transition-all text-gray-500 hover:text-gray-900 cursor-pointer"
                  >

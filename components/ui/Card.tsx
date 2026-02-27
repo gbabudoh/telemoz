@@ -12,8 +12,8 @@ interface CardProps extends HTMLAttributes<HTMLDivElement> {
 const Card = forwardRef<HTMLDivElement, CardProps>(
   ({ className, variant = "default", hover = true, children, ...props }, ref) => {
     const variants = {
-      default: "bg-gradient-to-br from-white via-[#94d2bd]/5 to-[#a8a9ad]/10 border border-[#a8a9ad]/20 shadow-sm",
-      glass: "glass border border-[#a8a9ad]/30 bg-gradient-to-br from-white/80 via-[#94d2bd]/5 to-[#a8a9ad]/10",
+      default: "bg-gradient-to-br from-white via-[#94d2bd]/5 to-[#a8a9ad]/10 border border-[#DCDCDC] shadow-sm",
+      glass: "glass border border-[#DCDCDC] bg-gradient-to-br from-white/80 via-[#94d2bd]/5 to-[#a8a9ad]/10",
       gradient: "bg-gradient-to-br from-[#0a9396]/10 via-[#94d2bd]/10 to-[#a8a9ad]/10 border border-[#0a9396]/20 shadow-md",
     };
 
@@ -70,7 +70,7 @@ CardContent.displayName = "CardContent";
 
 const CardFooter = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn("flex items-center mt-4 pt-4 border-t border-[#a8a9ad]/20", className)} {...props} />
+    <div ref={ref} className={cn("flex items-center mt-4 pt-4 border-t border-[#DCDCDC]", className)} {...props} />
   )
 );
 CardFooter.displayName = "CardFooter";

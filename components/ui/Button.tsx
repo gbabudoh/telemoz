@@ -28,16 +28,21 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       disabled,
       ...props
     },
-    ref
+    ref,
   ) => {
-    const baseStyles = "inline-flex items-center justify-center rounded-lg font-medium transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none";
-    
+    const baseStyles =
+      "inline-flex items-center justify-center rounded-lg font-medium transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none cursor-pointer";
+
     const variants = {
-      primary: "bg-[#0a9396] text-white hover:bg-[#087579] shadow-sm hover:shadow-md transition-all",
-      secondary: "bg-gray-900 text-white hover:bg-gray-800 border border-gray-800",
-      outline: "border-2 border-[#0a9396] text-[#0a9396] hover:bg-[#0a9396]/10 hover:text-[#087579] bg-white",
+      primary:
+        "bg-[#0a9396] text-white hover:bg-[#087579] shadow-sm hover:shadow-md transition-all",
+      secondary:
+        "bg-gray-900 text-white hover:bg-gray-800 border border-gray-800",
+      outline:
+        "border-2 border-[#0a9396] text-[#0a9396] hover:bg-[#0a9396]/10 hover:text-[#087579] bg-white",
       ghost: "text-gray-700 hover:bg-gray-100 hover:text-gray-900",
-      danger: "bg-gradient-to-r from-red-600 to-red-700 text-white hover:from-red-700 hover:to-red-800",
+      danger:
+        "bg-gradient-to-r from-red-600 to-red-700 text-white hover:from-red-700 hover:to-red-800",
     };
 
     const sizes = {
@@ -80,17 +85,20 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           </>
         ) : (
           <>
-            {Icon && iconPosition === "left" && <Icon className="mr-2 h-4 w-4" />}
+            {Icon && iconPosition === "left" && (
+              <Icon className="mr-2 h-4 w-4" />
+            )}
             {children}
-            {Icon && iconPosition === "right" && <Icon className="ml-2 h-4 w-4" />}
+            {Icon && iconPosition === "right" && (
+              <Icon className="ml-2 h-4 w-4" />
+            )}
           </>
         )}
       </button>
     );
-  }
+  },
 );
 
 Button.displayName = "Button";
 
 export { Button };
-

@@ -11,6 +11,7 @@ interface ModalProps {
   children: ReactNode;
   size?: "sm" | "md" | "lg" | "xl";
   className?: string;
+  variant?: "dark" | "light";
 }
 
 const sizeClasses = {
@@ -27,8 +28,29 @@ export function Modal({
   children,
   size = "md",
   className,
+  variant = "dark",
 }: ModalProps) {
   if (!isOpen) return null;
+
+  const variantClasses = {
+    dark: "bg-gray-900 border-gray-800 text-white",
+    light: "bg-white border-gray-200 text-gray-900",
+  };
+
+  const headerBorderClasses = {
+    dark: "border-gray-800",
+    light: "border-gray-200",
+  };
+
+  const titleClasses = {
+    dark: "text-white",
+    light: "text-gray-900",
+  };
+
+  const closeButtonClasses = {
+    dark: "text-gray-400 hover:bg-gray-800 hover:text-white",
+    light: "text-gray-500 hover:bg-gray-100 hover:text-gray-900",
+  };
 
   return (
     <>
@@ -39,18 +61,19 @@ export function Modal({
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div
           className={cn(
-            "relative w-full rounded-xl bg-gray-900 border border-gray-800 shadow-2xl",
+            "relative w-full rounded-xl border shadow-2xl transition-all duration-300",
+            variantClasses[variant],
             sizeClasses[size],
             className
           )}
           onClick={(e) => e.stopPropagation()}
         >
           {title && (
-            <div className="flex items-center justify-between border-b border-gray-800 px-6 py-4">
-              <h2 className="text-xl font-semibold text-white">{title}</h2>
+            <div className={cn("flex items-center justify-between border-b px-6 py-4", headerBorderClasses[variant])}>
+              <h2 className={cn("text-xl font-semibold", titleClasses[variant])}>{title}</h2>
               <button
                 onClick={onClose}
-                className="rounded-lg p-1 text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
+                className={cn("rounded-lg p-1 transition-colors", closeButtonClasses[variant])}
               >
                 <X className="h-5 w-5" />
               </button>

@@ -1,28 +1,82 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import {
   Settings,
   User,
   Bell,
   Shield,
   CreditCard,
-  Mail,
-  Lock,
   Eye,
   EyeOff,
   Save,
   Trash2,
-  LogOut,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  Sparkles,
+  Lock,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { countriesByRegion, regions } from "@/lib/countries";
-import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+
+// Custom Frosted Glass Input matching digitalbox suite
+const GlassInput = (props: React.InputHTMLAttributes<HTMLInputElement> & { label?: string; error?: string }) => {
+  const { label, error, className, ...rest } = props;
+  return (
+    <div className="space-y-1.5">
+      {label && <label className="text-[13px] font-bold text-gray-700 tracking-wide">{label}</label>}
+      <input
+        {...rest}
+        className={`w-full bg-white/40 border border-white/60 focus:bg-white/90 focus:border-[#0a9396] focus:ring-4 focus:ring-[#0a9396]/10 rounded-xl px-4 py-2.5 outline-none transition-all shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] text-gray-900 placeholder-gray-400 font-medium ${className || ""} ${error ? "border-red-400 focus:border-red-500 focus:ring-red-500/10" : ""}`}
+      />
+      {error && <p className="text-red-500 text-xs font-semibold mt-1">{error}</p>}
+    </div>
+  );
+};
+
+const GlassSelect = (props: React.SelectHTMLAttributes<HTMLSelectElement> & { label?: string; error?: string; children: React.ReactNode }) => {
+  const { label, error, className, children, ...rest } = props;
+  return (
+    <div className="space-y-1.5">
+      {label && <label className="text-[13px] font-bold text-gray-700 tracking-wide">{label}</label>}
+      <select
+        {...rest}
+        className={`w-full bg-white/40 border border-white/60 focus:bg-white/90 focus:border-[#0a9396] focus:ring-4 focus:ring-[#0a9396]/10 rounded-xl px-4 py-2.5 outline-none transition-all shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] text-gray-900 placeholder-gray-400 font-medium appearance-none ${className || ""} ${error ? "border-red-400 focus:border-red-500 focus:ring-red-500/10" : ""}`}
+      >
+        {children}
+      </select>
+      {error && <p className="text-red-500 text-xs font-semibold mt-1">{error}</p>}
+    </div>
+  );
+};
+
+// Custom Glass Switch Toggle
+const GlassSwitch = ({ checked, onChange, disabled = false }: { checked: boolean, onChange: (chk: boolean) => void, disabled?: boolean }) => {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-[#0a9396]/20 disabled:cursor-not-allowed disabled:opacity-50
+        ${checked ? 'bg-gradient-to-r from-teal-400 to-[#0a9396] shadow-inner' : 'bg-gray-200/60 backdrop-blur-sm border-white/40 shadow-inner'}
+      `}
+    >
+      <span
+        aria-hidden="true"
+        className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-[0_2px_5px_rgba(0,0,0,0.2)] ring-0 transition duration-300 ease-in-out
+          ${checked ? 'translate-x-5' : 'translate-x-0 border border-gray-100'}
+        `}
+      />
+    </button>
+  );
+};
+
 
 export default function SettingsPage() {
   const { data: session } = useSession();
@@ -44,42 +98,6 @@ export default function SettingsPage() {
     confirmPassword: "",
   });
 
-  // Fetch user data on mount
-  useEffect(() => {
-    const fetchUserData = async () => {
-      if (!session?.user?.id) return;
-
-      try {
-        setIsFetching(true);
-        const response = await fetch("/api/user/profile");
-        if (response.ok) {
-          const data = await response.json();
-          setFormData({
-            name: data.user.name || "",
-            email: data.user.email || "",
-            phone: "",
-            company: "",
-            country: data.user.country || "",
-            city: data.user.city || "",
-            currentPassword: "",
-            newPassword: "",
-            confirmPassword: "",
-          });
-          setPreferences((prev) => ({
-            ...prev,
-            timezone: data.user.timezone || "Europe/London",
-          }));
-        }
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-      } finally {
-        setIsFetching(false);
-      }
-    };
-
-    fetchUserData();
-  }, [session]);
-
   const [notifications, setNotifications] = useState({
     emailNotifications: true,
     projectUpdates: true,
@@ -95,11 +113,43 @@ export default function SettingsPage() {
     language: "en",
   });
 
+  // Fetch user data on mount
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!session?.user?.id) return;
+
+      try {
+        setIsFetching(true);
+        const response = await fetch("/api/user/profile");
+        if (response.ok) {
+          const data = await response.json();
+          setFormData(prev => ({
+            ...prev,
+            name: data.user.name || "",
+            email: data.user.email || "",
+            country: data.user.country || "",
+            city: data.user.city || "",
+          }));
+          setPreferences((prev) => ({
+            ...prev,
+            timezone: data.user.timezone || "Europe/London",
+          }));
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      } finally {
+        setIsFetching(false);
+      }
+    };
+
+    fetchUserData();
+  }, [session]);
+
   const tabs = [
-    { id: "account", label: "Account", icon: User },
-    { id: "notifications", label: "Notifications", icon: Bell },
-    { id: "security", label: "Security", icon: Shield },
-    { id: "billing", label: "Billing & Subscription", icon: CreditCard },
+    { id: "account", label: "Identity", icon: User },
+    { id: "notifications", label: "Alerts Config", icon: Bell },
+    { id: "security", label: "Security & Access", icon: Shield },
+    { id: "billing", label: "Licenses & Billing", icon: CreditCard },
   ];
 
   const handleSaveAccountInfo = async () => {
@@ -110,9 +160,7 @@ export default function SettingsPage() {
     try {
       const response = await fetch("/api/user/update", {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: formData.name,
           email: formData.email,
@@ -127,7 +175,6 @@ export default function SettingsPage() {
       if (response.ok) {
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 3000);
-        // Update session if needed (you may need to refresh the session)
       } else {
         setSaveError(data.error || "Failed to update account information");
         setTimeout(() => setSaveError(""), 5000);
@@ -147,8 +194,6 @@ export default function SettingsPage() {
     setSaveError("");
 
     try {
-      // TODO: Implement API call to save notification preferences
-      // For now, just simulate success
       await new Promise((resolve) => setTimeout(resolve, 500));
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
@@ -166,7 +211,6 @@ export default function SettingsPage() {
     setSaveSuccess(false);
     setSaveError("");
 
-    // Validate passwords
     if (!formData.currentPassword || !formData.newPassword || !formData.confirmPassword) {
       setSaveError("All password fields are required");
       setTimeout(() => setSaveError(""), 5000);
@@ -189,12 +233,9 @@ export default function SettingsPage() {
     }
 
     try {
-      // TODO: Implement API call to change password
-      // For now, just simulate success
       await new Promise((resolve) => setTimeout(resolve, 500));
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
-      // Clear password fields
       setFormData({
         ...formData,
         currentPassword: "",
@@ -210,597 +251,488 @@ export default function SettingsPage() {
     }
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0, y: 15 },
+    show: { opacity: 1, y: 0, transition: { staggerChildren: 0.1, delayChildren: 0.1 } }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 15 },
+    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 120 } }
+  };
+
   return (
-    <div className="max-w-6xl">
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center gap-2 mb-2">
-          <Settings className="h-6 w-6 text-[#0a9396]" />
-          <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
-        </div>
-        <p className="text-gray-600">Manage your account settings and preferences</p>
-      </div>
+    <div className="relative min-h-[calc(100vh-4rem)] bg-gray-50 overflow-hidden pb-12 pt-4 px-4 sm:px-6 lg:px-8">
+      {/* Ambient Lighting Background */}
+      <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[40%] rounded-full bg-cyan-400/10 blur-[120px] pointer-events-none mix-blend-multiply animate-pulse" />
+      <div className="absolute bottom-[20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-500/10 blur-[130px] pointer-events-none mix-blend-multiply animate-pulse-slow" />
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Sidebar Navigation */}
-        <div className="lg:col-span-1">
-          <Card>
-            <CardContent className="pt-6">
-              <nav className="space-y-1">
-                {tabs.map((tab) => {
-                  const Icon = tab.icon;
-                  const isActive = activeTab === tab.id;
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveTab(tab.id)}
-                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                        isActive
-                          ? "bg-[#0a9396]/10 text-[#0a9396] border border-[#0a9396]/30"
-                          : "text-gray-600 hover:bg-gray-100"
-                      }`}
-                    >
-                      <Icon className="h-5 w-5" />
-                      <span>{tab.label}</span>
-                    </button>
-                  );
-                })}
-              </nav>
-            </CardContent>
-          </Card>
-        </div>
+      <div className="relative z-10 max-w-6xl mx-auto space-y-6">
+        
+        {/* Header Section */}
+        <motion.div
+           initial={{ opacity: 0, scale: 0.98 }}
+           animate={{ opacity: 1, scale: 1 }}
+           transition={{ type: "spring", stiffness: 100, damping: 20 }}
+           className="relative overflow-hidden rounded-[2rem] bg-white/40 p-1 backdrop-blur-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/60 group"
+        >
+           <div className="absolute inset-0 bg-gradient-to-r from-teal-500/5 via-blue-500/5 to-indigo-500/5 opacity-50 group-hover:opacity-100 transition-opacity duration-1000" />
+           <div className="relative bg-white/60 rounded-[1.8rem] p-6 lg:p-8 flex items-center justify-between gap-6 shadow-inner border border-white">
+             <div className="flex items-center gap-5">
+               <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-[#0a9396] p-0.5 shadow-lg shadow-[#0a9396]/20 relative overflow-hidden hidden sm:flex shrink-0">
+                  <div className="absolute inset-0 bg-white/20 transform -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
+                  <div className="h-full w-full rounded-[14px] bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20">
+                     <Settings className="h-8 w-8 text-white rotate-0 group-hover:rotate-90 transition-transform duration-700" />
+                  </div>
+               </div>
+               <div>
+                  <h1 className="text-3xl sm:text-4xl font-black text-gray-900 tracking-tighter drop-shadow-sm flex items-center gap-3">
+                    System Parameters
+                  </h1>
+                  <p className="text-gray-500 font-bold tracking-wide mt-1 flex items-center gap-2 text-[15px]">
+                    <Sparkles className="h-4 w-4 text-emerald-500" />
+                    Global infrastructure and identity routing definitions.
+                  </p>
+               </div>
+             </div>
+           </div>
+        </motion.div>
 
-        {/* Content Area */}
-        <div className="lg:col-span-3 space-y-6">
-          {/* Account Settings */}
-          {activeTab === "account" && (
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          
+          {/* Glassmorphic Sidebar Navigation */}
+          <div className="lg:col-span-1">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="bg-white/40 backdrop-blur-2xl rounded-[2rem] border border-white/60 p-3 shadow-[inset_0_2px_15px_rgb(255,255,255,0.7),0_10px_30px_rgb(0,0,0,0.03)] sticky top-24"
             >
-              <Card>
-                <CardHeader>
-                  <CardTitle>Account Information</CardTitle>
-                  <CardDescription>Update your personal information and account details</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {isFetching ? (
-                    <div className="flex items-center justify-center py-8">
-                      <Loader2 className="h-6 w-6 animate-spin text-[#0a9396]" />
-                      <span className="ml-2 text-gray-600">Loading account information...</span>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Input
-                          label="Full Name"
-                          value={formData.name}
-                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                          disabled={isLoading}
-                        />
-                        <Input
-                          label="Email"
-                          type="email"
-                          value={formData.email}
-                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                          disabled={isLoading}
-                        />
-                        <Input
-                          label="Phone Number"
-                          value={formData.phone}
-                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                          disabled={isLoading}
-                        />
-                        <Input
-                          label="Company Name"
-                          value={formData.company}
-                          onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                          disabled={isLoading}
-                        />
-                        <div>
-                          <label className="block text-sm font-medium text-gray-900 mb-2">Country</label>
-                          <select
-                            value={formData.country}
-                            onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                            disabled={isLoading}
-                            className="w-full px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm text-gray-900 focus:border-[#0a9396] focus:outline-none focus:ring-2 focus:ring-[#0a9396]/20 disabled:opacity-50 disabled:cursor-not-allowed"
+              <nav className="space-y-1.5 flex flex-col">
+                <AnimatePresence>
+                  {tabs.map((tab) => {
+                    const Icon = tab.icon;
+                    const isActive = activeTab === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`group relative w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl font-bold tracking-wide transition-all duration-300 overflow-hidden ${
+                          isActive
+                            ? "text-teal-900 shadow-sm"
+                            : "text-gray-600 hover:text-gray-900 hover:bg-white/60"
+                        }`}
+                      >
+                        {isActive && (
+                          <motion.div
+                            layoutId="activeTabBadge"
+                            className="absolute inset-0 bg-gradient-to-r from-teal-50 to-emerald-50/20 border border-teal-200/50 rounded-xl"
+                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
                           >
-                            <option value="">Select Country</option>
-                            {regions.map((region) => (
-                              <optgroup key={region} label={region}>
-                                {countriesByRegion[region].map((country) => (
-                                  <option key={country.id} value={country.name}>
-                                    {country.name}
-                                  </option>
+                             <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-1/2 bg-gradient-to-b from-[#0a9396] to-teal-400 rounded-r-md" />
+                          </motion.div>
+                        )}
+                        <Icon className={`h-5 w-5 relative z-10 transition-colors ${isActive ? "text-[#0a9396]" : "text-gray-400 group-hover:text-[#0a9396]"}`} />
+                        <span className="relative z-10 text-[14px]">{tab.label}</span>
+                      </button>
+                    );
+                  })}
+                </AnimatePresence>
+              </nav>
+            </motion.div>
+          </div>
+
+          {/* Glassmorphic Content Area */}
+          <div className="lg:col-span-3 space-y-6">
+            
+            {/* 1. Account / Identity */}
+            {activeTab === "account" && (
+              <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-6">
+                <motion.div variants={itemVariants} className="bg-white/40 backdrop-blur-2xl rounded-[2.5rem] border border-white/60 shadow-[inset_0_2px_15px_rgb(255,255,255,0.7),0_10px_30px_rgb(0,0,0,0.03)] overflow-hidden">
+                   <div className="p-6 sm:p-8 md:p-10 border-b border-gray-100/50 bg-gradient-to-br from-white/40 to-transparent">
+                     <h2 className="text-2xl font-black text-gray-900 tracking-tight">Identity Nexus</h2>
+                     <p className="text-gray-500 font-medium text-[14px] mt-1">Global node identity and geolocation mapping.</p>
+                   </div>
+                   
+                   <div className="p-6 sm:p-8 md:p-10 bg-white/20">
+                     {isFetching ? (
+                        <div className="flex flex-col items-center justify-center py-12 gap-4">
+                          <Loader2 className="h-8 w-8 animate-spin text-[#0a9396]" />
+                          <span className="text-gray-500 font-bold tracking-wide">Decrypting Identity Payload...</span>
+                        </div>
+                      ) : (
+                        <div className="space-y-8">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <GlassInput
+                              label="Primary Designator"
+                              value={formData.name}
+                              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                              disabled={isLoading}
+                            />
+                            <GlassInput
+                              label="Secure Auth Address"
+                              type="email"
+                              value={formData.email}
+                              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                              disabled={isLoading}
+                            />
+                            <GlassInput
+                              label="Comms Frequency"
+                              value={formData.phone}
+                              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                              placeholder="+1 (555) 000-0000"
+                              disabled={isLoading}
+                            />
+                            <GlassInput
+                              label="Entity Cluster"
+                              value={formData.company}
+                              onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                              placeholder="Corporation Node"
+                              disabled={isLoading}
+                            />
+                            <GlassSelect
+                               label="Territory"
+                               value={formData.country}
+                               onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                               disabled={isLoading}
+                            >
+                                <option value="">Select Territory</option>
+                                {regions.map((region) => (
+                                  <optgroup key={region} label={region}>
+                                    {countriesByRegion[region].map((country) => (
+                                      <option key={country.id} value={country.name}>{country.name}</option>
+                                    ))}
+                                  </optgroup>
                                 ))}
-                              </optgroup>
-                            ))}
-                          </select>
+                            </GlassSelect>
+                            <GlassInput
+                              label="Zone"
+                              value={formData.city}
+                              onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                              placeholder="London Sector"
+                              disabled={isLoading}
+                            />
+                          </div>
+
+                          {/* Success/Error Alerts inside forms */}
+                          <AnimatePresence>
+                             {saveSuccess && (
+                               <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200">
+                                 <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                                 <span className="text-sm font-bold text-emerald-900 tracking-wide">Identity matrix updated.</span>
+                               </motion.div>
+                             )}
+                             {saveError && (
+                               <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-red-50 to-rose-50 border border-red-200">
+                                 <AlertCircle className="h-5 w-5 text-red-600" />
+                                 <span className="text-sm font-bold text-red-900 tracking-wide">{saveError}</span>
+                               </motion.div>
+                             )}
+                          </AnimatePresence>
+
+                          <div className="flex gap-3 pt-6 border-t border-gray-200/50">
+                            <Button
+                              onClick={handleSaveAccountInfo}
+                              disabled={isLoading || isFetching}
+                              className="bg-gray-900 hover:bg-black text-white hover:shadow-lg hover:shadow-gray-900/20 rounded-xl px-6 h-12 border-none transition-all disabled:opacity-50"
+                            >
+                              {isLoading ? (
+                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Committing...</>
+                              ) : (
+                                <><Save className="mr-2 h-4 w-4 text-teal-400" /> Commit Identity</>
+                              )}
+                            </Button>
+                            <Button variant="ghost" className="rounded-xl px-6 h-12 font-bold tracking-wide hover:bg-white/60" onClick={() => { setSaveSuccess(false); setSaveError(""); }}>
+                              Revert
+                            </Button>
+                          </div>
                         </div>
-                        <Input
-                          label="City"
-                          value={formData.city}
-                          onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                          placeholder="London"
+                      )}
+                   </div>
+                </motion.div>
+
+                <motion.div variants={itemVariants} className="bg-white/40 backdrop-blur-2xl rounded-[2.5rem] border border-white/60 shadow-[inset_0_2px_15px_rgb(255,255,255,0.7),0_10px_30px_rgb(0,0,0,0.03)] overflow-hidden">
+                   <div className="p-6 sm:p-8 md:p-10 border-b border-gray-100/50 bg-gradient-to-br from-white/40 to-transparent">
+                     <h2 className="text-2xl font-black text-gray-900 tracking-tight">Localization Physics</h2>
+                     <p className="text-gray-500 font-medium text-[14px] mt-1">Chronological and economic display formatting.</p>
+                   </div>
+                   
+                   <div className="p-6 sm:p-8 md:p-10 bg-white/20">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-8">
+                         <GlassSelect
+                           label="Chronosphere (Timezone)"
+                           value={preferences.timezone}
+                           onChange={(e) => setPreferences({ ...preferences, timezone: e.target.value })}
+                         >
+                            <option value="Europe/London">Europe/London (GMT)</option>
+                            <option value="Europe/Paris">Europe/Paris (CET)</option>
+                            <option value="America/New_York">America/New_York (EST)</option>
+                            <option value="America/Los_Angeles">America/Los_Angeles (PST)</option>
+                         </GlassSelect>
+                         <GlassSelect
+                           label="Cycle Layout (Date)"
+                           value={preferences.dateFormat}
+                           onChange={(e) => setPreferences({ ...preferences, dateFormat: e.target.value })}
+                         >
+                            <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+                            <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                            <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                         </GlassSelect>
+                         <GlassSelect
+                           label="Economic Standard (Currency)"
+                           value={preferences.currency}
+                           onChange={(e) => setPreferences({ ...preferences, currency: e.target.value })}
+                         >
+                            <option value="GBP">GBP (£)</option>
+                            <option value="USD">USD ($)</option>
+                            <option value="EUR">EUR (€)</option>
+                         </GlassSelect>
+                         <GlassSelect
+                           label="Linguistics"
+                           value={preferences.language}
+                           onChange={(e) => setPreferences({ ...preferences, language: e.target.value })}
+                         >
+                            <option value="en">English (US/UK)</option>
+                            <option value="es">Español</option>
+                            <option value="fr">Français</option>
+                         </GlassSelect>
+                      </div>
+
+                      <div className="flex gap-3 pt-6 border-t border-gray-200/50">
+                        <Button
+                          onClick={handleSaveAccountInfo}
                           disabled={isLoading}
-                        />
+                          className="bg-gray-900 hover:bg-black text-white hover:shadow-lg hover:shadow-gray-900/20 rounded-xl px-6 h-12 border-none transition-all"
+                        >
+                          {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : <><Save className="mr-2 h-4 w-4 text-teal-400" /> Save Preferences</>}
+                        </Button>
                       </div>
-                    </>
-                  )}
-                  {saveSuccess && (
-                    <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 border border-green-200 text-green-700">
-                      <CheckCircle2 className="h-4 w-4" />
-                      <span className="text-sm">Account information updated successfully!</span>
-                    </div>
-                  )}
-                  {saveError && (
-                    <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700">
-                      <AlertCircle className="h-4 w-4" />
-                      <span className="text-sm">{saveError}</span>
-                    </div>
-                  )}
-                  <div className="flex gap-2 pt-4">
-                    <Button
-                      onClick={handleSaveAccountInfo}
-                      disabled={isLoading || isFetching}
-                      className="bg-[#0a9396] hover:bg-[#087579] text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isLoading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="mr-2 h-4 w-4" />
-                          Save Changes
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setSaveSuccess(false);
-                        setSaveError("");
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                   </div>
+                </motion.div>
+              </motion.div>
+            )}
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Preferences</CardTitle>
-                  <CardDescription>Customize your application preferences</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-900 mb-2">Timezone</label>
-                      <select
-                        value={preferences.timezone}
-                        onChange={(e) =>
-                          setPreferences({ ...preferences, timezone: e.target.value })
-                        }
-                        className="w-full px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm text-gray-900 focus:border-[#0a9396] focus:outline-none focus:ring-2 focus:ring-[#0a9396]/20"
-                      >
-                        <option value="Europe/London">Europe/London (GMT)</option>
-                        <option value="Europe/Paris">Europe/Paris (CET)</option>
-                        <option value="America/New_York">America/New_York (EST)</option>
-                        <option value="America/Los_Angeles">America/Los_Angeles (PST)</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-900 mb-2">Date Format</label>
-                      <select
-                        value={preferences.dateFormat}
-                        onChange={(e) =>
-                          setPreferences({ ...preferences, dateFormat: e.target.value })
-                        }
-                        className="w-full px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm text-gray-900 focus:border-[#0a9396] focus:outline-none focus:ring-2 focus:ring-[#0a9396]/20"
-                      >
-                        <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-                        <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-                        <option value="YYYY-MM-DD">YYYY-MM-DD</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-900 mb-2">Currency</label>
-                      <select
-                        value={preferences.currency}
-                        onChange={(e) =>
-                          setPreferences({ ...preferences, currency: e.target.value })
-                        }
-                        className="w-full px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm text-gray-900 focus:border-[#0a9396] focus:outline-none focus:ring-2 focus:ring-[#0a9396]/20"
-                      >
-                        <option value="GBP">GBP (£)</option>
-                        <option value="USD">USD ($)</option>
-                        <option value="EUR">EUR (€)</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-900 mb-2">Language</label>
-                      <select
-                        value={preferences.language}
-                        onChange={(e) =>
-                          setPreferences({ ...preferences, language: e.target.value })
-                        }
-                        className="w-full px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm text-gray-900 focus:border-[#0a9396] focus:outline-none focus:ring-2 focus:ring-[#0a9396]/20"
-                      >
-                        <option value="en">English</option>
-                        <option value="es">Spanish</option>
-                        <option value="fr">French</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="flex gap-2 pt-4">
-                    <Button
-                      onClick={handleSaveAccountInfo}
-                      disabled={isLoading || isFetching}
-                      className="bg-[#0a9396] hover:bg-[#087579] text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isLoading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="mr-2 h-4 w-4" />
-                          Save Preferences
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
+            {/* 2. Notifications Config */}
+            {activeTab === "notifications" && (
+               <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-6">
+                 <motion.div variants={itemVariants} className="bg-white/40 backdrop-blur-2xl rounded-[2.5rem] border border-white/60 shadow-[inset_0_2px_15px_rgb(255,255,255,0.7),0_10px_30px_rgb(0,0,0,0.03)] overflow-hidden">
+                   <div className="p-6 sm:p-8 md:p-10 border-b border-gray-100/50 bg-gradient-to-br from-white/40 to-transparent flex items-center gap-4">
+                     <div className="p-3.5 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-2xl shadow-lg shadow-blue-500/20 text-white shrink-0">
+                       <Bell className="h-6 w-6" />
+                     </div>
+                     <div>
+                       <h2 className="text-2xl font-black text-gray-900 tracking-tight">System Alerts</h2>
+                       <p className="text-gray-500 font-medium text-[14px] mt-1">Configure event listeners and pushes.</p>
+                     </div>
+                   </div>
+                   
+                   <div className="p-6 sm:p-8 md:p-10 bg-white/20">
+                     <div className="space-y-4">
+                        {[
+                          { id: "emailNotifications", title: "Direct Email Push", desc: "Route core notifications directly to your secure email vault." },
+                          { id: "projectUpdates", title: "Funnel & Pipeline Events", desc: "Real-time alerts on project state modifications." },
+                          { id: "newInquiries", title: "Marketplace Inbound", desc: "Instant node pings for new lead entries in the marketplace." },
+                          { id: "paymentReceived", title: "Economic Transfers", desc: "Transaction success and remittance confirmations." },
+                          { id: "marketingEmails", title: "Telemoz Broadcasts", desc: "Feature dispatches and strategic insight newsletters." }
+                        ].map((setting, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-5 rounded-2xl bg-white/60 border border-white hover:bg-white hover:shadow-md transition-all">
+                             <div className="pr-4">
+                               <h4 className="font-bold text-gray-900 text-[15px]">{setting.title}</h4>
+                               <p className="text-sm font-semibold text-gray-500 mt-0.5">{setting.desc}</p>
+                             </div>
+                             <GlassSwitch 
+                               checked={notifications[setting.id as keyof typeof notifications]} 
+                               onChange={(val) => setNotifications({...notifications, [setting.id]: val})} 
+                             />
+                          </div>
+                        ))}
+                     </div>
 
-          {/* Notifications Settings */}
-          {activeTab === "notifications" && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <Card>
-                <CardHeader>
-                  <CardTitle>Notification Preferences</CardTitle>
-                  <CardDescription>Choose how you want to be notified about important updates</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 rounded-lg border border-gray-200">
-                      <div>
-                        <h4 className="font-medium text-gray-900">Email Notifications</h4>
-                        <p className="text-sm text-gray-600">Receive notifications via email</p>
+                     <AnimatePresence>
+                         {saveSuccess && (
+                           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="flex items-center gap-3 p-4 mt-6 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200">
+                             <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                             <span className="text-sm font-bold text-emerald-900 tracking-wide">Alert listeners committed.</span>
+                           </motion.div>
+                         )}
+                         {saveError && (
+                           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="flex items-center gap-3 p-4 mt-6 rounded-xl bg-gradient-to-r from-red-50 to-rose-50 border border-red-200">
+                             <AlertCircle className="h-5 w-5 text-red-600" />
+                             <span className="text-sm font-bold text-red-900 tracking-wide">{saveError}</span>
+                           </motion.div>
+                         )}
+                      </AnimatePresence>
+
+                     <div className="flex gap-3 pt-8">
+                        <Button
+                          onClick={handleSaveNotifications}
+                          disabled={isLoading}
+                          className="bg-gray-900 hover:bg-black text-white hover:shadow-lg hover:shadow-gray-900/20 rounded-xl px-6 h-12 border-none transition-all w-full sm:w-auto"
+                        >
+                          {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : <><Save className="mr-2 h-4 w-4 text-blue-400" /> Persist Alert Config</>}
+                        </Button>
                       </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={notifications.emailNotifications}
-                          onChange={(e) =>
-                            setNotifications({
-                              ...notifications,
-                              emailNotifications: e.target.checked,
-                            })
-                          }
-                          className="sr-only peer"
-                        />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#0a9396]/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#0a9396]"></div>
-                      </label>
-                    </div>
+                   </div>
+                 </motion.div>
+               </motion.div>
+            )}
 
-                    <div className="flex items-center justify-between p-4 rounded-lg border border-gray-200">
-                      <div>
-                        <h4 className="font-medium text-gray-900">Project Updates</h4>
-                        <p className="text-sm text-gray-600">Get notified when projects are updated</p>
+            {/* 3. Security */}
+            {activeTab === "security" && (
+               <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-6">
+                 
+                 {/* Password Reset */}
+                 <motion.div variants={itemVariants} className="bg-white/40 backdrop-blur-2xl rounded-[2.5rem] border border-white/60 shadow-[inset_0_2px_15px_rgb(255,255,255,0.7),0_10px_30px_rgb(0,0,0,0.03)] overflow-hidden">
+                   <div className="p-6 sm:p-8 md:p-10 border-b border-gray-100/50 bg-gradient-to-br from-white/40 to-transparent flex items-center gap-4">
+                     <div className="p-3.5 bg-gradient-to-br from-gray-800 to-black rounded-2xl shadow-lg shadow-black/20 text-white shrink-0">
+                       <Shield className="h-6 w-6" />
+                     </div>
+                     <div>
+                       <h2 className="text-2xl font-black text-gray-900 tracking-tight">Security Gateway</h2>
+                       <p className="text-gray-500 font-medium text-[14px] mt-1">Regulate cryptographic access to your node.</p>
+                     </div>
+                   </div>
+
+                   <div className="p-6 sm:p-8 md:p-10 bg-white/20">
+                     <div className="space-y-6 mb-8 max-w-lg">
+                       <GlassInput
+                         label="Master Key (Current Password)"
+                         type={showPassword ? "text" : "password"}
+                         value={formData.currentPassword}
+                         onChange={(e) => setFormData({ ...formData, currentPassword: e.target.value })}
+                       />
+                       
+                       <div className="relative">
+                         <GlassInput
+                           label="New Cryptography"
+                           type={showPassword ? "text" : "password"}
+                           value={formData.newPassword}
+                           onChange={(e) => setFormData({ ...formData, newPassword: e.target.value })}
+                         />
+                         <button
+                           type="button"
+                           onClick={() => setShowPassword(!showPassword)}
+                           className="absolute right-4 top-10 text-gray-400 hover:text-gray-900 transition-colors"
+                         >
+                           {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                         </button>
+                       </div>
+
+                       <GlassInput
+                         label="Confirm Cryptography"
+                         type={showPassword ? "text" : "password"}
+                         value={formData.confirmPassword}
+                         onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                       />
+                     </div>
+
+                     <div className="flex gap-3 pt-6 border-t border-gray-200/50">
+                        <Button
+                          onClick={handleSavePassword}
+                          disabled={isLoading}
+                          className="bg-gray-900 hover:bg-black text-white hover:shadow-lg hover:shadow-gray-900/20 rounded-xl px-6 h-12 border-none transition-all"
+                        >
+                          {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Engaged...</> : <><Lock className="mr-2 h-4 w-4 text-gray-400" /> Apply Cipher</>}
+                        </Button>
                       </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={notifications.projectUpdates}
-                          onChange={(e) =>
-                            setNotifications({
-                              ...notifications,
-                              projectUpdates: e.target.checked,
-                            })
-                          }
-                          className="sr-only peer"
-                        />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#0a9396]/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#0a9396]"></div>
-                      </label>
-                    </div>
+                   </div>
+                 </motion.div>
 
-                    <div className="flex items-center justify-between p-4 rounded-lg border border-gray-200">
-                      <div>
-                        <h4 className="font-medium text-gray-900">New Inquiries</h4>
-                        <p className="text-sm text-gray-600">Notify me when I receive new marketplace inquiries</p>
+                 {/* Two Factor */}
+                 <motion.div variants={itemVariants} className="bg-white/40 backdrop-blur-2xl rounded-[2.5rem] border border-white/60 shadow-[inset_0_2px_15px_rgb(255,255,255,0.7),0_10px_30px_rgb(0,0,0,0.03)] overflow-hidden">
+                   <div className="p-6 sm:p-8 md:p-10 flex items-center justify-between gap-6 md:flex-row flex-col text-left w-full md:items-center">
+                     <div>
+                       <h2 className="text-xl font-black text-gray-900 tracking-tight">Multi-Factor Protocol (2FA)</h2>
+                       <p className="text-gray-500 font-medium text-[14px] mt-1 max-w-xl">Mandate standard authenticator tokens alongside your Master Key for terminal logins.</p>
+                     </div>
+                     <Button className="shrink-0 bg-white border border-gray-200 text-gray-900 hover:bg-gray-50 hover:shadow-sm rounded-xl px-6 h-11 w-full md:w-auto font-bold tracking-wide">
+                        Enable Protocol
+                     </Button>
+                   </div>
+                 </motion.div>
+
+                 {/* Danger Zone */}
+                 <motion.div variants={itemVariants} className="relative group/danger">
+                   <div className="absolute -inset-1 bg-gradient-to-br from-red-500/20 to-transparent rounded-[2.5rem] blur opacity-0 group-hover/danger:opacity-100 transition-opacity duration-1000" />
+                   <div className="relative bg-white/40 backdrop-blur-2xl rounded-[2.5rem] border border-red-200 shadow-[inset_0_2px_15px_rgb(255,255,255,0.7),0_10px_30px_rgb(0,0,0,0.03)] overflow-hidden group-hover/danger:border-red-300 transition-colors">
+                     <div className="p-6 sm:p-8 md:p-10 border-b border-red-100/50 bg-gradient-to-br from-red-50/50 to-transparent">
+                       <h2 className="text-xl font-black text-red-600 tracking-tight flex items-center gap-2">
+                         <AlertCircle className="h-5 w-5" /> Danger Zone
+                       </h2>
+                       <p className="text-red-900/60 font-semibold text-[13px] mt-1">Irreversible state destruction vectors.</p>
+                     </div>
+                     <div className="p-6 sm:p-8 md:p-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 bg-red-50/20">
+                       <div className="max-w-xl">
+                         <h4 className="font-bold text-red-900 text-[15px]">Wipe Node Instance</h4>
+                         <p className="text-sm font-semibold text-red-800/70 mt-1">Permanently unbind and destroy all data shards related to this instance. This cannot be undone.</p>
+                       </div>
+                       <Button variant="outline" className="shrink-0 group/del border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 rounded-xl px-6 h-11 w-full md:w-auto font-bold tracking-wide">
+                         <Trash2 className="mr-2 h-4 w-4 group-hover/del:scale-110 transition-transform" />
+                         Init Self-Destruct
+                       </Button>
+                     </div>
+                   </div>
+                 </motion.div>
+
+               </motion.div>
+            )}
+
+            {/* 4. Billing */}
+            {activeTab === "billing" && (
+               <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-6">
+                 
+                 <motion.div variants={itemVariants} className="bg-white/40 backdrop-blur-2xl rounded-[2.5rem] border border-white/60 shadow-[inset_0_2px_15px_rgb(255,255,255,0.7),0_10px_30px_rgb(0,0,0,0.03)] overflow-hidden">
+                   <div className="p-6 sm:p-8 md:p-10 border-b border-gray-100/50 bg-gradient-to-br from-white/40 to-transparent flex items-center gap-4">
+                     <div className="p-3.5 bg-gradient-to-br from-emerald-400 to-[#0a9396] rounded-2xl shadow-lg shadow-teal-500/20 text-white shrink-0">
+                       <CreditCard className="h-6 w-6" />
+                     </div>
+                     <div>
+                       <h2 className="text-2xl font-black text-gray-900 tracking-tight">Licensing</h2>
+                       <p className="text-gray-500 font-medium text-[14px] mt-1">Current plan and limits.</p>
+                     </div>
+                   </div>
+
+                   <div className="p-6 sm:p-8 md:p-10 bg-white/20">
+                     <div className="p-6 rounded-2xl border border-teal-200 bg-gradient-to-r from-teal-50/50 to-white flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                       <div>
+                          <div className="flex items-center gap-3 mb-1">
+                             <h4 className="font-black text-gray-900 text-xl tracking-tight">DigitalBOX Core</h4>
+                             <Badge variant="primary" className="bg-gradient-to-r from-[#0a9396] to-teal-500 border-none font-bold text-[10px] uppercase tracking-wide px-2 shadow-sm pointer-events-none">Live</Badge>
+                          </div>
+                          <p className="text-[14px] font-semibold text-gray-500">Free starter infrastructure tier.</p>
+                          <p className="text-xs font-bold text-gray-400 mt-3 pt-3 border-t border-teal-100/50">Elevate clearance to deploy CRM and AI node pipelines.</p>
+                       </div>
+                       <div className="flex gap-3 w-full md:w-auto">
+                          <Button className="flex-1 md:flex-none h-11 px-6 rounded-xl bg-gradient-to-r from-[#0a9396] to-teal-500 hover:from-teal-500 hover:to-[#0a9396] text-white border-none shadow-lg shadow-teal-500/30 font-bold tracking-wide">
+                            Elevate Rank
+                          </Button>
+                       </div>
+                     </div>
+                   </div>
+                 </motion.div>
+
+                 <motion.div variants={itemVariants} className="bg-white/40 backdrop-blur-2xl rounded-[2.5rem] border border-white/60 shadow-[inset_0_2px_15px_rgb(255,255,255,0.7),0_10px_30px_rgb(0,0,0,0.03)] overflow-hidden">
+                   <div className="p-6 sm:p-8 md:p-10 border-b border-gray-100/50 bg-gradient-to-br from-white/40 to-transparent">
+                     <h2 className="text-xl font-black text-gray-900 tracking-tight">Ledger Archives</h2>
+                     <p className="text-gray-500 font-medium text-[14px] mt-1">Cryptographic payment history and invoices.</p>
+                   </div>
+                   <div className="p-12 text-center bg-white/20">
+                      <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-gray-50 border border-gray-100 shadow-inner mb-4">
+                        <CreditCard className="h-6 w-6 text-gray-300" />
                       </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={notifications.newInquiries}
-                          onChange={(e) =>
-                            setNotifications({
-                              ...notifications,
-                              newInquiries: e.target.checked,
-                            })
-                          }
-                          className="sr-only peer"
-                        />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#0a9396]/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#0a9396]"></div>
-                      </label>
-                    </div>
-
-                    <div className="flex items-center justify-between p-4 rounded-lg border border-gray-200">
-                      <div>
-                        <h4 className="font-medium text-gray-900">Payment Received</h4>
-                        <p className="text-sm text-gray-600">Get notified when payments are received</p>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={notifications.paymentReceived}
-                          onChange={(e) =>
-                            setNotifications({
-                              ...notifications,
-                              paymentReceived: e.target.checked,
-                            })
-                          }
-                          className="sr-only peer"
-                        />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#0a9396]/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#0a9396]"></div>
-                      </label>
-                    </div>
-
-                    <div className="flex items-center justify-between p-4 rounded-lg border border-gray-200">
-                      <div>
-                        <h4 className="font-medium text-gray-900">Marketing Emails</h4>
-                        <p className="text-sm text-gray-600">Receive updates about new features and tips</p>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={notifications.marketingEmails}
-                          onChange={(e) =>
-                            setNotifications({
-                              ...notifications,
-                              marketingEmails: e.target.checked,
-                            })
-                          }
-                          className="sr-only peer"
-                        />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#0a9396]/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#0a9396]"></div>
-                      </label>
-                    </div>
-                  </div>
-                  {saveSuccess && (
-                    <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 border border-green-200 text-green-700">
-                      <CheckCircle2 className="h-4 w-4" />
-                      <span className="text-sm">Notification settings saved successfully!</span>
-                    </div>
-                  )}
-                  {saveError && (
-                    <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700">
-                      <AlertCircle className="h-4 w-4" />
-                      <span className="text-sm">{saveError}</span>
-                    </div>
-                  )}
-                  <div className="flex gap-2 pt-4">
-                    <Button
-                      onClick={handleSaveNotifications}
-                      disabled={isLoading}
-                      className="bg-[#0a9396] hover:bg-[#087579] text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isLoading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="mr-2 h-4 w-4" />
-                          Save Notification Settings
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
-
-          {/* Security Settings */}
-          {activeTab === "security" && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <Card>
-                <CardHeader>
-                  <CardTitle>Change Password</CardTitle>
-                  <CardDescription>Update your password to keep your account secure</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <Input
-                    label="Current Password"
-                    type={showPassword ? "text" : "password"}
-                    value={formData.currentPassword}
-                    onChange={(e) => setFormData({ ...formData, currentPassword: e.target.value })}
-                    required
-                  />
-                  <div className="relative">
-                    <Input
-                      label="New Password"
-                      type={showPassword ? "text" : "password"}
-                      value={formData.newPassword}
-                      onChange={(e) => setFormData({ ...formData, newPassword: e.target.value })}
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-9 text-gray-400 hover:text-gray-600"
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
-                  <Input
-                    label="Confirm New Password"
-                    type={showPassword ? "text" : "password"}
-                    value={formData.confirmPassword}
-                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                    required
-                  />
-                  {saveSuccess && (
-                    <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 border border-green-200 text-green-700">
-                      <CheckCircle2 className="h-4 w-4" />
-                      <span className="text-sm">Password updated successfully!</span>
-                    </div>
-                  )}
-                  {saveError && (
-                    <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700">
-                      <AlertCircle className="h-4 w-4" />
-                      <span className="text-sm">{saveError}</span>
-                    </div>
-                  )}
-                  <div className="flex gap-2 pt-4">
-                    <Button
-                      onClick={handleSavePassword}
-                      disabled={isLoading}
-                      className="bg-[#0a9396] hover:bg-[#087579] text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isLoading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Updating...
-                        </>
-                      ) : (
-                        <>
-                          <Lock className="mr-2 h-4 w-4" />
-                          Update Password
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Two-Factor Authentication</CardTitle>
-                  <CardDescription>Add an extra layer of security to your account</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium text-gray-900">Enable 2FA</h4>
-                      <p className="text-sm text-gray-600">Require a verification code in addition to your password</p>
-                    </div>
-                    <Button variant="outline">Enable</Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-red-200">
-                <CardHeader>
-                  <CardTitle className="text-red-600">Danger Zone</CardTitle>
-                  <CardDescription>Irreversible and destructive actions</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 rounded-lg border border-red-200 bg-red-50">
-                      <div>
-                        <h4 className="font-medium text-red-900">Delete Account</h4>
-                        <p className="text-sm text-red-700">
-                          Permanently delete your account and all associated data
-                        </p>
-                      </div>
-                      <Button variant="outline" className="border-red-300 text-red-600 hover:bg-red-100">
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete Account
+                      <h3 className="text-lg font-bold text-gray-900 tracking-tight mb-1">Null Ledger</h3>
+                      <p className="text-[14px] font-semibold text-gray-500 mb-6">No confirmed billing cycles detected for this instance.</p>
+                      <Button variant="outline" className="rounded-xl h-11 px-6 font-bold tracking-wide border-gray-200">
+                        Bind Credit Method
                       </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
+                   </div>
+                 </motion.div>
 
-          {/* Billing & Subscription */}
-          {activeTab === "billing" && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <Card>
-                <CardHeader>
-                  <CardTitle>Subscription</CardTitle>
-                  <CardDescription>Manage your DigitalBOX subscription</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="p-4 rounded-lg border border-gray-200 bg-gray-50">
-                    <div className="flex items-center justify-between mb-2">
-                      <div>
-                        <h4 className="font-semibold text-gray-900">DigitalBOX Starter</h4>
-                        <p className="text-sm text-gray-600">Free plan - Basic features</p>
-                      </div>
-                      <Badge variant="success" size="sm">Active</Badge>
-                    </div>
-                    <p className="text-sm text-gray-600 mt-2">
-                      Upgrade to unlock advanced features like CRM, invoicing, and AI tools
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button className="bg-[#0a9396] hover:bg-[#087579] text-white">
-                      Upgrade Plan
-                    </Button>
-                    <Button variant="outline">View Plans</Button>
-                  </div>
-                </CardContent>
-              </Card>
+               </motion.div>
+            )}
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Payment Methods</CardTitle>
-                  <CardDescription>Manage your payment methods</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="p-4 rounded-lg border border-gray-200">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <CreditCard className="h-5 w-5 text-gray-400" />
-                        <div>
-                          <p className="font-medium text-gray-900">No payment method added</p>
-                          <p className="text-sm text-gray-600">Add a payment method to upgrade your plan</p>
-                        </div>
-                      </div>
-                      <Button variant="outline">Add Payment Method</Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Billing History</CardTitle>
-                  <CardDescription>View your past invoices and payments</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-8 text-gray-500">
-                    <CreditCard className="h-12 w-12 mx-auto mb-2 text-gray-400" />
-                    <p>No billing history available</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
+          </div>
         </div>
       </div>
     </div>
   );
 }
-

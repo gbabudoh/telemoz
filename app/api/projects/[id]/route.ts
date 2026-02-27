@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 
-type ProjectStatus = "planning" | "active" | "on_hold" | "completed" | "cancelled";
+type ProjectStatus = "under_review" | "planning" | "active" | "on_hold" | "completed" | "cancelled";
 type DeliverableType = "report" | "document" | "design" | "other";
 
 // GET /api/projects/[id] - Get a specific project
@@ -96,15 +96,22 @@ export async function PATCH(
     }
 
     // Prepare update data
-    const updateData: Parameters<typeof prisma.project.update>[0]["data"] = {};
+    const updateData: Parameters<typeof prisma.project.update>[0]["data"] & {
+      currency?: string;
+      country?: string | null;
+    } = {};
     if (body.title) updateData.title = body.title;
     if (body.description) updateData.description = body.description;
+    if (body.category) updateData.category = body.category;
+    if (body.timeline) updateData.timeline = body.timeline;
     if (body.status) updateData.status = body.status as ProjectStatus;
     if (body.startDate) updateData.startDate = new Date(body.startDate);
     if (body.endDate !== undefined) {
       updateData.endDate = body.endDate ? new Date(body.endDate) : null;
     }
     if (body.budget !== undefined) updateData.budget = parseFloat(body.budget);
+    if (body.currency) updateData.currency = body.currency;
+    if (body.country !== undefined) updateData.country = body.country;
 
     // Handle milestones (replace implementation)
     if (body.milestones) {
@@ -135,7 +142,7 @@ export async function PATCH(
 
     const updatedProject = await prisma.project.update({
       where: { id },
-      data: updateData,
+      data: updateData as any, // eslint-disable-line @typescript-eslint/no-explicit-any
       include: {
         pro: { select: { name: true, email: true } },
         client: { select: { name: true, email: true } },
