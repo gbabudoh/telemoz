@@ -1,5 +1,4 @@
-import { Card, CardContent } from "@/components/ui/Card";
-import { FileText, ArrowLeft } from "lucide-react";
+import { FileText, ArrowLeft, Mail, LifeBuoy } from "lucide-react";
 import Link from "next/link";
 
 type SectionContent = {
@@ -9,12 +8,14 @@ type SectionContent = {
 };
 
 type Section = {
+  id: string;
   title: string;
   content: SectionContent[];
 };
 
 const sections: Section[] = [
   {
+    id: "acceptance",
     title: "1. Acceptance of Terms",
     content: [
       {
@@ -23,6 +24,7 @@ const sections: Section[] = [
     ],
   },
   {
+    id: "description",
     title: "2. Description of Service",
     content: [
       {
@@ -31,6 +33,7 @@ const sections: Section[] = [
     ],
   },
   {
+    id: "accounts",
     title: "3. User Accounts",
     content: [
       {
@@ -39,7 +42,7 @@ const sections: Section[] = [
       },
       {
         subtitle: "3.2 Account Security",
-        text: "You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account. You agree to notify us immediately of any unauthorized use of your account.",
+        text: "You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account. You agree to notify us immediately of any unauthorised use of your account.",
       },
       {
         subtitle: "3.3 Account Types",
@@ -48,6 +51,7 @@ const sections: Section[] = [
     ],
   },
   {
+    id: "conduct",
     title: "4. User Conduct",
     content: [
       {
@@ -59,17 +63,18 @@ const sections: Section[] = [
           "Transmit any harmful, offensive, or inappropriate content",
           "Impersonate any person or entity",
           "Interfere with or disrupt the platform or servers",
-          "Attempt to gain unauthorized access to any part of the platform",
+          "Attempt to gain unauthorised access to any part of the platform",
           "Use automated systems to access the platform without permission",
         ],
       },
       {
         subtitle: "4.2 Content Standards",
-        text: "All content you post, upload, or share must be accurate, lawful, and not infringe on any third-party rights. You retain ownership of your content but grant Telemoz a license to use, display, and distribute it on the platform.",
+        text: "All content you post, upload, or share must be accurate, lawful, and not infringe on any third-party rights. You retain ownership of your content but grant Telemoz a licence to use, display, and distribute it on the platform.",
       },
     ],
   },
   {
+    id: "marketplace",
     title: "5. Marketplace and Transactions",
     content: [
       {
@@ -82,7 +87,7 @@ const sections: Section[] = [
       },
       {
         subtitle: "5.3 Payment Terms",
-        text: "Payments are held securely by Telemoz until work is completed and approved by the client. Once approved, payment is released to the Pro minus our 13% commission. All payments are final unless there is a dispute.",
+        text: "Payments are held securely by Telemoz until work is completed and approved by the client. Once approved, payment is released to the Pro minus our 10% commission. All payments are final unless there is a dispute.",
       },
       {
         subtitle: "5.4 Disputes",
@@ -91,11 +96,12 @@ const sections: Section[] = [
     ],
   },
   {
+    id: "commission",
     title: "6. Commission and Fees",
     content: [
       {
         subtitle: "6.1 Commission Structure",
-        text: "Telemoz charges a 13% commission on completed payments to Pros. This commission is deducted before payment is released to the Pro. There are no fees for Clients.",
+        text: "Telemoz charges a 10% commission on completed payments to Pros. This commission is deducted before payment is released to the Pro. There are no fees for Clients.",
       },
       {
         subtitle: "6.2 Payment Processing",
@@ -104,6 +110,7 @@ const sections: Section[] = [
     ],
   },
   {
+    id: "ip",
     title: "7. Intellectual Property",
     content: [
       {
@@ -112,7 +119,7 @@ const sections: Section[] = [
       },
       {
         subtitle: "7.2 User Content",
-        text: "You retain ownership of content you create and post on the platform. By posting content, you grant Telemoz a worldwide, non-exclusive, royalty-free license to use, display, and distribute your content on the platform.",
+        text: "You retain ownership of content you create and post on the platform. By posting content, you grant Telemoz a worldwide, non-exclusive, royalty-free licence to use, display, and distribute your content on the platform.",
       },
       {
         subtitle: "7.3 Trademarks",
@@ -121,6 +128,7 @@ const sections: Section[] = [
     ],
   },
   {
+    id: "disclaimers",
     title: "8. Disclaimers and Limitations of Liability",
     content: [
       {
@@ -138,6 +146,7 @@ const sections: Section[] = [
     ],
   },
   {
+    id: "indemnification",
     title: "9. Indemnification",
     content: [
       {
@@ -146,6 +155,7 @@ const sections: Section[] = [
     ],
   },
   {
+    id: "termination",
     title: "10. Termination",
     content: [
       {
@@ -163,6 +173,7 @@ const sections: Section[] = [
     ],
   },
   {
+    id: "modifications",
     title: "11. Modifications to Terms",
     content: [
       {
@@ -171,6 +182,7 @@ const sections: Section[] = [
     ],
   },
   {
+    id: "governing-law",
     title: "12. Governing Law and Dispute Resolution",
     content: [
       {
@@ -184,6 +196,7 @@ const sections: Section[] = [
     ],
   },
   {
+    id: "general",
     title: "13. General Provisions",
     content: [
       {
@@ -201,10 +214,11 @@ const sections: Section[] = [
     ],
   },
   {
+    id: "contact",
     title: "14. Contact Information",
     content: [
       {
-        text: "If you have any questions about these Terms of Service, please contact us at legal@telemoz.com or through our support center.",
+        text: "If you have any questions about these Terms of Service, please contact us at legal@telemoz.com or through our support centre.",
       },
     ],
   },
@@ -212,73 +226,113 @@ const sections: Section[] = [
 
 export default function TermsOfServicePage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-[#94d2bd]/10 via-[#e0e1dd]/30 to-white">
-      <div className="container mx-auto max-w-4xl px-6 py-12">
+    <div className="min-h-screen py-12">
+      <div className="container mx-auto max-w-6xl px-6">
+
+        {/* Back nav */}
         <Link
           href="/"
-          className="text-[#0a9396] hover:text-[#087579] mb-6 inline-flex items-center gap-2 font-medium"
+          className="inline-flex items-center gap-2 bg-white/60 backdrop-blur-xl border border-white/80 rounded-xl px-4 py-2.5 shadow-sm hover:shadow-md hover:bg-white/80 transition-all group text-sm font-medium text-gray-700 mb-10"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="h-4 w-4 text-gray-400 group-hover:text-[#0a9396] group-hover:-translate-x-0.5 transition-all" />
           Back to Home
         </Link>
 
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="rounded-lg bg-gradient-to-br from-[#0a9396] to-[#94d2bd] p-3">
-              <FileText className="h-8 w-8 text-white" />
-            </div>
-            <h1 className="text-4xl font-bold text-gray-900">Terms of Service</h1>
-          </div>
-          <p className="text-gray-600 mb-2">
-            <strong>Last Updated:</strong> January 2025
-          </p>
-          <p className="text-lg text-gray-600">
-            Please read these Terms of Service carefully before using the Telemoz platform. By using our platform, you agree to be bound by these terms.
-          </p>
-        </div>
+        <div className="flex flex-col lg:flex-row gap-10 items-start">
 
-        <div className="space-y-8">
-          {sections.map((section, index) => (
-            <Card key={index}>
-              <CardContent className="pt-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">{section.title}</h2>
-                <div className="space-y-6">
-                  {section.content.map((item, itemIndex) => (
-                    <div key={itemIndex}>
-                      {item.subtitle && (
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2">{item.subtitle}</h3>
-                      )}
-                      <p className="text-gray-700 leading-relaxed mb-2">{item.text}</p>
-                      {item.list && (
-                        <ul className="list-disc list-inside space-y-1 ml-4 text-gray-700">
-                          {item.list.map((listItem, listIndex) => (
-                            <li key={listIndex}>{listItem}</li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  ))}
+          {/* Sticky Table of Contents */}
+          <aside className="hidden lg:block w-64 shrink-0 sticky top-6">
+            <div className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-2xl shadow-sm p-5">
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Contents</p>
+              <nav className="space-y-1">
+                {sections.map((section) => (
+                  <a
+                    key={section.id}
+                    href={`#${section.id}`}
+                    className="block text-sm text-gray-500 hover:text-[#0a9396] hover:translate-x-0.5 transition-all py-1 leading-snug"
+                  >
+                    {section.title}
+                  </a>
+                ))}
+              </nav>
+            </div>
+          </aside>
+
+          {/* Document */}
+          <div className="flex-1 min-w-0">
+
+            {/* Header */}
+            <div className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-2xl shadow-sm p-8 mb-6">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="h-12 w-12 rounded-xl bg-linear-to-br from-[#0a9396] to-[#6ece39] flex items-center justify-center shrink-0">
+                  <FileText className="h-6 w-6 text-white" />
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Contact Section */}
-        <Card className="mt-8 bg-gradient-to-br from-[#0a9396]/10 to-[#94d2bd]/10 border-[#0a9396]/30">
-          <CardContent className="pt-6">
-            <h3 className="text-xl font-semibold text-gray-900 mb-4">Questions About Terms?</h3>
-            <p className="text-gray-700 mb-4">
-              If you have any questions or concerns about these Terms of Service, please don&apos;t hesitate to contact us.
-            </p>
-            <div className="space-y-2 text-gray-700">
-              <p><strong>Email:</strong> legal@telemoz.com</p>
-              <p><strong>Support:</strong> <Link href="/support" className="text-[#0a9396] hover:underline">Visit Support Center</Link></p>
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900">Terms of Service</h1>
+                  <p className="text-sm text-gray-500 mt-0.5">Last updated: January 2025</p>
+                </div>
+              </div>
+              <p className="text-gray-600 leading-relaxed">
+                Please read these Terms of Service carefully before using the Telemoz platform. By using our platform, you agree to be bound by these terms.
+              </p>
             </div>
-          </CardContent>
-        </Card>
+
+            {/* Sections as a flowing document */}
+            <div className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-2xl shadow-sm divide-y divide-gray-100">
+              {sections.map((section) => (
+                <div key={section.id} id={section.id} className="p-8 scroll-mt-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-5">{section.title}</h2>
+                  <div className="space-y-5">
+                    {section.content.map((item, itemIndex) => (
+                      <div key={itemIndex}>
+                        {item.subtitle && (
+                          <h3 className="text-base font-semibold text-gray-800 mb-2">{item.subtitle}</h3>
+                        )}
+                        <p className="text-gray-600 leading-relaxed text-sm">{item.text}</p>
+                        {item.list && (
+                          <ul className="mt-3 space-y-2">
+                            {item.list.map((listItem, listIndex) => (
+                              <li key={listIndex} className="flex items-start gap-2.5 text-sm text-gray-600">
+                                <span className="h-1.5 w-1.5 rounded-full bg-[#0a9396] mt-2 shrink-0" />
+                                {listItem}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Contact card */}
+            <div className="mt-6 bg-linear-to-br from-[#0a9396]/8 to-[#6ece39]/8 border border-[#0a9396]/20 rounded-2xl p-8">
+              <h3 className="text-lg font-bold text-gray-900 mb-2">Questions about these Terms?</h3>
+              <p className="text-gray-600 text-sm mb-5">
+                If you have any questions or concerns, don&apos;t hesitate to reach out.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <a
+                  href="mailto:legal@telemoz.com"
+                  className="inline-flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium text-gray-700 hover:border-[#0a9396] hover:text-[#0a9396] transition-all"
+                >
+                  <Mail className="h-4 w-4 text-[#0a9396]" />
+                  legal@telemoz.com
+                </a>
+                <Link
+                  href="/support"
+                  className="inline-flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium text-gray-700 hover:border-[#0a9396] hover:text-[#0a9396] transition-all"
+                >
+                  <LifeBuoy className="h-4 w-4 text-[#0a9396]" />
+                  Visit Support Centre
+                </Link>
+              </div>
+            </div>
+
+          </div>
+        </div>
       </div>
     </div>
   );
 }
-

@@ -12,7 +12,7 @@ import {
   LayoutGrid,
   List,
   CheckCircle2,
-  X
+  X,
 } from "lucide-react";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -44,14 +44,20 @@ interface Message {
   unread: boolean;
 }
 
+const currencySymbols: Record<string, string> = {
+  GBP: "£",
+  USD: "$",
+  EUR: "€",
+};
+
 export default function ClientDashboard() {
   const { data: session } = useSession();
-  const userName = session?.user?.name || "Amaebi";
+  const userName = session?.user?.name || "there";
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [messages] = useState<Message[]>([
     { id: 1, from: "Michael Chen", subject: "Q3 Campaign Structure", preview: "I've drafted the initial PPC funnels for review. The ROAS projections look excellent.", time: "2h ago", unread: true },
-    { id: 2, from: "Sarah Marketing", subject: "SEO Technical Audit", preview: "The crawler finished the sitemap scan. We have 4 high priority fixes.", time: "1d ago", unread: false }
+    { id: 2, from: "Sarah Marketing", subject: "SEO Technical Audit", preview: "The crawler finished the sitemap scan. We have 4 high priority fixes.", time: "1d ago", unread: false },
   ]);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [isLoadingProjects, setIsLoadingProjects] = useState(true);
@@ -69,7 +75,6 @@ export default function ClientDashboard() {
     description: "",
   });
 
-  // Fetch projects on mount
   useEffect(() => {
     const fetchProjects = async () => {
       try {
@@ -94,14 +99,14 @@ export default function ClientDashboard() {
             name: p.title,
             category: p.category || "Marketing",
             pro: p.pro?.name || "Assigning Pro...",
-            progress: p.status === "completed" ? 100 : (p.status === "active" ? 50 : 0),
+            progress: p.status === "completed" ? 100 : p.status === "active" ? 50 : 0,
             status: p.status,
             timeline: p.timeline || "N/A",
             budget: p.budget?.toString() || "0",
             currency: p.currency || "GBP",
             country: p.country || "United Kingdom",
             description: p.description,
-            nextMilestone: p.status === "under_review" ? "Initial Review in Progress" : "Project in Status: " + p.status,
+            nextMilestone: p.status === "under_review" ? "Initial Review in Progress" : "Status: " + p.status,
           }));
           setProjects(mappedProjects);
         }
@@ -112,14 +117,11 @@ export default function ClientDashboard() {
       }
     };
 
-    if (session?.user?.id) {
-      fetchProjects();
-    }
+    if (session?.user?.id) fetchProjects();
   }, [session]);
 
   const handlePostProject = async () => {
     if (!newProjectData.name || !newProjectData.description) return;
-    
     setIsSavingProject(true);
     try {
       if (editingProjectId !== null) {
@@ -136,21 +138,20 @@ export default function ClientDashboard() {
             country: newProjectData.country,
           }),
         });
-
         if (response.ok) {
           const { project: p } = await response.json();
-          setProjects(projects.map(proj => 
-            proj.id === editingProjectId 
-              ? { 
-                  ...proj, 
-                  name: p.title, 
+          setProjects(projects.map((proj) =>
+            proj.id === editingProjectId
+              ? {
+                  ...proj,
+                  name: p.title,
                   category: p.category,
                   budget: p.budget?.toString(),
                   timeline: p.timeline,
                   description: p.description,
                   currency: p.currency || "GBP",
-                  country: p.country || "United Kingdom"
-                } 
+                  country: p.country || "United Kingdom",
+                }
               : proj
           ));
           setIsProjectModalOpen(false);
@@ -169,7 +170,6 @@ export default function ClientDashboard() {
             country: newProjectData.country,
           }),
         });
-
         if (response.ok) {
           const { project: p } = await response.json();
           const newProject: Project = {
@@ -190,7 +190,6 @@ export default function ClientDashboard() {
           setIsProjectModalOpen(false);
         }
       }
-      
       setEditingProjectId(null);
       setNewProjectData({
         name: "",
@@ -236,427 +235,406 @@ export default function ClientDashboard() {
     setIsProjectModalOpen(true);
   };
 
+  const stats = [
+    { title: "Total Spend", value: formatCurrency(12450), trend: "+12.5%", isUp: true, icon: Wallet },
+    { title: "Active Projects", value: formatNumber(projects.length), trend: "+1", isUp: true, icon: LayoutDashboard },
+    { title: "Portfolio ROAS", value: "3.2x", trend: "+0.4x", isUp: true, icon: TrendingUp },
+    { title: "Pending Invoices", value: formatCurrency(0), trend: "None", isUp: true, icon: FileText },
+  ];
+
   return (
     <div className="relative min-h-screen bg-transparent">
-      
-      {/* Ambient Animated Orbs */}
-      <div className="fixed top-[-10%] left-[-5%] w-[40%] h-[40%] rounded-full bg-[#0a9396]/10 blur-[130px] pointer-events-none mix-blend-multiply animate-pulse z-0" />
-      <div className="fixed top-[20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-400/10 blur-[140px] pointer-events-none mix-blend-multiply animate-pulse-slow z-0" />
-      <div className="fixed bottom-[-10%] left-[20%] w-[45%] h-[45%] rounded-full bg-emerald-400/10 blur-[130px] pointer-events-none mix-blend-multiply opacity-70 animate-pulse z-0" />
+      {/* Ambient orbs */}
+      <div className="fixed top-[-10%] left-[-5%] w-[40%] h-[40%] rounded-full bg-[#0a9396]/10 blur-[130px] pointer-events-none z-0" />
+      <div className="fixed bottom-[-10%] left-[20%] w-[45%] h-[45%] rounded-full bg-[#6ece39]/8 blur-[130px] pointer-events-none z-0" />
 
-      <div className="space-y-8 relative z-10 max-w-[1600px] mx-auto pb-12">
-        
-        {/* Sleek Intelligence Welcome Section */}
+      <div className="space-y-6 relative z-10 max-w-[1600px] mx-auto pb-12">
+
+        {/* Welcome bar */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white/40 backdrop-blur-2xl border border-white rounded-[2rem] p-6 lg:p-8 shadow-[inset_0_2px_15px_rgb(255,255,255,0.7),0_5px_25px_rgb(0,0,0,0.02)] overflow-hidden relative group"
+          className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-2xl p-6 shadow-sm"
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-emerald-50/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
-          
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 relative z-10">
-            <div className="flex items-center gap-5">
-              <div className="relative shrink-0">
-                <div className="absolute inset-0 bg-gradient-to-br from-[#0a9396] to-emerald-400 rounded-xl blur-sm opacity-20 group-hover:opacity-40 transition-opacity" />
-                <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-[#0a9396] to-emerald-300 p-[1.5px] shadow-sm relative z-10 transform group-hover:-rotate-3 transition-transform">
-                   <div className="h-full w-full rounded-[10px] bg-white/20 backdrop-blur-md flex items-center justify-center text-xl font-black text-white mix-blend-overlay">
-                     {userName.charAt(0)}
-                   </div>
-                </div>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-xl bg-linear-to-br from-[#0a9396] to-[#6ece39] flex items-center justify-center text-xl font-bold text-white shadow-sm shrink-0">
+                {userName.charAt(0)}
               </div>
               <div>
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-1">SYSTEM ACCESS ENABLED</p>
-                <h1 className="text-2xl font-black text-gray-900 tracking-tight leading-none">
-                  Welcome back, <span className="bg-gradient-to-r from-[#0a9396] to-teal-500 bg-clip-text text-transparent">{userName}</span>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-0.5">Client Dashboard</p>
+                <h1 className="text-xl font-bold text-gray-900">
+                  Welcome back, <span className="text-[#0a9396]">{userName}</span>
                 </h1>
               </div>
             </div>
-            
-            <button 
-              className="h-12 px-6 rounded-xl bg-gray-950 hover:bg-black text-white font-bold tracking-wide text-[14px] shadow-lg shadow-gray-900/10 border-none transition-all cursor-pointer flex items-center justify-center gap-2 group/btn active:scale-95"
+            <button
               onClick={openCreateModal}
+              className="h-11 px-6 rounded-xl bg-[#0a9396] hover:bg-[#087579] text-white font-semibold text-sm shadow-sm shadow-[#0a9396]/20 transition-all hover:-translate-y-0.5 flex items-center gap-2"
             >
-              New Transmission
-              <ArrowRight className="h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
+              Post a Project
+              <ArrowRight className="h-4 w-4" />
             </button>
           </div>
         </motion.div>
 
-        {/* Translucent Key Performance Metrics */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[
-            { title: "Total Spend (MoM)", value: formatCurrency(12450), trend: "+12.5%", isUp: true, icon: Wallet, gradient: "from-indigo-500 to-purple-500", glow: "indigo-500/20" },
-            { title: "Active Campaigns", value: formatNumber(projects.length), trend: "+1", isUp: true, icon: LayoutDashboard, gradient: "from-emerald-500 to-[#0a9396]", glow: "emerald-500/20" },
-            { title: "Portfolio ROAS", value: "3.2x", trend: "+0.4x", isUp: true, icon: TrendingUp, gradient: "from-cyan-500 to-blue-500", glow: "cyan-500/20" },
-            { title: "Pending Invoices", value: formatCurrency(0), trend: "-100%", isUp: false, icon: FileText, gradient: "from-rose-500 to-pink-500", glow: "rose-500/20" },
-          ].map((stat, idx) => (
+        {/* Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {stats.map((stat, idx) => (
             <motion.div
               key={stat.title}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 * idx }}
-              className="bg-white/40 backdrop-blur-xl border border-white rounded-[2rem] p-6 shadow-[inset_0_2px_15px_rgb(255,255,255,0.7),0_10px_30px_rgb(0,0,0,0.03)] group hover:-translate-y-1 transition-transform duration-300 relative overflow-hidden"
+              transition={{ delay: 0.08 * idx }}
+              className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-2xl p-5 shadow-sm hover:-translate-y-0.5 transition-transform duration-300"
             >
-              <div className={`absolute -right-4 -top-4 w-24 h-24 bg-gradient-to-br ${stat.gradient} rounded-full blur-[40px] opacity-20 group-hover:opacity-40 transition-opacity`} />
-              
-              <div className="flex items-center justify-between mb-4 relative z-10">
-                <div className={`p-3 rounded-2xl bg-gradient-to-br ${stat.gradient} shadow-md shadow-${stat.glow}`}>
-                  <stat.icon className="h-5 w-5 text-white" />
+              <div className="flex items-center justify-between mb-4">
+                <div className="h-10 w-10 rounded-xl bg-linear-to-br from-[#0a9396]/10 to-[#6ece39]/10 flex items-center justify-center">
+                  <stat.icon className="h-5 w-5 text-[#0a9396]" />
                 </div>
-                <div className={`px-2.5 py-1 rounded-lg text-[11px] font-black uppercase tracking-wider ${stat.isUp ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-rose-50 text-rose-600 border border-rose-100"}`}>
+                <div className={`px-2 py-0.5 rounded-lg text-xs font-semibold ${
+                  stat.isUp
+                    ? "bg-[#6ece39]/10 text-green-700 border border-[#6ece39]/25"
+                    : "bg-red-50 text-red-600 border border-red-100"
+                }`}>
                   {stat.trend}
                 </div>
               </div>
-              
-              <div className="relative z-10">
-                <h3 className="text-3xl font-black text-gray-900 tracking-tight mb-1">{stat.value}</h3>
-                <p className="text-[13px] font-bold text-gray-500 tracking-wide uppercase">{stat.title}</p>
-              </div>
+              <p className="text-2xl font-black text-gray-900 tracking-tight mb-1">{stat.value}</p>
+              <p className="text-xs font-medium text-gray-500">{stat.title}</p>
             </motion.div>
           ))}
         </div>
 
-        {/* Cinematic Unified Board (Projects + Messages) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          
-          {/* Active Projects Core */}
-          <div className="lg:col-span-8 flex flex-col min-h-[500px]">
-            <div className="bg-white/40 backdrop-blur-3xl border border-white rounded-[2.5rem] shadow-[inset_0_2px_15px_rgb(255,255,255,0.7),0_10px_30px_rgb(0,0,0,0.03)] overflow-hidden flex-1 flex flex-col">
-               
-               <div className="p-6 lg:p-8 border-b border-gray-100/50 bg-gradient-to-br from-white/40 to-transparent flex flex-col sm:flex-row sm:items-center justify-between gap-4 sticky top-0 z-20 backdrop-blur-xl">
-                 <div>
-                   <h2 className="text-2xl font-black text-gray-900 tracking-tight">Active Operation Matrix</h2>
-                   <p className="text-sm font-bold text-gray-500 tracking-wide mt-1">Real-time status of your marketing initiatives.</p>
-                 </div>
-                 
-                 <div className="flex items-center bg-white/80 border border-gray-100 shadow-sm rounded-xl p-1 shrink-0">
+        {/* Projects + Messages */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+          {/* Projects */}
+          <div className="lg:col-span-8 flex flex-col min-h-[480px]">
+            <div className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-2xl shadow-sm overflow-hidden flex-1 flex flex-col">
+
+              <div className="px-6 py-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sticky top-0 z-20 bg-white/80 backdrop-blur-xl">
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900">Active Projects</h2>
+                  <p className="text-xs text-gray-500 mt-0.5">Real-time status of your marketing initiatives</p>
+                </div>
+                <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl p-1 shrink-0">
+                  <button
+                    onClick={() => setViewMode("grid")}
+                    className={`p-2 rounded-lg transition-colors ${viewMode === "grid" ? "bg-white text-[#0a9396] shadow-sm" : "text-gray-400 hover:text-gray-700"}`}
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                  </button>
+                  <div className="w-px h-4 bg-gray-200 mx-1" />
+                  <button
+                    onClick={() => setViewMode("list")}
+                    className={`p-2 rounded-lg transition-colors ${viewMode === "list" ? "bg-white text-[#0a9396] shadow-sm" : "text-gray-400 hover:text-gray-700"}`}
+                  >
+                    <List className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex-1 p-6 relative">
+                {isLoadingProjects ? (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+                    <div className="h-10 w-10 rounded-full border-4 border-[#0a9396]/20 border-t-[#0a9396] animate-spin" />
+                    <p className="text-sm text-gray-400">Loading projects...</p>
+                  </div>
+                ) : projects.length === 0 ? (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
+                    <div className="h-16 w-16 rounded-2xl bg-white border border-gray-100 shadow-sm flex items-center justify-center mb-4">
+                      <Briefcase className="h-8 w-8 text-[#0a9396]" />
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-900 mb-2">No projects yet</h3>
+                    <p className="text-gray-500 text-sm leading-relaxed mb-6 max-w-xs">
+                      Post your first project to start connecting with verified digital marketing professionals.
+                    </p>
                     <button
-                      onClick={() => setViewMode("grid")}
-                      className={`p-2 rounded-lg transition-colors cursor-pointer ${
-                        viewMode === "grid" 
-                          ? "bg-[#0a9396]/10 text-[#0a9396] shadow-inner" 
-                          : "text-gray-400 hover:text-gray-900"
-                      }`}
+                      onClick={openCreateModal}
+                      className="h-11 px-6 rounded-xl bg-[#0a9396] hover:bg-[#087579] text-white font-semibold text-sm shadow-sm transition-all"
                     >
-                      <LayoutGrid className="h-4 w-4" />
+                      Post a Project
                     </button>
-                    <div className="w-px h-4 bg-gray-200 mx-1" />
-                    <button
-                      onClick={() => setViewMode("list")}
-                      className={`p-2 rounded-lg transition-colors cursor-pointer ${
-                        viewMode === "list" 
-                          ? "bg-[#0a9396]/10 text-[#0a9396] shadow-inner" 
-                          : "text-gray-400 hover:text-gray-900"
-                      }`}
-                    >
-                      <List className="h-4 w-4" />
-                    </button>
-                 </div>
-               </div>
-
-               <div className="flex-1 p-6 lg:p-8 bg-white/20 relative">
-                 {isLoadingProjects ? (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <div className="h-12 w-12 rounded-full border-4 border-[#0a9396]/20 border-t-[#0a9396] animate-spin mb-4" />
-                      <p className="text-[13px] font-bold text-gray-500 uppercase tracking-widest animate-pulse">Establishing Secure Uplink...</p>
-                    </div>
-                 ) : projects.length === 0 ? (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center max-w-sm mx-auto text-center px-6">
-                       <div className="relative mb-8">
-                         <div className="absolute inset-0 bg-[#0a9396] blur-2xl opacity-20 rounded-full animate-pulse-slow" />
-                         <div className="h-24 w-24 rounded-[2rem] bg-white border border-gray-100 shadow-xl flex items-center justify-center relative z-10 rotate-3 hover:rotate-6 transition-transform">
-                           <Briefcase className="h-10 w-10 text-[#0a9396]" />
-                         </div>
-                       </div>
-                       <h3 className="text-2xl font-black text-gray-900 tracking-tight mb-2">No Active Vectors found.</h3>
-                       <p className="text-gray-500 font-medium leading-relaxed mb-8">Your dashboard is clear. Initiate a deployment sequence to begin scaling your operations with an expert Pro.</p>
-                       <button onClick={openCreateModal} className="h-12 px-6 rounded-2xl bg-gray-900 hover:bg-black text-white font-bold tracking-wide shadow-lg shadow-gray-900/20 transition-all">
-                         Initialize Mission
-                       </button>
-                    </div>
-                 ) : (
-                    <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 gap-5" : "flex flex-col gap-4"}>
-                      <AnimatePresence>
-                        {projects.map((project, idx) => (
-                           <motion.div 
-                             key={project.id}
-                             initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                             animate={{ opacity: 1, scale: 1, y: 0 }}
-                             exit={{ opacity: 0, scale: 0.95 }}
-                             transition={{ duration: 0.3, delay: idx * 0.05 }}
-                             className={`bg-white/80 backdrop-blur-xl border border-white rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_40px_rgb(10,147,150,0.08)] hover:border-[#0a9396]/20 transition-all relative overflow-hidden group ${viewMode === "list" ? "flex flex-col md:flex-row p-1" : "p-6"}`}
-                           >
-                             <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-cyan-400/10 to-transparent blur-2xl pointer-events-none" />
-
-                             {/* Project Identity Block */}
-                             <div className={`${viewMode === "list" ? "p-5 md:w-2/5 md:border-r border-gray-100" : "mb-5"}`}>
-                               <div className="flex items-start justify-between gap-4">
-                                 <div className="flex-1">
-                                   <h4 className="text-[17px] font-black text-gray-900 tracking-tight leading-snug mb-2 group-hover:text-[#0a9396] transition-colors">{project.name}</h4>
-                                   <div className="flex items-center gap-2">
-                                     <div className="h-6 w-6 rounded-lg bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center shrink-0 shadow-inner">
-                                       <span className="text-[10px] font-black text-white">{project.pro.charAt(0)}</span>
-                                     </div>
-                                     <span className="text-[13px] font-bold text-gray-600 truncate">{project.pro}</span>
-                                   </div>
-                                 </div>
-                                 <button 
-                                   onClick={() => handleEditProject(project)}
-                                   className="h-8 w-8 rounded-xl bg-gray-50 hover:bg-[#0a9396]/10 text-gray-400 hover:text-[#0a9396] border border-gray-100 hover:border-[#0a9396]/20 flex items-center justify-center transition-all cursor-pointer shrink-0 opacity-0 group-hover:opacity-100"
-                                 >
-                                   <Pencil className="h-3.5 w-3.5" />
-                                 </button>
-                               </div>
-                             </div>
-
-                             {/* Metrics & Progress Box */}
-                             <div className={`${viewMode === "list" ? "p-5 flex-1 flex flex-col justify-center" : ""}`}>
-                               
-                               <div className={`grid ${viewMode === "list" ? "grid-cols-4 gap-4 items-center" : "grid-cols-2 gap-y-4 gap-x-2"} mb-4`}>
-                                 <div>
-                                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Status</p>
-                                   <div className="inline-flex px-2 py-0.5 rounded border text-[11px] font-bold uppercase tracking-wide bg-gray-50 text-gray-600 border-gray-200">
-                                     {project.status.replace("_", " ")}
-                                   </div>
-                                 </div>
-                                 <div>
-                                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 border-l border-gray-200 pl-3">Phase</p>
-                                   <p className="text-[12px] font-black text-gray-900 pl-3">{project.timeline}</p>
-                                 </div>
-                                 <div className={viewMode === "list" ? "col-span-2 text-right" : "col-span-2"}>
-                                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Capital Allocated</p>
-                                   <p className="text-lg font-black text-emerald-600 tracking-tight leading-none bg-emerald-50 inline-block px-2 py-1 rounded-lg border border-emerald-100">
-                                     {formatCurrency(Number(project.budget) || 0, project.currency)}
-                                   </p>
-                                 </div>
-                               </div>
-
-                               <div className="space-y-2">
-                                  <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-[#0a9396]">
-                                    <span>Deployment Progress</span>
-                                    <span>{project.progress}%</span>
+                  </div>
+                ) : (
+                  <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 gap-4" : "flex flex-col gap-3"}>
+                    <AnimatePresence>
+                      {projects.map((project, idx) => (
+                        <motion.div
+                          key={project.id}
+                          initial={{ opacity: 0, y: 12 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.97 }}
+                          transition={{ duration: 0.25, delay: idx * 0.05 }}
+                          className={`bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md hover:border-[#0a9396]/20 transition-all group ${viewMode === "list" ? "flex flex-col md:flex-row" : "p-5"}`}
+                        >
+                          {/* Identity */}
+                          <div className={`${viewMode === "list" ? "p-5 md:w-2/5 md:border-r border-gray-100" : "mb-4"}`}>
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex-1">
+                                <h4 className="font-bold text-gray-900 leading-snug mb-1.5 group-hover:text-[#0a9396] transition-colors text-sm">{project.name}</h4>
+                                <div className="flex items-center gap-1.5">
+                                  <div className="h-5 w-5 rounded-lg bg-[#0a9396]/10 flex items-center justify-center shrink-0">
+                                    <span className="text-[9px] font-bold text-[#0a9396]">{project.pro.charAt(0)}</span>
                                   </div>
-                                  <div className="h-2 w-full bg-cyan-900/5 rounded-full overflow-hidden shadow-inner">
-                                    <motion.div
-                                      initial={{ width: 0 }}
-                                      animate={{ width: `${project.progress}%` }}
-                                      transition={{ duration: 1, ease: "easeOut", type: "spring", bounce: 0.4 }}
-                                      className="h-full bg-gradient-to-r from-teal-400 via-[#0a9396] to-indigo-500 relative"
-                                    >
-                                      <div className="absolute inset-0 bg-white/20 w-1/2 rounded-full blur-sm" />
-                                    </motion.div>
-                                  </div>
-                               </div>
+                                  <span className="text-xs text-gray-500 truncate">{project.pro}</span>
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => handleEditProject(project)}
+                                className="h-7 w-7 rounded-lg bg-gray-50 hover:bg-[#0a9396]/10 text-gray-400 hover:text-[#0a9396] border border-gray-100 hover:border-[#0a9396]/20 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 shrink-0"
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </button>
+                            </div>
+                          </div>
 
-                             </div>
-                           </motion.div>
-                        ))}
-                      </AnimatePresence>
-                    </div>
-                 )}
-               </div>
+                          {/* Metrics */}
+                          <div className={`${viewMode === "list" ? "p-5 flex-1 flex flex-col justify-center" : ""}`}>
+                            <div className={`grid ${viewMode === "list" ? "grid-cols-4 gap-4 items-center" : "grid-cols-2 gap-3"} mb-4`}>
+                              <div>
+                                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Status</p>
+                                <span className="inline-flex px-2 py-0.5 rounded-lg border text-[11px] font-semibold bg-gray-50 text-gray-600 border-gray-200">
+                                  {project.status.replace("_", " ")}
+                                </span>
+                              </div>
+                              <div className={viewMode === "list" ? "pl-3 border-l border-gray-100" : ""}>
+                                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Timeline</p>
+                                <p className="text-xs font-bold text-gray-900">{project.timeline}</p>
+                              </div>
+                              <div className={viewMode === "list" ? "col-span-2 text-right" : "col-span-2"}>
+                                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Budget</p>
+                                <p className="text-sm font-black text-[#0a9396]">
+                                  {formatCurrency(Number(project.budget) || 0, project.currency)}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="space-y-1.5">
+                              <div className="flex justify-between text-[10px] font-semibold text-gray-500">
+                                <span>Progress</span>
+                                <span className="text-[#0a9396]">{project.progress}%</span>
+                              </div>
+                              <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                                <motion.div
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${project.progress}%` }}
+                                  transition={{ duration: 0.8, ease: "easeOut" }}
+                                  className="h-full bg-linear-to-r from-[#0a9396] to-[#6ece39] rounded-full"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Secure Transmissions Panel */}
+          {/* Messages */}
           <div className="lg:col-span-4 flex flex-col">
-            <div className="bg-white/40 backdrop-blur-3xl border border-white rounded-[2.5rem] shadow-[inset_0_2px_15px_rgb(255,255,255,0.7),0_10px_30px_rgb(0,0,0,0.03)] overflow-hidden flex-1 flex flex-col h-[500px]">
-               <div className="p-6 border-b border-gray-100/50 bg-gradient-to-br from-white/40 to-transparent sticky top-0 z-20 backdrop-blur-xl">
-                 <div className="flex items-center justify-between">
-                   <h2 className="text-xl font-black text-gray-900 tracking-tight">Transmissions</h2>
-                   <Link href="/messaging">
-                      <div className="h-8 w-8 rounded-full bg-white hover:bg-[#0a9396]/10 border border-gray-100 shadow-sm flex items-center justify-center text-gray-400 hover:text-[#0a9396] transition-colors cursor-pointer">
-                        <ArrowRight className="h-4 w-4 -rotate-45" />
-                      </div>
-                   </Link>
-                 </div>
-               </div>
+            <div className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-2xl shadow-sm overflow-hidden flex-1 flex flex-col h-[480px]">
+              <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between sticky top-0 z-20 bg-white/80 backdrop-blur-xl">
+                <h2 className="font-bold text-gray-900">Messages</h2>
+                <Link href="/messaging">
+                  <div className="h-8 w-8 rounded-full bg-gray-50 hover:bg-[#0a9396]/10 border border-gray-200 flex items-center justify-center text-gray-400 hover:text-[#0a9396] transition-colors cursor-pointer">
+                    <ArrowRight className="h-4 w-4 -rotate-45" />
+                  </div>
+                </Link>
+              </div>
 
-               <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-white/20">
-                 {messages.length > 0 ? (
-                    messages.map((message, i) => (
-                      <motion.div 
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.1 * i }}
-                        key={message.id} 
-                        className={`p-4 rounded-[1.5rem] border transition-all cursor-pointer block relative overflow-hidden group ${message.unread ? "bg-white border-[#0a9396]/20 shadow-md" : "bg-white/60 border-white hover:bg-white shadow-sm"}`}
-                      >
-                        {message.unread && <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-[#0a9396] to-teal-400" />}
-                        
-                        <div className="flex items-center justify-between mb-2 pl-1">
-                          <p className="text-[13px] font-black text-gray-900 tracking-tight flex items-center gap-2">
-                            {message.from}
-                            {message.unread && <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />}
-                          </p>
-                          <span className="text-[11px] font-bold text-gray-400">{message.time}</span>
-                        </div>
-                        <p className="text-[12px] font-bold text-gray-700 leading-tight mb-2 pl-1">{message.subject}</p>
-                        <p className="text-[12px] font-medium text-gray-500 leading-relaxed line-clamp-2 pl-1">{message.preview}</p>
-                      </motion.div>
-                    ))
-                 ) : (
-                    <div className="h-full flex flex-col items-center justify-center text-center px-6">
-                       <div className="h-16 w-16 rounded-3xl bg-white border border-gray-100 shadow-md flex items-center justify-center mb-4">
-                         <MessageSquare className="h-6 w-6 text-gray-300" />
-                       </div>
-                       <h4 className="text-[15px] font-black text-gray-900 tracking-tight mb-1">Silence.</h4>
-                       <p className="text-[12px] font-bold text-gray-500 tracking-wide">No new secure transmissions inbound.</p>
+              <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                {messages.length > 0 ? (
+                  messages.map((message, i) => (
+                    <motion.div
+                      initial={{ opacity: 0, x: 16 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.08 * i }}
+                      key={message.id}
+                      className={`p-4 rounded-xl border transition-all cursor-pointer relative overflow-hidden ${
+                        message.unread
+                          ? "bg-white border-[#0a9396]/20 shadow-sm"
+                          : "bg-white/60 border-gray-100 hover:bg-white hover:shadow-sm"
+                      }`}
+                    >
+                      {message.unread && (
+                        <div className="absolute top-0 left-0 w-1 h-full bg-[#0a9396] rounded-l-xl" />
+                      )}
+                      <div className="flex items-center justify-between mb-1 pl-2">
+                        <p className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                          {message.from}
+                          {message.unread && (
+                            <span className="h-1.5 w-1.5 rounded-full bg-[#6ece39] animate-pulse inline-block" />
+                          )}
+                        </p>
+                        <span className="text-xs text-gray-400">{message.time}</span>
+                      </div>
+                      <p className="text-xs font-semibold text-gray-700 mb-1 pl-2">{message.subject}</p>
+                      <p className="text-xs text-gray-500 leading-relaxed line-clamp-2 pl-2">{message.preview}</p>
+                    </motion.div>
+                  ))
+                ) : (
+                  <div className="h-full flex flex-col items-center justify-center text-center px-6">
+                    <div className="h-12 w-12 rounded-2xl bg-white border border-gray-100 shadow-sm flex items-center justify-center mb-3">
+                      <MessageSquare className="h-5 w-5 text-gray-300" />
                     </div>
-                 )}
-               </div>
+                    <p className="text-sm font-semibold text-gray-600 mb-1">No messages yet</p>
+                    <p className="text-xs text-gray-400">Messages from your professionals will appear here.</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
         </div>
       </div>
 
-      {/* Cinematic Project Modal Overlay */}
+      {/* Project Modal */}
       <AnimatePresence>
         {isProjectModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              exit={{ opacity: 0 }} 
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm"
               onClick={() => setIsProjectModalOpen(false)}
             />
-            
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              initial={{ opacity: 0, scale: 0.96, y: 16 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: -20 }}
-              className="w-full max-w-xl bg-white/90 backdrop-blur-3xl border border-white rounded-[2.5rem] shadow-[0_30px_60px_rgba(0,0,0,0.12),inset_0_2px_15px_rgba(255,255,255,0.8)] overflow-hidden relative z-10"
+              exit={{ opacity: 0, scale: 0.96, y: -16 }}
+              className="w-full max-w-xl bg-white/95 backdrop-blur-2xl border border-white/80 rounded-2xl shadow-2xl overflow-hidden relative z-10"
             >
-               <div className="p-6 lg:p-8 border-b border-gray-100/50 bg-gradient-to-br from-white/40 to-transparent flex items-center justify-between">
-                 <div>
-                   <h3 className="text-2xl font-black text-gray-900 tracking-tight">
-                     {editingProjectId ? "Modify Architecture" : "Deploy Operation"}
-                   </h3>
-                   <p className="text-sm font-bold text-gray-500 tracking-wide mt-1">
-                     Define the parameters of your project securely.
-                   </p>
-                 </div>
-                 <button 
-                   onClick={() => setIsProjectModalOpen(false)}
-                   className="p-3 rounded-full hover:bg-white/60 bg-white/40 border border-gray-100 transition-all text-gray-500 hover:text-gray-900 cursor-pointer shadow-sm"
-                 >
-                   <X className="h-5 w-5" />
-                 </button>
-               </div>
+              {/* Modal header */}
+              <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">
+                    {editingProjectId ? "Edit Project" : "Post a Project"}
+                  </h3>
+                  <p className="text-sm text-gray-500 mt-0.5">
+                    {editingProjectId ? "Update your project details." : "Describe your project to attract the right professional."}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setIsProjectModalOpen(false)}
+                  className="h-9 w-9 rounded-xl hover:bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-500 hover:text-gray-900 transition-all"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
 
-               <div className="p-6 lg:p-8 space-y-6 bg-white/40">
-                 {/* Cinematic Deep Inputs */}
-                 <div>
-                   <label className="block text-[11px] font-black uppercase tracking-widest text-gray-400 mb-2 pl-1">Operation Title</label>
-                   <div className="relative group">
-                     <div className="absolute -inset-0.5 bg-gradient-to-r from-[#0a9396]/20 to-teal-400/20 rounded-2xl blur opacity-0 group-focus-within:opacity-100 transition-opacity duration-500 pointer-events-none" />
-                     <input
-                       type="text"
-                       placeholder="e.g. Q4 Website Rework Pipeline..."
-                       className="relative w-full bg-white backdrop-blur-md border border-gray-200/60 rounded-xl px-5 py-4 text-[15px] font-bold text-gray-900 focus:border-[#0a9396]/50 focus:ring-0 outline-none transition-all shadow-inner placeholder-gray-300"
-                       value={newProjectData.name}
-                       onChange={(e) => setNewProjectData({ ...newProjectData, name: e.target.value })}
-                     />
-                   </div>
-                 </div>
+              {/* Modal body */}
+              <div className="p-6 space-y-5">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Project Name</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Q4 SEO Campaign"
+                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:border-[#0a9396] focus:ring-2 focus:ring-[#0a9396]/10 outline-none transition-all placeholder-gray-300"
+                    value={newProjectData.name}
+                    onChange={(e) => setNewProjectData({ ...newProjectData, name: e.target.value })}
+                  />
+                </div>
 
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                   <div>
-                     <label className="block text-[11px] font-black uppercase tracking-widest text-gray-400 mb-2 pl-1">Vector / Category</label>
-                     <select
-                       className="w-full bg-white backdrop-blur-md border border-gray-200/60 rounded-xl px-5 py-4 text-[15px] font-bold text-gray-900 focus:border-[#0a9396]/50 outline-none transition-all shadow-inner"
-                       value={newProjectData.category}
-                       onChange={(e) => setNewProjectData({ ...newProjectData, category: e.target.value })}
-                     >
-                        <option value="SEO (search engine optimisation)">Optimization (SEO)</option>
-                        <option value="PPC">Paid Media (PPC)</option>
-                        <option value="Social Media">Social Frameworks</option>
-                        <option value="Content Marketing">Content Logistics</option>
-                        <option value="Email Marketing">Email Deployment</option>
-                        <option value="Other">Custom Vector</option>
-                     </select>
-                   </div>
-                   <div>
-                     <label className="block text-[11px] font-black uppercase tracking-widest text-gray-400 mb-2 pl-1">Time Horizon</label>
-                     <select
-                       className="w-full bg-white backdrop-blur-md border border-gray-200/60 rounded-xl px-5 py-4 text-[15px] font-bold text-gray-900 focus:border-[#0a9396]/50 outline-none transition-all shadow-inner"
-                       value={newProjectData.timeline}
-                       onChange={(e) => setNewProjectData({ ...newProjectData, timeline: e.target.value })}
-                     >
-                       <option>Sprint (1 Week)</option>
-                       <option>1 Month Cycle</option>
-                       <option>Quarterly (3 Months)</option>
-                       <option>Bi-Annual (6 Months)</option>
-                     </select>
-                   </div>
-                 </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Category</label>
+                    <select
+                      className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:border-[#0a9396] focus:ring-2 focus:ring-[#0a9396]/10 outline-none transition-all"
+                      value={newProjectData.category}
+                      onChange={(e) => setNewProjectData({ ...newProjectData, category: e.target.value })}
+                    >
+                      <option value="SEO (search engine optimisation)">SEO</option>
+                      <option value="PPC">PPC & Ads</option>
+                      <option value="Social Media">Social Media</option>
+                      <option value="Content Marketing">Content Marketing</option>
+                      <option value="Email Marketing">Email Marketing</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Timeline</label>
+                    <select
+                      className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:border-[#0a9396] focus:ring-2 focus:ring-[#0a9396]/10 outline-none transition-all"
+                      value={newProjectData.timeline}
+                      onChange={(e) => setNewProjectData({ ...newProjectData, timeline: e.target.value })}
+                    >
+                      <option>1 Week</option>
+                      <option>1 Month</option>
+                      <option>3 Months</option>
+                      <option>6 Months</option>
+                    </select>
+                  </div>
+                </div>
 
-                 <div className="grid grid-cols-[1fr_2fr_2fr] gap-3">
-                    <div>
-                      <label className="block text-[11px] font-black uppercase tracking-widest text-gray-400 mb-2 pl-1">Currency</label>
-                      <select
-                        className="w-full bg-white backdrop-blur-md border border-gray-200/60 rounded-xl px-4 py-4 text-[15px] font-bold text-gray-900 focus:border-[#0a9396]/50 outline-none transition-all shadow-inner"
-                        value={newProjectData.currency}
-                        onChange={(e) => setNewProjectData({ ...newProjectData, currency: e.target.value })}
-                      >
-                         <option value="USD">USD</option>
-                         <option value="GBP">GBP</option>
-                         <option value="EUR">EUR</option>
-                      </select>
+                <div className="grid grid-cols-[1fr_2fr] gap-3">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Currency</label>
+                    <select
+                      className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:border-[#0a9396] focus:ring-2 focus:ring-[#0a9396]/10 outline-none transition-all"
+                      value={newProjectData.currency}
+                      onChange={(e) => setNewProjectData({ ...newProjectData, currency: e.target.value })}
+                    >
+                      <option value="GBP">GBP</option>
+                      <option value="USD">USD</option>
+                      <option value="EUR">EUR</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Budget</label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none">
+                        {currencySymbols[newProjectData.currency] ?? newProjectData.currency}
+                      </span>
+                      <input
+                        type="number"
+                        placeholder="5000"
+                        className="w-full bg-white border border-gray-200 rounded-xl pl-8 pr-4 py-3 text-sm text-gray-900 focus:border-[#0a9396] focus:ring-2 focus:ring-[#0a9396]/10 outline-none transition-all placeholder-gray-300"
+                        value={newProjectData.budget}
+                        onChange={(e) => setNewProjectData({ ...newProjectData, budget: e.target.value })}
+                      />
                     </div>
-                    <div className="col-span-2">
-                       <label className="block text-[11px] font-black uppercase tracking-widest text-gray-400 mb-2 pl-1">Capital Reserve</label>
-                       <div className="relative">
-                         <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-black text-[15px] pointer-events-none">$</span>
-                         <input
-                           type="number"
-                           placeholder="5000"
-                           className="w-full bg-white backdrop-blur-md border border-gray-200/60 rounded-xl pl-9 pr-5 py-4 text-[15px] font-black text-gray-900 focus:border-[#0a9396]/50 focus:ring-0 outline-none transition-all shadow-inner placeholder-gray-300"
-                           value={newProjectData.budget}
-                           onChange={(e) => setNewProjectData({ ...newProjectData, budget: e.target.value })}
-                         />
-                       </div>
-                    </div>
-                 </div>
+                  </div>
+                </div>
 
-                 <div>
-                   <label className="block text-[11px] font-black uppercase tracking-widest text-gray-400 mb-2 pl-1">Strategic Overview</label>
-                   <div className="relative group">
-                     <div className="absolute -inset-0.5 bg-gradient-to-r from-[#0a9396]/20 to-teal-400/20 rounded-2xl blur opacity-0 group-focus-within:opacity-100 transition-opacity duration-500 pointer-events-none" />
-                     <textarea
-                       rows={4}
-                       placeholder="Detail your goals, metrics for success, and brand context..."
-                       className="relative w-full bg-white backdrop-blur-md border border-gray-200/60 rounded-xl px-5 py-4 text-[14px] font-bold text-gray-700 focus:border-[#0a9396]/50 focus:ring-0 outline-none transition-all shadow-inner placeholder-gray-300 resize-none"
-                       value={newProjectData.description}
-                       onChange={(e) => setNewProjectData({ ...newProjectData, description: e.target.value })}
-                     />
-                   </div>
-                 </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Description</label>
+                  <textarea
+                    rows={4}
+                    placeholder="Describe your goals, target audience, and any relevant context..."
+                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 focus:border-[#0a9396] focus:ring-2 focus:ring-[#0a9396]/10 outline-none transition-all placeholder-gray-300 resize-none"
+                    value={newProjectData.description}
+                    onChange={(e) => setNewProjectData({ ...newProjectData, description: e.target.value })}
+                  />
+                </div>
+              </div>
 
-               </div>
-               
-               <div className="p-6 lg:p-8 border-t border-gray-100/50 bg-white/60 flex items-center justify-end gap-4">
-                  <button 
-                    onClick={() => setIsProjectModalOpen(false)}
-                    className="px-6 py-4 rounded-xl font-bold tracking-wide text-gray-500 hover:bg-white hover:text-gray-900 hover:shadow-sm border border-transparent hover:border-gray-200 transition-all cursor-pointer text-[14px]"
-                  >
-                    Abort Sequence
-                  </button>
-                  <button
-                    onClick={handlePostProject}
-                    disabled={isSavingProject || !newProjectData.name.trim() || !newProjectData.description.trim()}
-                    className="px-8 py-4 rounded-xl bg-gradient-to-r from-[#0a9396] to-teal-500 hover:from-teal-500 hover:to-[#0a9396] disabled:opacity-50 disabled:grayscale text-white font-bold tracking-wide text-[15px] shadow-lg shadow-teal-500/20 border-none transition-all cursor-pointer flex items-center gap-2"
-                  >
-                    {isSavingProject ? (
-                      <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    ) : (
-                      <CheckCircle2 className="h-5 w-5" />
-                    )}
-                    {editingProjectId ? "Confirm Override" : "Execute Deployment"}
-                  </button>
-               </div>
+              {/* Modal footer */}
+              <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex items-center justify-end gap-3">
+                <button
+                  onClick={() => setIsProjectModalOpen(false)}
+                  className="px-5 py-2.5 rounded-xl text-sm font-semibold text-gray-600 hover:bg-white hover:shadow-sm border border-transparent hover:border-gray-200 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handlePostProject}
+                  disabled={isSavingProject || !newProjectData.name.trim() || !newProjectData.description.trim()}
+                  className="px-6 py-2.5 rounded-xl bg-[#0a9396] hover:bg-[#087579] disabled:opacity-50 text-white font-semibold text-sm shadow-sm shadow-[#0a9396]/20 transition-all flex items-center gap-2"
+                >
+                  {isSavingProject ? (
+                    <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="h-4 w-4" />
+                  )}
+                  {editingProjectId ? "Save Changes" : "Post Project"}
+                </button>
+              </div>
             </motion.div>
           </div>
         )}

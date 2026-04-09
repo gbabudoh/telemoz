@@ -14,12 +14,14 @@ import {
   Save,
   Trash2,
   LogOut,
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { countriesByRegion, regions } from "@/lib/countries";
-import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 
 export default function ClientSettingsPage() {
   const { data: session } = useSession();
@@ -29,6 +31,7 @@ export default function ClientSettingsPage() {
   const [isFetching, setIsFetching] = useState(true);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState("");
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -42,11 +45,9 @@ export default function ClientSettingsPage() {
     confirmPassword: "",
   });
 
-  // Fetch user data on mount
   useEffect(() => {
     const fetchUserData = async () => {
       if (!session?.user?.id) return;
-
       try {
         setIsFetching(true);
         const response = await fetch("/api/user/profile");
@@ -71,7 +72,6 @@ export default function ClientSettingsPage() {
         setIsFetching(false);
       }
     };
-
     fetchUserData();
   }, [session]);
 
@@ -90,16 +90,25 @@ export default function ClientSettingsPage() {
     { id: "billing", label: "Billing", icon: CreditCard },
   ];
 
+  const showFeedback = (success: boolean, error?: string) => {
+    setSaveSuccess(false);
+    setSaveError("");
+    if (success) {
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3500);
+    } else {
+      setSaveError(error ?? "Something went wrong. Please try again.");
+    }
+  };
+
   const handleSaveAccountInfo = async () => {
     if (!formData.name || !formData.email) {
-      setSaveError("Name and email are required");
+      setSaveError("Name and email are required.");
       return;
     }
-
     setIsLoading(true);
     setSaveError("");
     setSaveSuccess(false);
-
     try {
       const response = await fetch("/api/user/update", {
         method: "PATCH",
@@ -112,17 +121,14 @@ export default function ClientSettingsPage() {
           timezone: formData.timezone,
         }),
       });
-
       if (response.ok) {
-        setSaveSuccess(true);
-        setTimeout(() => setSaveSuccess(false), 3000);
+        showFeedback(true);
       } else {
         const data = await response.json();
-        setSaveError(data.error || "Failed to update account information");
+        showFeedback(false, data.error || "Failed to update account information.");
       }
-    } catch (error) {
-      console.error("Error updating account:", error);
-      setSaveError("An error occurred. Please try again.");
+    } catch {
+      showFeedback(false);
     } finally {
       setIsLoading(false);
     }
@@ -132,14 +138,11 @@ export default function ClientSettingsPage() {
     setIsLoading(true);
     setSaveError("");
     setSaveSuccess(false);
-
     try {
-      // In a real app, you would make an API call here
       await new Promise((resolve) => setTimeout(resolve, 500));
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
+      showFeedback(true);
     } catch {
-      setSaveError("Failed to save notification preferences");
+      showFeedback(false, "Failed to save notification preferences.");
     } finally {
       setIsLoading(false);
     }
@@ -147,24 +150,20 @@ export default function ClientSettingsPage() {
 
   const handleSavePassword = async () => {
     if (!formData.currentPassword || !formData.newPassword || !formData.confirmPassword) {
-      setSaveError("All password fields are required");
+      setSaveError("All password fields are required.");
       return;
     }
-
     if (formData.newPassword !== formData.confirmPassword) {
-      setSaveError("New passwords do not match");
+      setSaveError("New passwords do not match.");
       return;
     }
-
     if (formData.newPassword.length < 8) {
-      setSaveError("Password must be at least 8 characters long");
+      setSaveError("Password must be at least 8 characters.");
       return;
     }
-
     setIsLoading(true);
     setSaveError("");
     setSaveSuccess(false);
-
     try {
       const response = await fetch("/api/user/update-password", {
         method: "PATCH",
@@ -174,74 +173,117 @@ export default function ClientSettingsPage() {
           newPassword: formData.newPassword,
         }),
       });
-
       if (response.ok) {
-        setSaveSuccess(true);
         setFormData({ ...formData, currentPassword: "", newPassword: "", confirmPassword: "" });
-        setTimeout(() => setSaveSuccess(false), 3000);
+        showFeedback(true);
       } else {
         const data = await response.json();
-        setSaveError(data.error || "Failed to update password");
+        showFeedback(false, data.error || "Failed to update password.");
       }
-    } catch (error) {
-      console.error("Error updating password:", error);
-      setSaveError("An error occurred. Please try again.");
+    } catch {
+      showFeedback(false);
     } finally {
       setIsLoading(false);
     }
   };
 
+  const panelClass = "bg-white/60 backdrop-blur-xl border border-white/80 rounded-2xl shadow-sm";
+
+  const FeedbackBanner = ({ success, error }: { success: boolean; error: string }) => (
+    <AnimatePresence>
+      {success && (
+        <motion.div
+          key="success"
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+          className="flex items-center gap-2.5 p-3.5 bg-[#6ece39]/10 border border-[#6ece39]/20 rounded-xl text-[#5ab830] text-sm"
+        >
+          <CheckCircle2 className="h-4 w-4 shrink-0" />
+          Saved successfully.
+        </motion.div>
+      )}
+      {error && (
+        <motion.div
+          key="error"
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+          className="flex items-center gap-2.5 p-3.5 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm"
+        >
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          {error}
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+
+  const SaveButton = ({ onClick, label }: { onClick: () => void; label: string }) => (
+    <div className="flex justify-end pt-2">
+      <button
+        onClick={onClick}
+        disabled={isLoading}
+        className="h-11 px-8 rounded-xl bg-[#0a9396] hover:bg-[#087579] text-white font-semibold text-sm shadow-sm transition-all cursor-pointer flex items-center gap-2 disabled:opacity-60"
+      >
+        {isLoading ? (
+          <><Loader2 className="h-4 w-4 animate-spin" />Saving...</>
+        ) : (
+          <><Save className="h-4 w-4" />{label}</>
+        )}
+      </button>
+    </div>
+  );
+
+  const inputClass = "w-full bg-white border border-gray-200 px-4 py-3 rounded-xl text-sm text-gray-900 outline-none focus:ring-2 focus:ring-[#0a9396]/20 focus:border-[#0a9396]/40 transition-all placeholder:text-gray-300";
+  const labelClass = "block text-xs font-medium text-gray-600 mb-1.5";
+
   if (isFetching) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-[#0a9396]" />
+        <Loader2 className="h-7 w-7 animate-spin text-[#0a9396]" />
       </div>
     );
   }
 
   return (
     <div className="relative min-h-screen bg-transparent">
-      {/* Ambient Animated Orbs */}
+      {/* Ambient orbs */}
       <div className="fixed top-[-5%] left-[-10%] w-[45%] h-[45%] rounded-full bg-[#0a9396]/10 blur-[130px] pointer-events-none mix-blend-multiply animate-pulse z-0" />
-      <div className="fixed top-[15%] right-[-5%] w-[40%] h-[40%] rounded-full bg-indigo-500/10 blur-[140px] pointer-events-none mix-blend-multiply animate-pulse-slow z-0" />
-      <div className="fixed bottom-[-5%] left-[15%] w-[50%] h-[40%] rounded-full bg-teal-400/10 blur-[130px] pointer-events-none mix-blend-multiply opacity-60 animate-pulse z-0" />
+      <div className="fixed top-[15%] right-[-5%] w-[40%] h-[40%] rounded-full bg-[#6ece39]/8 blur-[140px] pointer-events-none mix-blend-multiply z-0" />
+      <div className="fixed bottom-[-5%] left-[15%] w-[50%] h-[40%] rounded-full bg-[#0a9396]/8 blur-[130px] pointer-events-none mix-blend-multiply opacity-60 animate-pulse z-0" />
 
-      <div className="space-y-10 relative z-10 max-w-[1200px] mx-auto pb-20 pt-4">
-        {/* Sleek Intelligence Header */}
+      <div className="space-y-6 relative z-10 max-w-[1200px] mx-auto pb-16 pt-2">
+
+        {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white/40 backdrop-blur-2xl border border-white rounded-[2rem] p-6 lg:p-10 shadow-[inset_0_2px_15px_rgb(255,255,255,0.7),0_10px_30px_rgb(0,0,0,0.03)] overflow-hidden relative group"
+          className={panelClass}
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0a9396]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 relative z-10">
-            <div className="flex items-center gap-5">
-              <div className="p-4 rounded-3xl bg-white/50 border border-white shadow-sm transition-transform group-hover:scale-105 duration-500">
-                <Settings className="h-8 w-8 text-[#0a9396]" />
-              </div>
-              <div>
-                <div className="text-[10px] font-black text-[#0a9396] uppercase tracking-[0.4em] mb-1.5 flex items-center gap-2">
-                  <div className="h-1.5 w-1.5 rounded-full bg-[#0a9396] animate-pulse" />
-                  CONTROL SYSTEM ENABLED
+          <div className="p-6 lg:p-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+              <div className="flex items-center gap-4">
+                <div className="p-3.5 rounded-2xl bg-[#0a9396]/10 border border-[#0a9396]/20 shrink-0">
+                  <Settings className="h-7 w-7 text-[#0a9396]" />
                 </div>
-                <h1 className="text-3xl lg:text-4xl font-black text-gray-900 tracking-tight leading-none uppercase">
-                  Terminal <span className="bg-gradient-to-r from-[#0a9396] to-indigo-600 bg-clip-text text-transparent">Preferences</span>
-                </h1>
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Account Settings</h1>
+                  <p className="text-sm text-gray-500 mt-0.5">Manage your profile, notifications, and billing.</p>
+                </div>
               </div>
+              <button
+                onClick={() => signOut()}
+                className="h-10 px-5 rounded-xl border border-gray-200 hover:border-gray-300 text-gray-600 hover:text-gray-900 font-medium text-sm transition-all cursor-pointer flex items-center gap-2"
+              >
+                <LogOut className="h-4 w-4" />
+                Sign Out
+              </button>
             </div>
-            
-            <button 
-              onClick={() => signOut()}
-              className="h-12 px-6 rounded-xl bg-gray-900 hover:bg-black text-white font-bold tracking-wide text-[13px] shadow-lg shadow-gray-900/10 border-none transition-all cursor-pointer flex items-center justify-center gap-2 group/btn active:scale-95"
-            >
-              Terminate Session
-              <LogOut className="h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
-            </button>
           </div>
         </motion.div>
 
-        {/* High-Fidelity Navigation Deck */}
-        <div className="bg-white/30 backdrop-blur-3xl border border-white/50 rounded-2xl p-1.5 shadow-sm max-w-fit mx-auto lg:mx-0">
+        {/* Tab nav */}
+        <div className={`${panelClass} p-1.5 max-w-fit`}>
           <div className="flex flex-wrap items-center gap-1">
             {tabs.map((tab) => {
               const Icon = tab.icon;
@@ -249,21 +291,19 @@ export default function ClientSettingsPage() {
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`relative flex items-center gap-2.5 px-6 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest cursor-pointer overflow-hidden group/tab ${
-                    isActive 
-                      ? "text-white" 
-                      : "text-gray-500 hover:text-gray-900 hover:bg-white/50"
+                  onClick={() => { setActiveTab(tab.id); setSaveSuccess(false); setSaveError(""); }}
+                  className={`relative flex items-center gap-2 px-5 py-2.5 rounded-xl transition-all text-sm font-medium cursor-pointer overflow-hidden ${
+                    isActive ? "text-white" : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
                   }`}
                 >
                   {isActive && (
-                    <motion.div 
+                    <motion.div
                       layoutId="activeTabBg"
-                      className="absolute inset-0 bg-gray-950 shadow-lg z-0"
+                      className="absolute inset-0 bg-[#0a9396] z-0"
                       transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
                     />
                   )}
-                  <Icon className={`relative z-10 h-4 w-4 ${isActive ? "text-[#0a9396]" : "group-hover/tab:scale-110 transition-transform"}`} />
+                  <Icon className="relative z-10 h-4 w-4" />
                   <span className="relative z-10">{tab.label}</span>
                 </button>
               );
@@ -271,84 +311,80 @@ export default function ClientSettingsPage() {
           </div>
         </div>
 
-      {/* Tab Content */}
-      <motion.div
-        key={activeTab}
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.2 }}
-      >
-        {/* Account Tab */}
-        {activeTab === "account" && (
-          <div className="bg-white/40 backdrop-blur-2xl border border-white rounded-[2.5rem] p-8 lg:p-10 shadow-[inset_0_2px_15px_rgb(255,255,255,0.7),0_10px_30px_rgb(0,0,0,0.03)] relative overflow-hidden group">
-            <div className="absolute inset-0 bg-gradient-to-br from-[#0a9396]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
-            
-            <div className="relative z-10 space-y-8">
-              <div className="flex items-center gap-4 mb-8">
-                <div className="p-3 bg-gray-950 rounded-2xl shadow-lg shadow-gray-900/10">
+        {/* Tab content */}
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.18 }}
+        >
+
+          {/* Account */}
+          {activeTab === "account" && (
+            <div className={`${panelClass} p-6 lg:p-8`}>
+              <div className="flex items-center gap-3 mb-7">
+                <div className="p-2.5 rounded-xl bg-[#0a9396]/10 border border-[#0a9396]/20">
                   <User className="h-5 w-5 text-[#0a9396]" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-gray-900 tracking-tight uppercase">Identity Protocol</h3>
-                  <p className="text-[10px] font-black text-gray-400 tracking-[0.2em] uppercase">Security Vector & Profile Sync</p>
+                  <h3 className="text-base font-semibold text-gray-900">Profile Information</h3>
+                  <p className="text-xs text-gray-400 mt-0.5">Update your personal details and location.</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
                 {[
-                  { label: "Designation (Full Name)", value: formData.name, key: "name", type: "text", placeholder: "Identity descriptor" },
-                  { label: "Neural Link (Email)", value: formData.email, key: "email", type: "email", placeholder: "link@telemoz.com" },
-                  { label: "Transmission Line (Phone)", value: formData.phone, key: "phone", type: "tel", placeholder: "+44 000 000 000" },
-                  { label: "Corporate Entity", value: formData.company, key: "company", type: "text", placeholder: "HQ Designation" },
+                  { label: "Full Name", value: formData.name, key: "name", type: "text", placeholder: "Your full name" },
+                  { label: "Email Address", value: formData.email, key: "email", type: "email", placeholder: "you@example.com" },
+                  { label: "Phone Number", value: formData.phone, key: "phone", type: "tel", placeholder: "+44 000 000 000" },
+                  { label: "Company", value: formData.company, key: "company", type: "text", placeholder: "Your company name" },
                 ].map((field) => (
-                  <div key={field.key} className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{field.label}</label>
+                  <div key={field.key}>
+                    <label className={labelClass}>{field.label}</label>
                     <input
                       type={field.type}
                       value={field.value}
                       onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })}
                       placeholder={field.placeholder}
-                      className="w-full bg-white/50 border border-gray-100 p-4 rounded-2xl outline-none focus:ring-4 focus:ring-[#0a9396]/10 focus:border-[#0a9396]/20 font-bold transition-all placeholder:text-gray-300 shadow-sm"
+                      className={inputClass}
                     />
                   </div>
                 ))}
-                
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Geographic Sector (Country)</label>
+
+                <div>
+                  <label className={labelClass}>Country</label>
                   <select
                     value={formData.country}
                     onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                    className="w-full bg-white/50 border border-gray-100 p-4 rounded-2xl outline-none focus:ring-4 focus:ring-[#0a9396]/10 focus:border-[#0a9396]/20 font-bold transition-all shadow-sm appearance-none cursor-pointer"
+                    className={`${inputClass} appearance-none cursor-pointer`}
                   >
-                    <option value="">Select Sector</option>
+                    <option value="">Select country</option>
                     {regions.map((region) => (
                       <optgroup key={region} label={region}>
                         {countriesByRegion[region].map((country) => (
-                          <option key={country.id} value={country.name}>
-                            {country.name}
-                          </option>
+                          <option key={country.id} value={country.name}>{country.name}</option>
                         ))}
                       </optgroup>
                     ))}
                   </select>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Localized Node (City)</label>
+                <div>
+                  <label className={labelClass}>City</label>
                   <input
                     value={formData.city}
                     onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                    placeholder="Sector coordinate"
-                    className="w-full bg-white/50 border border-gray-100 p-4 rounded-2xl outline-none focus:ring-4 focus:ring-[#0a9396]/10 focus:border-[#0a9396]/20 font-bold transition-all placeholder:text-gray-300 shadow-sm"
+                    placeholder="Your city"
+                    className={inputClass}
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Temporal Alignment (Timezone)</label>
+                <div>
+                  <label className={labelClass}>Timezone</label>
                   <select
                     value={formData.timezone}
                     onChange={(e) => setFormData({ ...formData, timezone: e.target.value })}
-                    className="w-full bg-white/50 border border-gray-100 p-4 rounded-2xl outline-none focus:ring-4 focus:ring-[#0a9396]/10 focus:border-[#0a9396]/20 font-bold transition-all shadow-sm appearance-none cursor-pointer"
+                    className={`${inputClass} appearance-none cursor-pointer`}
                   >
                     <option value="Europe/London">Europe/London (GMT)</option>
                     <option value="America/New_York">America/New_York (EST)</option>
@@ -360,345 +396,210 @@ export default function ClientSettingsPage() {
                 </div>
               </div>
 
-              {saveSuccess && (
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="flex items-center gap-2 p-4 bg-emerald-50 border border-emerald-100 rounded-2xl text-emerald-700 font-bold text-sm shadow-sm"
-                >
-                  <CheckCircle2 className="h-5 w-5" />
-                  <span>IDENTITY SCAN SYNCHRONIZED SUCCESSFULY</span>
-                </motion.div>
-              )}
-
-              {saveError && (
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="flex items-center gap-2 p-4 bg-red-50 border border-red-100 rounded-2xl text-red-700 font-bold text-sm shadow-sm"
-                >
-                  <AlertCircle className="h-5 w-5" />
-                  <span>{saveError.toUpperCase()}</span>
-                </motion.div>
-              )}
-
-              <div className="flex justify-end pt-4">
-                <button
-                  onClick={handleSaveAccountInfo}
-                  disabled={isLoading}
-                  className="h-14 px-10 rounded-2xl bg-gray-950 hover:bg-black text-white font-black uppercase tracking-[0.2em] text-[11px] shadow-xl shadow-gray-900/10 border-none transition-all cursor-pointer flex items-center justify-center gap-3 disabled:opacity-50 active:scale-95 group/save"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin text-[#0a9396]" />
-                      Synchronizing...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="h-4 w-4 group-hover/save:scale-125 transition-transform" />
-                      Commit Changes
-                    </>
-                  )}
-                </button>
-              </div>
+              <FeedbackBanner success={saveSuccess} error={saveError} />
+              <SaveButton onClick={handleSaveAccountInfo} label="Save Changes" />
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Notifications Tab */}
-        {activeTab === "notifications" && (
-          <div className="bg-white/40 backdrop-blur-2xl border border-white rounded-[2.5rem] p-8 lg:p-10 shadow-[inset_0_2px_15px_rgb(255,255,255,0.7),0_10px_30px_rgb(0,0,0,0.03)] relative overflow-hidden group">
-            <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
-            
-            <div className="relative z-10 space-y-8">
-              <div className="flex items-center gap-4 mb-8">
-                <div className="p-3 bg-gray-950 rounded-2xl shadow-lg shadow-gray-900/10">
+          {/* Notifications */}
+          {activeTab === "notifications" && (
+            <div className={`${panelClass} p-6 lg:p-8`}>
+              <div className="flex items-center gap-3 mb-7">
+                <div className="p-2.5 rounded-xl bg-[#0a9396]/10 border border-[#0a9396]/20">
                   <Bell className="h-5 w-5 text-[#0a9396]" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-gray-900 tracking-tight uppercase">Alert Matrix</h3>
-                  <p className="text-[10px] font-black text-gray-400 tracking-[0.2em] uppercase">Notification Routing & Temporal Pings</p>
+                  <h3 className="text-base font-semibold text-gray-900">Notification Preferences</h3>
+                  <p className="text-xs text-gray-400 mt-0.5">Choose what you want to be notified about.</p>
                 </div>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-3 mb-6">
                 {[
-                  { id: "emailNotifications", label: "Email Notifications", desc: "Primary intelligence routing via SMTP" },
-                  { id: "projectUpdates", label: "Project Updates", desc: "Telemetry pings for mission vector changes" },
-                  { id: "reportReady", label: "Report Ready", desc: "Alerts for synchronized analytical archives" },
-                  { id: "proMessages", label: "Professional Messages", desc: "Encrypted link pings from assigned specialists" },
-                  { id: "marketingEmails", label: "Marketing Emails", desc: "Periodic broadcast of system evolutions" },
+                  { id: "emailNotifications", label: "Email Notifications", desc: "Receive important account updates by email" },
+                  { id: "projectUpdates", label: "Project Updates", desc: "Get notified when your projects are updated" },
+                  { id: "reportReady", label: "Report Ready", desc: "Notify me when a new report is available" },
+                  { id: "proMessages", label: "Messages from Pros", desc: "Receive messages from your marketing professionals" },
+                  { id: "marketingEmails", label: "Marketing Emails", desc: "Occasional updates about Telemoz features and news" },
                 ].map((item) => (
-                  <div key={item.id} className="flex items-center justify-between p-4 rounded-2xl bg-white/50 border border-white/80 hover:bg-white transition-all shadow-sm group/notif">
+                  <div key={item.id} className="flex items-center justify-between p-4 rounded-xl bg-gray-50/80 border border-gray-100 hover:bg-white transition-all">
                     <div>
-                      <p className="font-black text-gray-900 text-sm tracking-tight">{item.label}</p>
-                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{item.desc}</p>
+                      <p className="text-sm font-medium text-gray-900">{item.label}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{item.desc}</p>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
+                    <label className="relative inline-flex items-center cursor-pointer shrink-0 ml-4">
                       <input
                         type="checkbox"
                         checked={notifications[item.id as keyof typeof notifications]}
-                        onChange={(e) =>
-                          setNotifications({ ...notifications, [item.id]: e.target.checked })
-                        }
+                        onChange={(e) => setNotifications({ ...notifications, [item.id]: e.target.checked })}
                         className="sr-only peer"
                       />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#0a9396]/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#0a9396] shadow-inner"></div>
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#0a9396]/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#0a9396]" />
                     </label>
                   </div>
                 ))}
               </div>
 
-              {saveSuccess && (
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="flex items-center gap-2 p-4 bg-emerald-50 border border-emerald-100 rounded-2xl text-emerald-700 font-bold text-sm shadow-sm"
-                >
-                  <CheckCircle2 className="h-5 w-5" />
-                  <span>PREFERENCES SYNCHRONIZED ACROSS ARCHIVE</span>
-                </motion.div>
-              )}
-
-              {saveError && (
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="flex items-center gap-2 p-4 bg-red-50 border border-red-100 rounded-2xl text-red-700 font-bold text-sm shadow-sm"
-                >
-                  <AlertCircle className="h-5 w-5" />
-                  <span>{saveError.toUpperCase()}</span>
-                </motion.div>
-              )}
-
-              <div className="flex justify-end pt-4">
-                <button
-                  onClick={handleSaveNotifications}
-                  disabled={isLoading}
-                  className="h-14 px-10 rounded-2xl bg-gray-950 hover:bg-black text-white font-black uppercase tracking-[0.2em] text-[11px] shadow-xl shadow-gray-900/10 border-none transition-all cursor-pointer flex items-center justify-center gap-3 disabled:opacity-50 active:scale-95 group/save"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin text-[#0a9396]" />
-                      Synchronizing...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="h-4 w-4 group-hover/save:scale-125 transition-transform" />
-                      Commit Preferences
-                    </>
-                  )}
-                </button>
-              </div>
+              <FeedbackBanner success={saveSuccess} error={saveError} />
+              <SaveButton onClick={handleSaveNotifications} label="Save Preferences" />
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Security Tab */}
-        {activeTab === "security" && (
-          <div className="bg-white/40 backdrop-blur-2xl border border-white rounded-[2.5rem] p-8 lg:p-10 shadow-[inset_0_2px_15px_rgb(255,255,255,0.7),0_10px_30px_rgb(0,0,0,0.03)] relative overflow-hidden group">
-            <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
-            
-            <div className="relative z-10 space-y-8">
-              <div className="flex items-center gap-4 mb-8">
-                <div className="p-3 bg-gray-950 rounded-2xl shadow-lg shadow-gray-900/10">
+          {/* Security */}
+          {activeTab === "security" && (
+            <div className={`${panelClass} p-6 lg:p-8`}>
+              <div className="flex items-center gap-3 mb-7">
+                <div className="p-2.5 rounded-xl bg-[#0a9396]/10 border border-[#0a9396]/20">
                   <Shield className="h-5 w-5 text-[#0a9396]" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-gray-900 tracking-tight uppercase">Security Wall</h3>
-                  <p className="text-[10px] font-black text-gray-400 tracking-[0.2em] uppercase">Encryption Bounds & Access Flux</p>
+                  <h3 className="text-base font-semibold text-gray-900">Change Password</h3>
+                  <p className="text-xs text-gray-400 mt-0.5">Update your account password.</p>
                 </div>
               </div>
 
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Current Authorization Key (Password) *</label>
+              <div className="space-y-5 mb-6">
+                <div>
+                  <label className={labelClass}>Current Password <span className="text-red-400">*</span></label>
                   <div className="relative">
                     <input
                       type={showPassword ? "text" : "password"}
                       value={formData.currentPassword}
                       onChange={(e) => setFormData({ ...formData, currentPassword: e.target.value })}
-                      placeholder="Enter active secret"
-                      className="w-full bg-white/50 border border-gray-100 p-4 pr-12 rounded-2xl outline-none focus:ring-4 focus:ring-[#0a9396]/10 focus:border-[#0a9396]/20 font-bold transition-all placeholder:text-gray-300 shadow-sm"
+                      placeholder="Enter your current password"
+                      className={`${inputClass} pr-11`}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-900 transition-colors"
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 transition-colors cursor-pointer"
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">New Vector Key *</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div>
+                    <label className={labelClass}>New Password <span className="text-red-400">*</span></label>
                     <input
                       type={showPassword ? "text" : "password"}
                       value={formData.newPassword}
                       onChange={(e) => setFormData({ ...formData, newPassword: e.target.value })}
-                      placeholder="New secret sequence"
-                      className="w-full bg-white/50 border border-gray-100 p-4 rounded-2xl outline-none focus:ring-4 focus:ring-[#0a9396]/10 focus:border-[#0a9396]/20 font-bold transition-all placeholder:text-gray-300 shadow-sm"
+                      placeholder="At least 8 characters"
+                      className={inputClass}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Confirm New Key *</label>
+                  <div>
+                    <label className={labelClass}>Confirm New Password <span className="text-red-400">*</span></label>
                     <input
                       type={showPassword ? "text" : "password"}
                       value={formData.confirmPassword}
                       onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                      placeholder="Re-enter sequence"
-                      className="w-full bg-white/50 border border-gray-100 p-4 rounded-2xl outline-none focus:ring-4 focus:ring-[#0a9396]/10 focus:border-[#0a9396]/20 font-bold transition-all placeholder:text-gray-300 shadow-sm"
+                      placeholder="Repeat new password"
+                      className={inputClass}
                     />
                   </div>
                 </div>
               </div>
 
-              {saveSuccess && (
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="flex items-center gap-2 p-4 bg-emerald-50 border border-emerald-100 rounded-2xl text-emerald-700 font-bold text-sm shadow-sm"
-                >
-                  <CheckCircle2 className="h-5 w-5" />
-                  <span>ENCRYPTION KEYS SYNCHRONIZED ACROSS SYSTEM</span>
-                </motion.div>
-              )}
-
-              {saveError && (
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="flex items-center gap-2 p-4 bg-red-50 border border-red-100 rounded-2xl text-red-700 font-bold text-sm shadow-sm"
-                >
-                  <AlertCircle className="h-5 w-5" />
-                  <span>{saveError.toUpperCase()}</span>
-                </motion.div>
-              )}
-
-              <div className="flex justify-end pt-4">
-                <button
-                  onClick={handleSavePassword}
-                  disabled={isLoading}
-                  className="h-14 px-10 rounded-2xl bg-gray-950 hover:bg-black text-white font-black uppercase tracking-[0.2em] text-[11px] shadow-xl shadow-gray-900/10 border-none transition-all cursor-pointer flex items-center justify-center gap-3 disabled:opacity-50 active:scale-95 group/save"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin text-[#0a9396]" />
-                      Updating...
-                    </>
-                  ) : (
-                    <>
-                      <Lock className="h-4 w-4 group-hover/save:scale-125 transition-transform" />
-                      Update Matrix Key
-                    </>
-                  )}
-                </button>
-              </div>
+              <FeedbackBanner success={saveSuccess} error={saveError} />
+              <SaveButton onClick={handleSavePassword} label="Update Password" />
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Billing Tab */}
-        {activeTab === "billing" && (
-          <div className="bg-white/40 backdrop-blur-2xl border border-white rounded-[2.5rem] p-8 lg:p-10 shadow-[inset_0_2px_15px_rgb(255,255,255,0.7),0_10px_30px_rgb(0,0,0,0.03)] relative overflow-hidden group">
-            <div className="absolute inset-0 bg-gradient-to-br from-teal-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
-            
-            <div className="relative z-10 space-y-8">
-              <div className="flex items-center gap-4 mb-8">
-                <div className="p-3 bg-gray-950 rounded-2xl shadow-lg shadow-gray-900/10">
+          {/* Billing */}
+          {activeTab === "billing" && (
+            <div className={`${panelClass} p-6 lg:p-8`}>
+              <div className="flex items-center gap-3 mb-7">
+                <div className="p-2.5 rounded-xl bg-[#0a9396]/10 border border-[#0a9396]/20">
                   <CreditCard className="h-5 w-5 text-[#0a9396]" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-gray-900 tracking-tight uppercase">Capital Ledger</h3>
-                  <p className="text-[10px] font-black text-gray-400 tracking-[0.2em] uppercase">Financial Protocol & Transaction Sync</p>
+                  <h3 className="text-base font-semibold text-gray-900">Billing</h3>
+                  <p className="text-xs text-gray-400 mt-0.5">Manage your payment methods and billing history.</p>
                 </div>
               </div>
 
-              <div className="p-8 bg-gradient-to-br from-[#0a9396]/10 to-indigo-600/5 border border-[#0a9396]/20 rounded-3xl relative overflow-hidden group/card shadow-sm transition-all hover:scale-[1.01]">
-                <div className="absolute top-0 right-0 p-4">
-                  <Badge className="bg-emerald-500 text-white border-none font-black text-[9px] uppercase tracking-widest px-3">ACTIVE LINK</Badge>
-                </div>
-                <div className="flex items-start gap-5 mb-6">
-                  <div className="p-4 bg-white/50 rounded-2xl border border-white shadow-sm">
-                    <CreditCard className="h-6 w-6 text-[#0a9396]" />
+              {/* Plan info */}
+              <div className="p-6 bg-linear-to-br from-[#0a9396]/8 to-[#6ece39]/8 border border-[#0a9396]/20 rounded-2xl mb-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-white rounded-xl border border-gray-100 shadow-sm">
+                      <CreditCard className="h-5 w-5 text-[#0a9396]" />
+                    </div>
+                    <div>
+                      <h4 className="text-base font-semibold text-gray-900">Telemoz Marketplace</h4>
+                      <p className="text-xs text-[#0a9396] mt-0.5">Free client access</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-xl font-black text-gray-900 tracking-tight uppercase">Telemoz Marketplace</h3>
-                    <p className="text-[10px] font-black text-[#0a9396] uppercase tracking-[0.2em] mt-1">Free Tier Access Enabled</p>
-                  </div>
+                  <Badge className="bg-[#6ece39] text-white border-none text-[10px] font-medium px-2.5">Active</Badge>
                 </div>
-                
-                <p className="text-sm font-bold text-gray-700 leading-relaxed mb-8 max-w-2xl">
-                  As a client, you operate on a <span className="text-[#0a9396]">Zero-Subscription</span> model. No recruitment fees are levied upon your entity. Professionals manage commission logs independently (13% per payload).
+
+                <p className="text-sm text-gray-600 leading-relaxed mb-5">
+                  As a client, you don&apos;t pay a subscription fee. Telemoz charges a <span className="text-[#0a9396] font-medium">10% commission</span> on payments to professionals, deducted before funds are released.
                 </p>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {[
-                    "Zero Subscription Fees",
-                    "Secure Escrow Buffer",
-                    "Protected Payload Sync",
-                  ].map((benefit) => (
-                    <div key={benefit} className="flex items-center gap-3 p-3 bg-white/40 rounded-xl border border-white shadow-sm transition-transform hover:-translate-y-1">
-                      <div className="h-5 w-5 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                        <CheckCircle2 className="h-3 w-3 text-emerald-600" />
-                      </div>
-                      <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest leading-none">{benefit}</span>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {["No Subscription Fee", "Secure Escrow", "Payment Protection"].map((benefit) => (
+                    <div key={benefit} className="flex items-center gap-2.5 p-3 bg-white/70 rounded-xl border border-white shadow-sm">
+                      <CheckCircle2 className="h-4 w-4 text-[#0a9396] shrink-0" />
+                      <span className="text-xs font-medium text-gray-700">{benefit}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-4">
-                <div className="space-y-4">
-                  <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] ml-1">Payment Sources</h4>
-                  <div className="p-6 bg-white/30 border border-white rounded-[2rem] shadow-sm flex flex-col items-center justify-center text-center gap-4 py-10 group/sub">
-                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.1em]">No secure sources on record</p>
-                    <button className="h-12 px-8 rounded-xl bg-gray-950 hover:bg-black text-white font-black uppercase tracking-widest text-[11px] shadow-lg shadow-gray-900/10 border-none transition-all flex items-center gap-3 active:scale-95">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider">Payment Methods</h4>
+                  <div className="p-8 bg-gray-50/80 border border-gray-100 rounded-xl flex flex-col items-center justify-center text-center gap-4">
+                    <p className="text-sm text-gray-400">No payment methods added</p>
+                    <button className="h-10 px-5 rounded-xl bg-[#0a9396] hover:bg-[#087579] text-white font-medium text-sm shadow-sm border-none transition-all flex items-center gap-2 cursor-pointer">
                       <CreditCard className="h-4 w-4" />
-                      Initialize Source
+                      Add Payment Method
                     </button>
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] ml-1">Archive History</h4>
-                  <div className="p-6 bg-white/30 border border-white rounded-[2rem] shadow-sm flex flex-col items-center justify-center text-center gap-4 py-10">
-                    <div className="h-12 w-12 rounded-full border border-gray-100 flex items-center justify-center opacity-40">
+                <div className="space-y-3">
+                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider">Transaction History</h4>
+                  <div className="p-8 bg-gray-50/80 border border-gray-100 rounded-xl flex flex-col items-center justify-center text-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-gray-100 flex items-center justify-center">
                       <Mail className="h-5 w-5 text-gray-400" />
                     </div>
-                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.1em]">Ledger is currently empty</p>
+                    <p className="text-sm text-gray-400">No transactions yet</p>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
-      </motion.div>
+          )}
 
-      {/* Danger Zone */}
-      <div className="bg-white/40 backdrop-blur-2xl border border-red-500/20 rounded-[2.5rem] p-8 lg:p-10 shadow-[0_10px_40px_rgba(239,68,68,0.05)] relative overflow-hidden group/danger">
-        <div className="absolute inset-0 bg-red-500/5 opacity-0 group-hover/danger:opacity-100 transition-opacity duration-700" />
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
-          <div className="flex items-center gap-5">
-            <div className="p-4 bg-red-500/10 rounded-2xl border border-red-500/20 shadow-sm">
-              <Trash2 className="h-6 w-6 text-red-600" />
+        </motion.div>
+
+        {/* Danger zone */}
+        <div className="bg-white/60 backdrop-blur-xl border border-red-200/60 rounded-2xl shadow-sm">
+          <div className="p-6 lg:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-red-50 rounded-xl border border-red-100 shrink-0">
+                <Trash2 className="h-5 w-5 text-red-500" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-gray-900">Delete Account</h3>
+                <p className="text-xs text-red-500 font-medium mt-0.5">Danger Zone</p>
+                <p className="text-sm text-gray-500 mt-1 max-w-md">
+                  Permanently delete your account and all associated data. This cannot be undone.
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-xl font-black text-gray-900 tracking-tight uppercase">Termination Protocol</h3>
-              <p className="text-[10px] font-black text-red-500 uppercase tracking-[0.2em] mt-1">Danger Zone • Permanent Erasure</p>
-              <p className="text-xs font-bold text-gray-500 mt-2 max-w-md">Irreversible destruction of all identity data and project archives associated with this node.</p>
-            </div>
+            <button className="h-11 px-6 rounded-xl bg-red-600 hover:bg-red-700 text-white font-medium text-sm shadow-sm border-none transition-all cursor-pointer flex items-center gap-2 shrink-0">
+              <Trash2 className="h-4 w-4" />
+              Delete Account
+            </button>
           </div>
-          <button className="h-14 px-8 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-black uppercase tracking-[0.2em] text-[11px] shadow-xl shadow-red-600/20 border-none transition-all cursor-pointer flex items-center justify-center gap-3 active:scale-95 group/del">
-            <Trash2 className="h-4 w-4 group-hover/del:scale-125 transition-transform" />
-            Vaporize Account
-          </button>
         </div>
+
       </div>
-    </div>
     </div>
   );
 }
-

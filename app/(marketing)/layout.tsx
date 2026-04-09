@@ -17,7 +17,7 @@ export default function MarketingLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-white via-[#94d2bd]/10 via-[#a8a9ad]/5 to-[#e0e1dd]">
+    <div className="min-h-screen flex flex-col bg-linear-to-br from-white via-[#6ece39]/8 to-[#e0e1dd]">
       {/* Marketing Header */}
       <header className="sticky top-0 z-50 border-b border-[#a8a9ad]/20 bg-gradient-to-r from-white via-[#f8f9fa] to-[#e0e1dd] backdrop-blur-lg shadow-sm">
         <div className="container mx-auto max-w-7xl px-6">

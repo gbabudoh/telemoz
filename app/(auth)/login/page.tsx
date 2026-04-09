@@ -7,7 +7,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState, FormEvent } from "react";
 import { CheckCircle2, X, Loader2, Mail, Lock } from "lucide-react";
 import { signIn, getSession } from "next-auth/react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 
 export default function LoginPage() {
@@ -91,7 +91,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50/50 relative overflow-hidden">
       {/* Abstract Background Effects */}
       <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-[#0a9396]/10 blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-[#94d2bd]/10 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-[#6ece39]/8 blur-[120px] pointer-events-none" />
       
       <div className="w-full max-w-6xl p-6 lg:p-12 relative z-10">
         <div className="bg-white/70 backdrop-blur-xl rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-white/60 overflow-hidden flex flex-col lg:flex-row min-h-[700px]">
@@ -120,8 +120,9 @@ export default function LoginPage() {
               </motion.div>
 
               {/* Toast Notification */}
+              <AnimatePresence>
               {showSuccess && (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, y: -20, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -20, scale: 0.95 }}
@@ -142,6 +143,7 @@ export default function LoginPage() {
                   </button>
                 </motion.div>
               )}
+              </AnimatePresence>
 
               {error && (
                 <motion.div 
@@ -228,12 +230,12 @@ export default function LoginPage() {
           </div>
 
           {/* Right Panel: Promotional Image/Marketing */}
-          <div className="hidden lg:block w-1/2 relative bg-gradient-to-br from-[#0a9396] to-[#005f73] p-12 overflow-hidden">
+          <div className="hidden lg:block w-1/2 relative bg-linear-to-br from-[#0a9396] to-[#005f73] p-12 overflow-hidden">
             <div className="absolute inset-0 bg-[#000000]/10 mix-blend-overlay" />
             
             {/* Abstract Decorative Circles */}
             <div className="absolute -top-24 -right-24 w-96 h-96 bg-white/10 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-[#94d2bd]/20 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-[#6ece39]/15 rounded-full blur-3xl pointer-events-none" />
             
             <div className="relative z-10 h-full flex flex-col justify-center">
               <motion.div 
@@ -243,7 +245,7 @@ export default function LoginPage() {
                 className="w-full max-w-lg mx-auto"
               >
                 <div className="mb-10 text-white/90">
-                  <h2 className="text-4xl font-bold text-white mb-4">Elevate Your Agency</h2>
+                  <h2 className="text-4xl font-bold text-white mb-4">Grow With Expert Marketers</h2>
                   <p className="text-lg font-light text-white/80">
                     Connect with top talent, manage projects seamlessly, and scale your digital marketing operations all from one unified hub.
                   </p>
@@ -263,7 +265,7 @@ export default function LoginPage() {
                       className="object-cover" 
                       priority
                     />
-                    <div className="absolute inset-0 bg-gradient-to-tr from-[#0a9396]/20 to-transparent mix-blend-overlay" />
+                    <div className="absolute inset-0 bg-linear-to-tr from-[#0a9396]/20 to-transparent mix-blend-overlay" />
                   </div>
                 </motion.div>
               </motion.div>

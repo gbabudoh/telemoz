@@ -15,12 +15,11 @@ import {
   Target,
   Activity,
   Zap,
-  Layout
+  CheckCircle2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import Link from "next/link";
-import { useSession } from "next-auth/react";
 import { formatCurrency } from "@/lib/utils";
 
 const reports = [
@@ -29,7 +28,7 @@ const reports = [
     projectId: 1,
     projectName: "Q4 Social Media Campaign",
     pro: "Digital Marketing Pro",
-    period: "October - December 2024",
+    period: "October – December 2024",
     generatedDate: "2024-12-10",
     status: "active",
     metrics: {
@@ -43,9 +42,9 @@ const reports = [
   {
     id: 2,
     projectId: 2,
-    projectName: "SEO Optimization",
+    projectName: "SEO Optimisation",
     pro: "SEO Experts Ltd",
-    period: "November - December 2024",
+    period: "November – December 2024",
     generatedDate: "2024-12-05",
     status: "active",
     metrics: {
@@ -61,7 +60,7 @@ const reports = [
     projectId: 3,
     projectName: "Email Marketing Campaign",
     pro: "Digital Marketing Pro",
-    period: "September - November 2024",
+    period: "September – November 2024",
     generatedDate: "2024-11-30",
     status: "completed",
     metrics: {
@@ -90,11 +89,20 @@ const chartData = [
   { month: "Jan", traffic: 45000, leads: 750, conversions: 210 },
 ];
 
+const statsConfig = [
+  { label: "Total Traffic", value: overallStats.totalTraffic.toLocaleString(), icon: Activity },
+  { label: "Total Leads", value: overallStats.totalLeads.toLocaleString(), icon: Users },
+  { label: "Conversions", value: overallStats.totalConversions.toLocaleString(), icon: Target },
+  { label: "Total Revenue", value: formatCurrency(overallStats.totalRevenue), icon: DollarSign },
+  { label: "Avg. ROAS", value: `${overallStats.avgROAS}x`, icon: BarChart3 },
+  { label: "Active Projects", value: overallStats.activeProjects, icon: TrendingUp },
+];
+
 export default function ClientReportsPage() {
-  useSession();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isExporting, setIsExporting] = useState(false);
+  const [exportSuccess, setExportSuccess] = useState(false);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
 
   const filteredReports = reports.filter((report) => {
@@ -107,250 +115,270 @@ export default function ClientReportsPage() {
 
   const handleExport = async () => {
     setIsExporting(true);
-    await new Promise(r => setTimeout(r, 1500));
+    await new Promise(r => setTimeout(r, 1200));
     setIsExporting(false);
-    alert("Global Intelligence Export Successful. Archives synchronized.");
+    setExportSuccess(true);
+    setTimeout(() => setExportSuccess(false), 3000);
   };
 
   const handleDownloadPDF = async (id: number) => {
     setDownloadingId(id);
-    // Simulate data preparation
     await new Promise(r => setTimeout(r, 1200));
     setDownloadingId(null);
     window.print();
   };
 
+  const panelClass = "bg-white/60 backdrop-blur-xl border border-white/80 rounded-2xl shadow-sm overflow-hidden";
+
   return (
     <div className="relative min-h-screen bg-transparent">
-      {/* Ambient Animated Orbs */}
+      {/* Ambient orbs */}
       <div className="fixed top-[-5%] left-[-10%] w-[45%] h-[45%] rounded-full bg-[#0a9396]/10 blur-[130px] pointer-events-none mix-blend-multiply animate-pulse z-0" />
-      <div className="fixed top-[15%] right-[-5%] w-[40%] h-[40%] rounded-full bg-indigo-500/10 blur-[140px] pointer-events-none mix-blend-multiply animate-pulse-slow z-0" />
-      <div className="fixed bottom-[-5%] left-[15%] w-[50%] h-[40%] rounded-full bg-teal-400/10 blur-[130px] pointer-events-none mix-blend-multiply opacity-60 animate-pulse z-0" />
+      <div className="fixed top-[15%] right-[-5%] w-[40%] h-[40%] rounded-full bg-[#6ece39]/8 blur-[140px] pointer-events-none mix-blend-multiply z-0" />
+      <div className="fixed bottom-[-5%] left-[15%] w-[50%] h-[40%] rounded-full bg-[#0a9396]/8 blur-[130px] pointer-events-none mix-blend-multiply opacity-60 animate-pulse z-0" />
 
-      <div className="space-y-10 relative z-10 max-w-[1700px] mx-auto pb-12">
-        {/* Glassmorphic Command Header */}
+      <div className="space-y-8 relative z-10 max-w-[1700px] mx-auto pb-12">
+
+        {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white/40 backdrop-blur-2xl border border-white rounded-[2.5rem] p-8 lg:p-10 shadow-[inset_0_2px_15px_rgb(255,255,255,0.7),0_10px_30px_rgb(0,0,0,0.03)] overflow-hidden relative group"
+          className={panelClass}
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0a9396]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 relative z-10">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="h-2 w-2 rounded-full bg-[#0a9396] animate-ping" />
-                <span className="text-[10px] font-black text-[#0a9396] tracking-[0.3em] uppercase">Intelligence Archive Active</span>
+          <div className="p-8 lg:p-10">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+              <div className="flex items-center gap-5">
+                <div className="p-3.5 rounded-2xl bg-[#0a9396]/10 border border-[#0a9396]/20 shrink-0">
+                  <BarChart3 className="h-8 w-8 text-[#0a9396]" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
+                    Reports & Analytics
+                  </h1>
+                  <p className="text-gray-500 text-sm mt-0.5 max-w-xl">
+                    Performance data across all your active and completed campaigns.
+                  </p>
+                </div>
               </div>
-              <h1 className="text-3xl lg:text-4xl font-black text-gray-900 tracking-tight leading-tight uppercase mb-2">
-                Reports <span className="bg-gradient-to-r from-[#0a9396] to-indigo-600 bg-clip-text text-transparent">&</span> Analytics
-              </h1>
-              <p className="text-gray-500 font-bold tracking-tight text-[15px] max-w-2xl">
-                Real-time performance telemetry and historical data synchronization for all active and completed mission vectors.
-              </p>
+              <div className="flex items-center gap-3">
+                <AnimatePresence>
+                  {exportSuccess && (
+                    <motion.div
+                      initial={{ opacity: 0, x: 10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 10 }}
+                      className="flex items-center gap-2 text-sm text-[#5ab830] font-medium"
+                    >
+                      <CheckCircle2 className="h-4 w-4" />
+                      Exported successfully
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                <button
+                  onClick={handleExport}
+                  disabled={isExporting}
+                  className="px-6 py-3 rounded-xl bg-[#0a9396] hover:bg-[#087579] text-white font-semibold text-sm shadow-sm transition-all cursor-pointer flex items-center gap-2 disabled:opacity-60 h-fit"
+                >
+                  {isExporting ? (
+                    <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4" />
+                  )}
+                  Export All
+                </button>
+              </div>
             </div>
-            <button 
-              onClick={handleExport}
-              disabled={isExporting}
-              className="px-8 py-4 rounded-2xl bg-gray-900 hover:bg-black text-white font-black tracking-[0.1em] text-[13px] shadow-xl shadow-gray-900/20 transition-all cursor-pointer flex items-center gap-3 disabled:opacity-50 h-fit"
-            >
-              {isExporting ? (
-                <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <Download className="h-4 w-4" />
-              )}
-              EXPORT GLOBAL MATRIX
-            </button>
           </div>
         </motion.div>
 
-        {/* Intelligence Ribbon (Stats) */}
+        {/* Stats ribbon */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {[
-            { label: "Gross Traffic", value: overallStats.totalTraffic.toLocaleString(), icon: Activity, color: "text-blue-600", bg: "bg-blue-50" },
-            { label: "Net Leads", value: overallStats.totalLeads.toLocaleString(), icon: Users, color: "text-emerald-600", bg: "bg-emerald-50" },
-            { label: "Conversions", value: overallStats.totalConversions.toLocaleString(), icon: Target, color: "text-purple-600", bg: "bg-purple-50" },
-            { label: "Net Revenue", value: formatCurrency(overallStats.totalRevenue), icon: DollarSign, color: "text-amber-600", bg: "bg-amber-50" },
-            { label: "Avg ROAS", value: `${overallStats.avgROAS}x`, icon: BarChart3, color: "text-[#0a9396]", bg: "bg-teal-50" },
-            { label: "Active Vectors", value: overallStats.activeProjects, icon: Layout, color: "text-indigo-600", bg: "bg-indigo-50" },
-          ].map((stat, idx) => (
+          {statsConfig.map((stat, idx) => (
             <motion.div
               key={stat.label}
-              initial={{ opacity: 0, y: 15 }}
+              initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.05 * idx }}
-              className="bg-white/40 backdrop-blur-xl border border-white rounded-[2rem] p-6 shadow-[inset_0_2px_15px_rgb(255,255,255,0.7),0_5px_15px_rgb(0,0,0,0.02)] group hover:-translate-y-1 transition-transform duration-300"
+              className={`${panelClass} p-5 group hover:-translate-y-1 transition-transform duration-300`}
             >
-              <div className={`w-10 h-10 rounded-xl ${stat.bg} border border-white/50 flex items-center justify-center mb-4 shadow-sm`}>
-                <stat.icon className={`h-5 w-5 ${stat.color} group-hover:scale-110 transition-transform`} />
+              <div className="p-2.5 rounded-xl bg-linear-to-br from-[#0a9396]/10 to-[#6ece39]/10 w-fit mb-3">
+                <stat.icon className="h-4 w-4 text-[#0a9396]" />
               </div>
-              <p className="text-[10px] font-black text-gray-400 tracking-[0.1em] uppercase mb-1">{stat.label}</p>
-              <p className="text-xl font-black text-gray-900 tracking-tight">{stat.value}</p>
+              <p className="text-xs text-gray-400 mb-1">{stat.label}</p>
+              <p className="text-xl font-bold text-gray-900">{stat.value}</p>
             </motion.div>
           ))}
         </div>
 
-        {/* Evolutionary Trends Visualizer */}
+        {/* Chart */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-white/40 backdrop-blur-3xl border border-white rounded-[3rem] p-8 lg:p-10 shadow-[inset_0_2px_15px_rgb(255,255,255,0.7),0_20px_50px_rgb(0,0,0,0.05)]"
+          className={panelClass}
         >
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-gray-900 rounded-2xl shadow-lg">
-                <BarChart3 className="h-5 w-5 text-white" />
+          <div className="p-6 lg:p-8">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-linear-to-br from-[#0a9396]/10 to-[#6ece39]/10">
+                  <BarChart3 className="h-5 w-5 text-[#0a9396]" />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-gray-900">Performance Overview</h3>
+                  <p className="text-xs text-gray-400">Across all projects</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-xl font-black text-gray-900 tracking-tight uppercase">Network Performance</h3>
-                <p className="text-[10px] font-black text-gray-400 tracking-[0.2em] uppercase">Cross-Project Synchronized Flux</p>
+              <div className="flex gap-4">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full bg-[#0a9396]" />
+                  <span className="text-xs text-gray-400">Traffic</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full bg-[#6ece39]" />
+                  <span className="text-xs text-gray-400">Leads</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full bg-[#087579]" />
+                  <span className="text-xs text-gray-400">Conversions</span>
+                </div>
               </div>
             </div>
-            <div className="flex gap-4">
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#0a9396]" />
-                <span className="text-[10px] font-black text-gray-400 uppercase">Traffic</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#10b981]" />
-                <span className="text-[10px] font-black text-gray-400 uppercase">Leads</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#6366f1]" />
-                <span className="text-[10px] font-black text-gray-400 uppercase">Conv.</span>
-              </div>
+            <div className="h-80">
+              <Chart
+                data={chartData}
+                type="area"
+                dataKey="month"
+                dataKeys={["traffic", "leads", "conversions"]}
+                className="border-none bg-transparent shadow-none"
+                colors={["#0a9396", "#6ece39", "#087579"]}
+              />
             </div>
-          </div>
-          <div className="h-[350px]">
-            <Chart
-              data={chartData}
-              type="area"
-              dataKey="month"
-              dataKeys={["traffic", "leads", "conversions"]}
-              className="border-none bg-transparent shadow-none"
-              colors={["#0a9396", "#10b981", "#6366f1"]}
-            />
           </div>
         </motion.div>
 
-        {/* Intelligence Search & Filter */}
-        <div className="bg-white/30 backdrop-blur-3xl border border-white/50 rounded-[2rem] p-4 lg:p-6 shadow-sm">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1 group">
-              <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 group-focus-within:text-[#0a9396] transition-colors" />
-              <input
-                placeholder="Search report vectors by mission name or specialist..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-white/50 border border-gray-100 p-4 pl-12 rounded-2xl outline-none focus:ring-4 focus:ring-[#0a9396]/10 focus:border-[#0a9396]/20 font-bold transition-all placeholder:text-gray-300"
-              />
-            </div>
-            <div className="flex p-1 bg-white/50 rounded-2xl border border-gray-100 gap-1 h-fit my-auto">
-              {["all", "active", "completed"].map((status) => (
-                <button
-                  key={status}
-                  onClick={() => setStatusFilter(status)}
-                  className={`px-6 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest cursor-pointer ${
-                    statusFilter === status 
-                      ? "bg-gray-900 text-white shadow-lg" 
-                      : "text-gray-400 hover:text-gray-900"
-                  }`}
-                >
-                  {status}
-                </button>
-              ))}
+        {/* Search & Filter */}
+        <div className={panelClass}>
+          <div className="p-4">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1 group">
+                <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-300 group-focus-within:text-[#0a9396] transition-colors" />
+                <input
+                  placeholder="Search by project name or pro..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-white/60 focus:bg-white border border-gray-100 py-3 pl-11 pr-4 rounded-xl text-sm text-gray-900 outline-none focus:ring-2 focus:ring-[#0a9396]/20 transition-all placeholder:text-gray-300"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                {["all", "active", "completed"].map((status) => (
+                  <button
+                    key={status}
+                    onClick={() => setStatusFilter(status)}
+                    className={`px-4 py-2.5 rounded-xl transition-all text-xs font-medium capitalize cursor-pointer ${
+                      statusFilter === status
+                        ? "bg-[#0a9396] text-white shadow-sm"
+                        : "text-gray-500 hover:text-gray-700 border border-gray-100 bg-white/60"
+                    }`}
+                  >
+                    {status === "all" ? "All" : status.charAt(0).toUpperCase() + status.slice(1)}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Reports Telemetry Deck */}
+        {/* Report cards */}
         <AnimatePresence mode="popLayout">
           {filteredReports.length === 0 ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="bg-white/40 backdrop-blur-xl border border-white rounded-[3rem] p-20 text-center"
+              className={`${panelClass} p-16 text-center flex flex-col items-center`}
             >
-              <FileText className="h-20 w-20 text-gray-200 mx-auto mb-6 animate-pulse" />
-              <h3 className="text-2xl font-black text-gray-900 uppercase mb-2">Matrix Clean</h3>
-              <p className="text-gray-500 font-bold">No matching intelligence vectors found in current repository.</p>
+              <div className="h-14 w-14 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center mb-4">
+                <FileText className="h-7 w-7 text-gray-300" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">No reports found</h3>
+              <p className="text-gray-500 text-sm">No reports match your current search or filter.</p>
             </motion.div>
           ) : (
-            <div className="grid grid-cols-1 gap-6">
+            <div className="flex flex-col gap-5">
               {filteredReports.map((report, index) => (
                 <motion.div
                   key={report.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.1 }}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.08 }}
                   layout
-                  className="bg-white/40 backdrop-blur-2xl border border-white rounded-[2.5rem] p-8 lg:p-10 shadow-[inset_0_2px_15px_rgb(255,255,255,0.7),0_10px_25px_rgb(0,0,0,0.03)] group hover:border-[#0a9396]/40 transition-all duration-500"
+                  className={`${panelClass} hover:shadow-md hover:border-[#0a9396]/20 transition-all duration-300 group`}
                 >
-                  <div className="flex flex-col lg:flex-row gap-10 items-center">
-                    {/* Left Pane - Mission Specs */}
-                    <div className="flex-1 space-y-6">
+                  <div className="p-6 lg:p-8 flex flex-col lg:flex-row gap-8 items-start lg:items-center">
+
+                    {/* Report info */}
+                    <div className="flex-1 space-y-5 min-w-0">
                       <div>
-                        <div className="flex flex-wrap items-center gap-3 mb-3">
-                          <h3 className="text-2xl font-black text-gray-900 tracking-tight uppercase group-hover:text-[#0a9396] transition-colors">{report.projectName}</h3>
-                          <div className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.2em] border ${
-                            report.status === "active" 
-                              ? "bg-emerald-50 text-emerald-600 border-emerald-100" 
-                              : "bg-indigo-50 text-indigo-600 border-indigo-100"
+                        <div className="flex flex-wrap items-center gap-2.5 mb-2">
+                          <h3 className="text-lg font-semibold text-gray-900 group-hover:text-[#0a9396] transition-colors">{report.projectName}</h3>
+                          <div className={`px-2.5 py-0.5 rounded-full text-[10px] font-medium border ${
+                            report.status === "active"
+                              ? "bg-[#6ece39]/10 text-[#5ab830] border-[#6ece39]/20"
+                              : "bg-[#0a9396]/10 text-[#0a9396] border-[#0a9396]/20"
                           }`}>
                             {report.status}
                           </div>
                         </div>
-                        <div className="flex items-center gap-4 text-gray-500 font-bold text-sm">
-                          <div className="flex items-center gap-2">
-                            <Users className="h-4 w-4 opacity-50 text-[#0a9396]" />
+                        <div className="flex items-center gap-4 text-sm text-gray-500">
+                          <div className="flex items-center gap-1.5">
+                            <Users className="h-3.5 w-3.5 text-[#0a9396]" />
                             {report.pro}
                           </div>
                           <div className="w-1 h-1 rounded-full bg-gray-200" />
-                          <div className="flex items-center gap-2 text-gray-400">
-                            <Calendar className="h-4 w-4 opacity-50" />
+                          <div className="flex items-center gap-1.5">
+                            <Calendar className="h-3.5 w-3.5 text-gray-400" />
                             {report.period}
                           </div>
                         </div>
                       </div>
 
-                      {/* Telemetry Metrics Grid */}
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                      {/* Metrics */}
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
                         {[
                           { label: "Traffic", value: report.metrics.traffic.toLocaleString(), icon: Activity },
                           { label: "Leads", value: report.metrics.leads.toLocaleString(), icon: Target },
-                          { label: "Conv.", value: report.metrics.conversions.toLocaleString(), icon: Zap },
+                          { label: "Conversions", value: report.metrics.conversions.toLocaleString(), icon: Zap },
                           { label: "Revenue", value: formatCurrency(report.metrics.revenue), icon: DollarSign },
                           { label: "ROAS", value: `${report.metrics.roas}x`, icon: TrendingUp },
                         ].map((m) => (
-                          <div key={m.label} className="p-4 rounded-2xl bg-white/50 border border-white/80 shadow-sm space-y-1 group/met transition-all hover:bg-white">
-                            <div className="flex items-center justify-between text-[10px] font-black text-gray-300 uppercase tracking-wider">
-                              {m.label}
-                              <m.icon className="h-3 w-3 opacity-30 group-hover/met:text-[#0a9396] group-hover/met:opacity-100 transition-all" />
+                          <div key={m.label} className="p-3.5 rounded-xl bg-gray-50/80 border border-gray-100 space-y-1">
+                            <div className="flex items-center justify-between">
+                              <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">{m.label}</p>
+                              <m.icon className="h-3 w-3 text-gray-300" />
                             </div>
-                            <p className="text-lg font-black text-gray-900 tracking-tight">{m.value}</p>
+                            <p className="text-base font-semibold text-gray-900">{m.value}</p>
                           </div>
                         ))}
                       </div>
                     </div>
 
-                    {/* Right Pane - Action Deck */}
-                    <div className="lg:w-60 w-full flex-shrink-0 flex flex-col gap-3">
+                    {/* Actions */}
+                    <div className="lg:w-48 w-full flex-shrink-0 flex flex-col gap-2.5">
                       <Link href={`/client/reports/${report.projectId}`}>
-                        <button className="w-full h-14 rounded-2xl bg-white border border-gray-100 text-gray-900 font-black uppercase tracking-[0.2em] text-[10px] shadow-sm hover:border-[#0a9396]/30 hover:bg-white transition-all group/act flex items-center justify-center gap-3 cursor-pointer">
-                          <Eye className="h-4 w-4 group-hover/act:scale-110 transition-transform" />
-                          Live Intel
+                        <button className="w-full h-11 rounded-xl bg-white border border-gray-200 hover:border-[#0a9396]/30 text-gray-700 hover:text-gray-900 font-medium text-sm shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer">
+                          <Eye className="h-4 w-4" />
+                          View Report
                         </button>
                       </Link>
-                      <button 
+                      <button
                         onClick={() => handleDownloadPDF(report.id)}
                         disabled={downloadingId !== null}
-                        className="w-full h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase tracking-[0.2em] text-[10px] shadow-lg shadow-indigo-600/20 transition-all flex items-center justify-center gap-3 cursor-pointer disabled:opacity-50"
+                        className="w-full h-11 rounded-xl bg-[#0a9396] hover:bg-[#087579] text-white font-semibold text-sm shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
                       >
                         {downloadingId === report.id ? (
                           <>
                             <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                            PREPARING...
+                            Preparing...
                           </>
                         ) : (
                           <>
@@ -359,19 +387,21 @@ export default function ClientReportsPage() {
                           </>
                         )}
                       </button>
-                      <Link href={`/client/projects`} className="text-center">
-                        <span className="text-[10px] font-black text-gray-400 hover:text-[#0a9396] uppercase tracking-widest cursor-pointer transition-colors flex items-center justify-center gap-2 group/prj">
-                          Vector Status
-                          <ArrowRight className="h-3 w-3 group-hover/prj:translate-x-1 transition-transform" />
+                      <Link href="/client/projects" className="text-center">
+                        <span className="text-xs text-gray-400 hover:text-[#0a9396] cursor-pointer transition-colors flex items-center justify-center gap-1.5 group/prj">
+                          View Project
+                          <ArrowRight className="h-3 w-3 group-hover/prj:translate-x-0.5 transition-transform" />
                         </span>
                       </Link>
                     </div>
+
                   </div>
                 </motion.div>
               ))}
             </div>
           )}
         </AnimatePresence>
+
       </div>
     </div>
   );

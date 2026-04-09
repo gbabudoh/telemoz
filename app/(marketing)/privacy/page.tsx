@@ -1,10 +1,20 @@
-import { Card, CardContent } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
-import { Shield, ArrowLeft } from "lucide-react";
+import { Shield, ArrowLeft, Mail, LifeBuoy } from "lucide-react";
 import Link from "next/link";
 
-const sections = [
+type SectionContent = {
+  subtitle?: string;
+  text: string;
+};
+
+type Section = {
+  id: string;
+  title: string;
+  content: SectionContent[];
+};
+
+const sections: Section[] = [
   {
+    id: "information-collected",
     title: "1. Information We Collect",
     content: [
       {
@@ -26,6 +36,7 @@ const sections = [
     ],
   },
   {
+    id: "how-we-use",
     title: "2. How We Use Your Information",
     content: [
       {
@@ -38,7 +49,7 @@ const sections = [
       },
       {
         subtitle: "2.3 Platform Improvement",
-        text: "We analyze usage data to improve our platform, develop new features, and enhance user experience.",
+        text: "We analyse usage data to improve our platform, develop new features, and enhance user experience.",
       },
       {
         subtitle: "2.4 Legal Compliance",
@@ -47,6 +58,7 @@ const sections = [
     ],
   },
   {
+    id: "sharing",
     title: "3. Information Sharing and Disclosure",
     content: [
       {
@@ -68,6 +80,7 @@ const sections = [
     ],
   },
   {
+    id: "security",
     title: "4. Data Security",
     content: [
       {
@@ -85,6 +98,7 @@ const sections = [
     ],
   },
   {
+    id: "your-rights",
     title: "5. Your Rights and Choices",
     content: [
       {
@@ -106,6 +120,7 @@ const sections = [
     ],
   },
   {
+    id: "cookies",
     title: "6. Cookies and Tracking Technologies",
     content: [
       {
@@ -119,6 +134,7 @@ const sections = [
     ],
   },
   {
+    id: "children",
     title: "7. Children's Privacy",
     content: [
       {
@@ -128,6 +144,7 @@ const sections = [
     ],
   },
   {
+    id: "international",
     title: "8. International Data Transfers",
     content: [
       {
@@ -137,6 +154,7 @@ const sections = [
     ],
   },
   {
+    id: "changes",
     title: "9. Changes to This Privacy Policy",
     content: [
       {
@@ -150,11 +168,12 @@ const sections = [
     ],
   },
   {
+    id: "contact",
     title: "10. Contact Us",
     content: [
       {
         subtitle: "10.1 Privacy Inquiries",
-        text: "If you have questions or concerns about this Privacy Policy or our data practices, please contact us at privacy@telemoz.com or through our support center.",
+        text: "If you have questions or concerns about this Privacy Policy or our data practices, please contact us at privacy@telemoz.com or through our support centre.",
       },
     ],
   },
@@ -162,64 +181,103 @@ const sections = [
 
 export default function PrivacyPolicyPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-[#94d2bd]/10 via-[#e0e1dd]/30 to-white">
-      <div className="container mx-auto max-w-4xl px-6 py-12">
+    <div className="min-h-screen py-12">
+      <div className="container mx-auto max-w-6xl px-6">
+
+        {/* Back nav */}
         <Link
           href="/"
-          className="text-[#0a9396] hover:text-[#087579] mb-6 inline-flex items-center gap-2 font-medium"
+          className="inline-flex items-center gap-2 bg-white/60 backdrop-blur-xl border border-white/80 rounded-xl px-4 py-2.5 shadow-sm hover:shadow-md hover:bg-white/80 transition-all group text-sm font-medium text-gray-700 mb-10"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="h-4 w-4 text-gray-400 group-hover:text-[#0a9396] group-hover:-translate-x-0.5 transition-all" />
           Back to Home
         </Link>
 
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="rounded-lg bg-gradient-to-br from-[#0a9396] to-[#94d2bd] p-3">
-              <Shield className="h-8 w-8 text-white" />
-            </div>
-            <h1 className="text-4xl font-bold text-gray-900">Privacy Policy</h1>
-          </div>
-          <p className="text-gray-600 mb-2">
-            <strong>Last Updated:</strong> January 2025
-          </p>
-          <p className="text-lg text-gray-600">
-            At Telemoz, we are committed to protecting your privacy and ensuring the security of your personal information. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our platform.
-          </p>
-        </div>
+        <div className="flex flex-col lg:flex-row gap-10 items-start">
 
-        <div className="space-y-8">
-          {sections.map((section, index) => (
-            <Card key={index}>
-              <CardContent className="pt-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">{section.title}</h2>
-                <div className="space-y-6">
-                  {section.content.map((item, itemIndex) => (
-                    <div key={itemIndex}>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">{item.subtitle}</h3>
-                      <p className="text-gray-700 leading-relaxed">{item.text}</p>
-                    </div>
-                  ))}
+          {/* Sticky Table of Contents */}
+          <aside className="hidden lg:block w-64 shrink-0 sticky top-6">
+            <div className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-2xl shadow-sm p-5">
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Contents</p>
+              <nav className="space-y-1">
+                {sections.map((section) => (
+                  <a
+                    key={section.id}
+                    href={`#${section.id}`}
+                    className="block text-sm text-gray-500 hover:text-[#0a9396] hover:translate-x-0.5 transition-all py-1 leading-snug"
+                  >
+                    {section.title}
+                  </a>
+                ))}
+              </nav>
+            </div>
+          </aside>
+
+          {/* Document */}
+          <div className="flex-1 min-w-0">
+
+            {/* Header */}
+            <div className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-2xl shadow-sm p-8 mb-6">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="h-12 w-12 rounded-xl bg-linear-to-br from-[#0a9396] to-[#6ece39] flex items-center justify-center shrink-0">
+                  <Shield className="h-6 w-6 text-white" />
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Contact Section */}
-        <Card className="mt-8 bg-gradient-to-br from-[#0a9396]/10 to-[#94d2bd]/10 border-[#0a9396]/30">
-          <CardContent className="pt-6">
-            <h3 className="text-xl font-semibold text-gray-900 mb-4">Questions About Privacy?</h3>
-            <p className="text-gray-700 mb-4">
-              If you have any questions or concerns about our Privacy Policy or how we handle your personal information, please don't hesitate to contact us.
-            </p>
-            <div className="space-y-2 text-gray-700">
-              <p><strong>Email:</strong> privacy@telemoz.com</p>
-              <p><strong>Support:</strong> <Link href="/support" className="text-[#0a9396] hover:underline">Visit Support Center</Link></p>
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900">Privacy Policy</h1>
+                  <p className="text-sm text-gray-500 mt-0.5">Last updated: January 2025</p>
+                </div>
+              </div>
+              <p className="text-gray-600 leading-relaxed">
+                At Telemoz, we are committed to protecting your privacy and ensuring the security of your personal information. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our platform.
+              </p>
             </div>
-          </CardContent>
-        </Card>
+
+            {/* Sections as a flowing document */}
+            <div className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-2xl shadow-sm divide-y divide-gray-100">
+              {sections.map((section) => (
+                <div key={section.id} id={section.id} className="p-8 scroll-mt-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-5">{section.title}</h2>
+                  <div className="space-y-5">
+                    {section.content.map((item, itemIndex) => (
+                      <div key={itemIndex}>
+                        {item.subtitle && (
+                          <h3 className="text-base font-semibold text-gray-800 mb-2">{item.subtitle}</h3>
+                        )}
+                        <p className="text-gray-600 leading-relaxed text-sm">{item.text}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Contact card */}
+            <div className="mt-6 bg-linear-to-br from-[#0a9396]/8 to-[#6ece39]/8 border border-[#0a9396]/20 rounded-2xl p-8">
+              <h3 className="text-lg font-bold text-gray-900 mb-2">Questions about your privacy?</h3>
+              <p className="text-gray-600 text-sm mb-5">
+                If you have any questions or concerns about how we handle your personal information, don&apos;t hesitate to reach out.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <a
+                  href="mailto:privacy@telemoz.com"
+                  className="inline-flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium text-gray-700 hover:border-[#0a9396] hover:text-[#0a9396] transition-all"
+                >
+                  <Mail className="h-4 w-4 text-[#0a9396]" />
+                  privacy@telemoz.com
+                </a>
+                <Link
+                  href="/support"
+                  className="inline-flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium text-gray-700 hover:border-[#0a9396] hover:text-[#0a9396] transition-all"
+                >
+                  <LifeBuoy className="h-4 w-4 text-[#0a9396]" />
+                  Visit Support Centre
+                </Link>
+              </div>
+            </div>
+
+          </div>
+        </div>
       </div>
     </div>
   );
 }
-

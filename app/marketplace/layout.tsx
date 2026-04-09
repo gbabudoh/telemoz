@@ -52,7 +52,7 @@ export default function MarketplaceLayout({
                </Link>
              ) : (
                <Link href="/login">
-                 <Button className="h-10 px-6 rounded-xl bg-gray-900 hover:bg-black text-white font-bold tracking-wide shadow-md">
+                 <Button className="h-10 px-6 rounded-xl bg-[#0a9396] hover:bg-[#087579] text-white font-semibold shadow-sm">
                    <LogIn className="h-4 w-4 mr-2" /> Sign In
                  </Button>
                </Link>

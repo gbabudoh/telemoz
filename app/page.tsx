@@ -189,7 +189,7 @@ export default function HomePage() {
   });
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-white via-[#94d2bd]/10 via-[#a8a9ad]/5 to-[#e0e1dd]">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-white via-[#6ece39]/8 to-[#e0e1dd]">
       <MarketingHeader />
       
       <main className="flex-1">
@@ -197,7 +197,7 @@ export default function HomePage() {
       <section className="relative overflow-hidden px-6 pt-24 pb-20 lg:pt-32 lg:pb-32 flex items-center min-h-[90vh]">
         {/* Animated Background Blobs */}
         <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-[#0a9396]/20 blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-[#94d2bd]/20 blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-[#6ece39]/20 blur-[120px]" />
         
         <div className="container mx-auto max-w-7xl relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-8 items-center">
@@ -382,7 +382,7 @@ export default function HomePage() {
                     
                     {/* Animated Progress Line */}
                     <motion.div 
-                      className="absolute top-4 bottom-32 left-6 w-1 bg-gradient-to-b from-[#0a9396] to-[#94d2bd] rounded-full -translate-x-px origin-top"
+                      className="absolute top-4 bottom-32 left-6 w-1 bg-gradient-to-b from-[#0a9396] to-[#6ece39] rounded-full -translate-x-px origin-top"
                       style={{ scaleY: scrollYProgress }}
                     />
 
@@ -434,7 +434,7 @@ export default function HomePage() {
                   <div className="hidden lg:block sticky top-32 h-[500px] w-full mt-4">
                     <div className="w-full h-full relative rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-white/60 bg-white/40 backdrop-blur-xl group flex items-center justify-center">
                        {/* Abstract placeholder that reacts to scroll */}
-                       <div className="absolute inset-0 bg-gradient-to-br from-[#0a9396]/5 to-[#94d2bd]/20" />
+                       <div className="absolute inset-0 bg-gradient-to-br from-[#0a9396]/5 to-[#6ece39]/20" />
                        
                        <motion.div 
                          style={{ 
@@ -489,7 +489,7 @@ export default function HomePage() {
       <section className="px-6 py-32 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-[#0a9396] to-[#005f73]" />
         <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-[100px]" />
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#94d2bd]/20 rounded-full blur-[100px]" />
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#6ece39]/20 rounded-full blur-[100px]" />
         
         <div className="container mx-auto max-w-4xl relative z-10">
           <motion.div 
