@@ -164,11 +164,11 @@ export default function ReportingPage() {
                   <h1 className="text-4xl sm:text-[2.5rem] font-black tracking-tighter text-gray-900 flex items-center gap-3 mb-1">
                     Reporting & Analytics
                     <Badge variant="primary" size="lg" className="hidden sm:flex bg-[#0a9396]/10 text-[#0a9396] border-[#0a9396]/20 py-1.5 px-3">
-                      DigitalBOX Core
+                      Live
                     </Badge>
                   </h1>
                   <p className="text-gray-500 font-bold tracking-wide">
-                    Real-time synthesis of enterprise financial and client telemetry.
+                    Track revenue, clients, and project performance in real time.
                   </p>
                </div>
             </div>
@@ -176,11 +176,11 @@ export default function ReportingPage() {
           <div className="flex items-center gap-3 w-full sm:w-auto h-14">
              <Button variant="outline" className="bg-white/50 backdrop-blur border-white hover:bg-white hover:shadow-lg text-gray-700 h-full px-6 rounded-2xl transition-all w-full sm:w-auto font-bold tracking-wide active:scale-95">
                <Calendar className="mr-2 h-5 w-5" />
-               Date Constraints
+               Date Range
              </Button>
              <Button className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white shadow-xl shadow-gray-900/20 hover:shadow-2xl hover:shadow-gray-900/40 transition-all rounded-2xl h-full px-8 shrink-0 flex-1 sm:flex-none font-bold tracking-wide bg-[length:200%_auto] hover:animate-gradient active:scale-95 relative overflow-hidden group">
                <div className="absolute inset-[1px] rounded-[15px] bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
-               <span className="relative z-10 flex items-center"><Download className="mr-2 h-5 w-5" /> Export Ledger</span>
+               <span className="relative z-10 flex items-center"><Download className="mr-2 h-5 w-5" /> Export Report</span>
              </Button>
           </div>
         </div>
@@ -218,7 +218,7 @@ export default function ReportingPage() {
                          }`}>
                            {stat.trend === "up" ? "+" : ""}{stat.change}%
                          </span>
-                         <span className="text-[11px] text-gray-400 font-bold uppercase tracking-widest">Rolling Offset</span>
+                         <span className="text-[11px] text-gray-400 font-bold uppercase tracking-widest">vs last period</span>
                       </div>
                     ) : (
                       <div className="h-6" /> // spacer
@@ -247,13 +247,13 @@ export default function ReportingPage() {
                <div className="p-8 pb-4 relative z-10 flex justify-between items-start">
                  <div>
                    <h2 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2">
-                     Financial Trajectory Node <span className={`w-2 h-2 rounded-full ${isLoading ? 'bg-amber-400' : 'bg-emerald-400'} animate-pulse`} />
+                     Revenue & Profit <span className={`w-2 h-2 rounded-full ${isLoading ? 'bg-amber-400' : 'bg-emerald-400'} animate-pulse`} />
                    </h2>
-                   <p className="text-sm font-bold text-gray-500 tracking-wide mt-1">Cross-referencing global limits over 6 months.</p>
+                   <p className="text-sm font-bold text-gray-500 tracking-wide mt-1">Last 6 months</p>
                  </div>
                  <div className="hidden sm:flex bg-white/60 p-1.5 rounded-xl border border-white gap-2 shadow-sm font-bold tracking-widest text-[10px] uppercase text-gray-400">
-                    <div className="flex items-center gap-1.5 px-2"><div className="w-2 h-2 rounded bg-emerald-500" /> Revenue Flow</div>
-                    <div className="flex items-center gap-1.5 px-2"><div className="w-2 h-2 rounded bg-slate-400" /> Static Profit</div>
+                    <div className="flex items-center gap-1.5 px-2"><div className="w-2 h-2 rounded bg-emerald-500" /> Revenue</div>
+                    <div className="flex items-center gap-1.5 px-2"><div className="w-2 h-2 rounded bg-slate-400" /> Profit</div>
                  </div>
                </div>
                
@@ -271,7 +271,7 @@ export default function ReportingPage() {
                 ) : (
                   <div className="h-[360px] w-full flex items-center justify-center bg-gray-50/40 rounded-3xl border border-dashed border-gray-300 mt-4">
                     <p className="text-gray-400 font-bold uppercase tracking-widest flex items-center gap-2">
-                      <TrendingUp className="w-4 h-4 animate-bounce" /> Aggregating Telemetry
+                      <TrendingUp className="w-4 h-4 animate-bounce" /> Loading data...
                     </p>
                   </div>
                 )}
@@ -284,8 +284,8 @@ export default function ReportingPage() {
             <div className="border border-white/60 bg-white/40 backdrop-blur-2xl rounded-[2.5rem] shadow-[inset_0_2px_15px_rgb(255,255,255,0.7),0_8px_30px_rgb(0,0,0,0.03)] hover:shadow-xl transition-all overflow-hidden h-full flex flex-col relative">
                <div className="absolute -top-32 -right-32 w-64 h-64 bg-amber-500/10 blur-[60px] rounded-full pointer-events-none" />
                <div className="p-8 pb-4 relative z-10">
-                 <h2 className="text-xl font-black text-gray-900 tracking-tight">Active Client Expansion</h2>
-                 <p className="text-xs font-bold text-gray-500 tracking-widest uppercase mt-1">Acquisition Velocity</p>
+                 <h2 className="text-xl font-black text-gray-900 tracking-tight">Client Growth</h2>
+                 <p className="text-xs font-bold text-gray-500 tracking-widest uppercase mt-1">New clients over time</p>
                </div>
                
                <div className="p-8 pt-0 flex-1 relative z-10">
@@ -302,7 +302,7 @@ export default function ReportingPage() {
                 ) : (
                   <div className="h-[360px] w-full flex items-center justify-center bg-gray-50/40 rounded-3xl border border-dashed border-gray-300 mt-4">
                     <p className="text-gray-400 font-bold uppercase tracking-widest flex items-center gap-2">
-                      <Users className="w-4 h-4 animate-bounce" /> Ping Clients
+                      <Users className="w-4 h-4 animate-bounce" /> Loading data...
                     </p>
                   </div>
                 )}
@@ -328,9 +328,9 @@ export default function ReportingPage() {
                   <div className="p-2 bg-gradient-to-r from-teal-500 to-emerald-500 rounded-xl shadow-md rotate-3 text-white">
                     <FileText className="h-5 w-5" />
                   </div>
-                  Generative Intelligence Readout
+                  Key Insights
                 </h2>
-                <p className="text-sm font-bold text-gray-500 mt-2 tracking-wide">Automated pipeline translation algorithms active.</p>
+                <p className="text-sm font-bold text-gray-500 mt-2 tracking-wide">AI-powered analysis of your performance.</p>
               </div>
 
               <div className="p-8 flex-1 bg-white/10 relative z-10 space-y-6">
@@ -350,13 +350,13 @@ export default function ReportingPage() {
                        <TrendingUp className="h-6 w-6 text-emerald-600" />
                     </div>
                     <div className="relative z-10">
-                       <h4 className="font-extrabold text-gray-900 text-[17px] mb-1 leading-tight tracking-tight">Revenue Trajectory Analysis</h4>
+                       <h4 className="font-extrabold text-gray-900 text-[17px] mb-1 leading-tight tracking-tight">Revenue Performance</h4>
                        <p className="text-[14px] text-gray-600 font-medium leading-relaxed">
-                          Your gross revenue has <strong>{stats.revenueChange > 0 ? "amplified" : "diminished"}</strong> by{" "}
-                          <span className={`${stats.revenueChange > 0 ? 'text-emerald-600' : 'text-red-600'} font-bold`}>{Math.abs(stats.revenueChange)}% sequentially</span> vs limits. 
+                          Your revenue has <strong>{stats.revenueChange > 0 ? "increased" : "decreased"}</strong> by{" "}
+                          <span className={`${stats.revenueChange > 0 ? 'text-emerald-600' : 'text-red-600'} font-bold`}>{Math.abs(stats.revenueChange)}%</span> compared to last period.
                           {stats.revenueChange > 0
-                            ? " This growth coefficient indicates extreme conversion efficiency mapping to newly pinged targets."
-                            : " Warning: We recommend deploying emergency retention drops to restabilize quarterly thresholds."}
+                            ? " Strong growth — keep up the momentum with your current clients."
+                            : " Consider reviewing your pricing and client retention strategy."}
                        </p>
                     </div>
                   </div>
@@ -368,14 +368,14 @@ export default function ReportingPage() {
                        <Users className="h-6 w-6 text-blue-600" />
                     </div>
                     <div className="relative z-10">
-                       <h4 className="font-extrabold text-gray-900 text-[17px] mb-1 leading-tight tracking-tight">Target Pool Diagnostics</h4>
+                       <h4 className="font-extrabold text-gray-900 text-[17px] mb-1 leading-tight tracking-tight">Client Overview</h4>
                        <p className="text-[14px] text-gray-600 font-medium leading-relaxed">
-                         Presently anchoring <strong>{stats.activeClients} verified client{stats.activeClients !== 1 ? "s" : ""}</strong>
+                         You currently have <strong>{stats.activeClients} active client{stats.activeClients !== 1 ? "s" : ""}</strong>
                           {stats.avgProjectValue > 0 && (
-                            <span>. This pool averages exactly <span className="text-gray-900 font-black">£{stats.avgProjectValue.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ARPA</span> internally.</span>
+                            <span> with an average project value of <span className="text-gray-900 font-black">£{stats.avgProjectValue.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>.</span>
                           )}
                           {stats.clientsChange > 0 && (
-                            <span> Target acquisition velocity is retaining a +{stats.clientsChange}% upward angle.</span>
+                            <span> Client growth is up +{stats.clientsChange}% this period.</span>
                           )}
                        </p>
                     </div>
@@ -388,14 +388,14 @@ export default function ReportingPage() {
                        <FolderKanban className="h-6 w-6 text-amber-600" />
                     </div>
                     <div className="relative z-10">
-                       <h4 className="font-extrabold text-gray-900 text-[17px] mb-1 leading-tight tracking-tight">Transmission Finalization</h4>
+                       <h4 className="font-extrabold text-gray-900 text-[17px] mb-1 leading-tight tracking-tight">Project Completion</h4>
                        <p className="text-[14px] text-gray-600 font-medium leading-relaxed">
-                          The system has closed <strong>{stats.completedProjects} pipeline module{stats.completedProjects !== 1 ? "s" : ""}</strong>
+                          You have completed <strong>{stats.completedProjects} project{stats.completedProjects !== 1 ? "s" : ""}</strong>
                           {stats.projectsChange > 0 && (
-                            <span> mapping directly to a {stats.projectsChange}% bump in throughput operations.</span>
+                            <span>, a {stats.projectsChange}% increase from the previous period.</span>
                           )}
                           {chartData.projectStatusData.length > 0 && (
-                            <span> Bandwidth and grid latency metrics currently scan as optimal.</span>
+                            <span> All active projects are tracking well.</span>
                           )}
                        </p>
                     </div>
@@ -406,8 +406,8 @@ export default function ReportingPage() {
                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4 border border-white shadow-sm group-hover/empty:scale-110 transition-transform">
                        <PieChart className="w-8 h-8 text-gray-400" />
                      </div>
-                     <h3 className="text-gray-900 font-black text-xl mb-2">Insufficient Base Logic</h3>
-                     <p className="text-gray-500 font-medium max-w-[250px] leading-relaxed">Compile client data or transmit an invoice payload to activate AI insight heuristics.</p>
+                     <h3 className="text-gray-900 font-black text-xl mb-2">No Data Yet</h3>
+                     <p className="text-gray-500 font-medium max-w-[250px] leading-relaxed">Add clients and send invoices to see your performance insights here.</p>
                    </div>
                 )}
               </div>
@@ -420,7 +420,7 @@ export default function ReportingPage() {
                <div className="absolute inset-0 bg-gradient-to-t from-white/30 to-transparent pointer-events-none" />
                <div className="p-8 pb-0 relative z-10">
                  <h2 className="text-xl font-black text-gray-900 tracking-tight flex items-center justify-between">
-                   Pipeline Dispersal Grid
+                   Project Status
                    <button className="origin-right scale-75 md:scale-100 min-w-max shrink-0 bg-white px-3 py-1.5 rounded-lg shadow-sm border border-gray-100 hover:bg-gray-50 transition-colors uppercase tracking-widest text-[10px] text-gray-500 font-bold active:scale-95">Expand</button>
                  </h2>
                </div>
@@ -439,7 +439,7 @@ export default function ReportingPage() {
                 ) : (
                   <div className="h-full w-full flex flex-col items-center justify-center bg-gray-50/40 rounded-3xl border border-dashed border-gray-300">
                     <PieChart className="w-8 h-8 text-gray-300 mb-2" />
-                    <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">Tracking Latency...</p>
+                    <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">No data yet</p>
                   </div>
                 )}
                </div>
@@ -457,21 +457,20 @@ export default function ReportingPage() {
                     <TrendingUp className="w-7 h-7" />
                  </div>
                  <h2 className="text-2xl font-black text-white tracking-tight mb-2 flex items-center gap-3">
-                   External Datasource Matrix
+                   Connect Google Analytics
                    <div className="relative flex h-3 w-3">
                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-40"></span>
                      <span className="relative inline-flex rounded-full h-3 w-3 bg-white/80"></span>
                    </div>
                  </h2>
                  <p className="text-indigo-100 font-medium leading-relaxed max-w-[350px]">
-                    Direct Google Analytics endpoints require remote API keys. Once secured, raw site telemetry will inject into the local dashboard state.
+                    Connect your Google Analytics account to pull live site traffic, conversions, and audience data directly into your dashboard.
                  </p>
                </div>
 
                <div className="relative z-10 mt-auto">
                  <button className="w-full bg-white text-indigo-600 font-black h-14 rounded-2xl shadow-xl hover:shadow-[0_0_30px_rgb(255,255,255,0.4)] transition-all hover:scale-[1.02] active:scale-[0.98] tracking-wide text-[15px] flex items-center justify-center group/btn">
-                    <span className="hidden sm:inline">Initialize Connection Protocol</span>
-                    <span className="sm:hidden">Connect GA4</span>
+                    <span>Connect GA4</span>
                     <TrendingUp className="ml-2 w-4 h-4 group-hover/btn:rotate-45 transition-transform" />
                  </button>
                </div>

@@ -44,6 +44,9 @@ export default function LiveKitCall({
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const remoteAudioEls = useRef<HTMLAudioElement[]>([]);
+  // Prevents the ConnectionStateChanged(Disconnected) event — fired by our own
+  // room.disconnect() call inside cleanup — from triggering onEnd() a second time.
+  const isEndingRef = useRef(false);
 
   const [status, setStatus] = useState<CallStatus>("connecting");
   const [error, setError] = useState("");
@@ -65,8 +68,9 @@ export default function LiveKitCall({
       el.remove();
     });
     remoteAudioEls.current = [];
-    // Disconnect room
+    // Disconnect room — flag first so the Disconnected event doesn't re-trigger onEnd
     if (roomRef.current) {
+      isEndingRef.current = true;
       roomRef.current.disconnect();
       roomRef.current = null;
     }
@@ -87,6 +91,8 @@ export default function LiveKitCall({
   }, []);
 
   useEffect(() => {
+    // Reset ending flag each time this effect runs (covers React StrictMode double-mount)
+    isEndingRef.current = false;
     let cancelled = false;
 
     const connect = async () => {
@@ -139,8 +145,13 @@ export default function LiveKitCall({
             // Start timer
             timerRef.current = setInterval(() => setDuration((d) => d + 1), 1000);
           } else if (state === ConnectionState.Disconnected) {
-            cleanup();
-            onEnd();
+            // Only propagate onEnd if WE didn't initiate the disconnect.
+            // If isEndingRef is true, cleanup() already handled teardown and
+            // handleEnd/effect-cleanup will call onEnd() — no need to call it again.
+            if (!isEndingRef.current) {
+              cleanup();
+              onEnd();
+            }
           }
         });
 
@@ -213,6 +224,8 @@ export default function LiveKitCall({
   };
 
   const handleEnd = useCallback(() => {
+    // cleanup() sets isEndingRef = true and disconnects the room.
+    // We then call onEnd() explicitly — the Disconnected event won't fire it again.
     cleanup();
     onEnd();
   }, [cleanup, onEnd]);

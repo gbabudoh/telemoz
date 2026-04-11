@@ -6,6 +6,8 @@ datasource db {
   provider = "postgresql"
 }
 
+// ─── Core Enums ───────────────────────────────────────────────────────────────
+
 enum UserType {
   pro
   client
@@ -61,6 +63,124 @@ enum SkillLevel {
   expert
 }
 
+enum CallType {
+  video
+  audio
+}
+
+enum ScheduledCallStatus {
+  pending
+  completed
+  cancelled
+}
+
+// ─── Proposal Enums ───────────────────────────────────────────────────────────
+
+enum ProposalStatus {
+  draft
+  sent
+  accepted
+  rejected
+  expired
+}
+
+// ─── Contract Enums ───────────────────────────────────────────────────────────
+
+enum ContractStatus {
+  draft
+  sent
+  signed
+  expired
+  cancelled
+}
+
+// ─── Retainer Enums ───────────────────────────────────────────────────────────
+
+enum RetainerStatus {
+  active
+  paused
+  cancelled
+  completed
+}
+
+// ─── Campaign Enums ───────────────────────────────────────────────────────────
+
+enum CampaignStatus {
+  draft
+  active
+  paused
+  completed
+  cancelled
+}
+
+enum CampaignPlatform {
+  meta
+  google
+  linkedin
+  tiktok
+  email
+  seo
+  other
+}
+
+// ─── Content Enums ────────────────────────────────────────────────────────────
+
+enum ContentType {
+  post
+  ad
+  email
+  video
+  blog
+  story
+  other
+}
+
+enum ContentStatus {
+  draft
+  pending_approval
+  approved
+  scheduled
+  published
+  rejected
+}
+
+// ─── Asset Enums ──────────────────────────────────────────────────────────────
+
+enum AssetType {
+  logo
+  brand_guideline
+  creative
+  copy
+  video
+  font
+  other
+}
+
+// ─── Deliverable Approval ─────────────────────────────────────────────────────
+
+enum ApprovalStatus {
+  pending_review
+  approved
+  revision_requested
+}
+
+// ─── Team Role ────────────────────────────────────────────────────────────────
+
+enum TeamRole {
+  owner
+  manager
+  contributor
+}
+
+// ─── Report Cadence ───────────────────────────────────────────────────────────
+
+enum ReportCadence {
+  weekly
+  monthly
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
 model User {
   id                 String             @id @default(cuid())
   email              String             @unique
@@ -73,16 +193,55 @@ model User {
   city               String?
   timezone           String             @default("Europe/London")
   stripeCustomerId   String?
+  stripeAccountId    String?            // Stripe Connect account for pros
   subscriptionTier   SubscriptionTier   @default(starter)
   subscriptionStatus SubscriptionStatus @default(active)
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
-  
+
   proProfile         ProProfile?
   projectsAsPro      Project[]          @relation("ProProjects")
   projectsAsClient   Project[]          @relation("ClientProjects")
   invoicesAsPro      Invoice[]          @relation("ProInvoices")
   invoicesAsClient   Invoice[]          @relation("ClientInvoices")
+  scheduledCalls     ScheduledCall[]    @relation("ProScheduledCalls")
+
+  // Proposals
+  proposalsAsPro     Proposal[]         @relation("ProProposals")
+  proposalsAsClient  Proposal[]         @relation("ClientProposals")
+
+  // Contracts
+  contractsAsPro     Contract[]         @relation("ProContracts")
+  contractsAsClient  Contract[]         @relation("ClientContracts")
+
+  // Retainers
+  retainersAsPro     RetainerAgreement[] @relation("ProRetainers")
+  retainersAsClient  RetainerAgreement[] @relation("ClientRetainers")
+
+  // Time entries
+  timeEntries        TimeEntry[]
+
+  // Campaigns
+  campaignsAsPro     Campaign[]         @relation("ProCampaigns")
+
+  // Content items
+  contentItems       ContentItem[]
+
+  // Brand assets
+  brandAssets        BrandAsset[]
+
+  // Briefs submitted as client
+  briefs             ProjectBrief[]
+
+  // Team memberships
+  agencyMembers      TeamMember[]       @relation("AgencyTeam")
+  memberOf           TeamMember[]       @relation("MemberOf")
+
+  // Scheduled reports
+  scheduledReports   ScheduledReport[]
+
+  // Deliverable approvals
+  deliverableApprovals DeliverableApproval[]
 }
 
 model ProProfile {
@@ -100,21 +259,21 @@ model ProProfile {
   availability   Availability    @default(available)
   rating         Float           @default(0)
   reviewCount    Int             @default(0)
-  verified       Boolean          @default(false)
-  
+  verified       Boolean         @default(false)
+
   skills         Skill[]
   certifications Certification[]
-  
+
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 }
 
 model Skill {
-  id           String     @id @default(cuid())
-  name         String
-  level        SkillLevel
-  profileId    String
-  profile      ProProfile @relation(fields: [profileId], references: [id])
+  id        String     @id @default(cuid())
+  name      String
+  level     SkillLevel
+  profileId String
+  profile   ProProfile @relation(fields: [profileId], references: [id])
 }
 
 model Certification {
@@ -139,29 +298,37 @@ model Project {
   clientId     String
   client       User          @relation("ClientProjects", fields: [clientId], references: [id])
   status       ProjectStatus @default(under_review)
-  startDate    DateTime?      @default(now())
+  startDate    DateTime?     @default(now())
   endDate      DateTime?
   budget       Float?
   currency     String        @default("GBP")
   country      String?
-  
+
   milestones   Milestone[]
   deliverables Deliverable[]
   invoices     Invoice[]
-  
+  campaigns    Campaign[]
+  contentItems ContentItem[]
+  brandAssets  BrandAsset[]
+  timeEntries  TimeEntry[]
+  brief        ProjectBrief?
+  proposals    Proposal[]
+  contracts    Contract[]
+  scheduledReports ScheduledReport[]
+
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 }
 
 model Milestone {
-  id           String        @id @default(cuid())
-  title        String
-  description  String
-  dueDate      DateTime
-  status       String        @default("pending") // pending, in-progress, completed
-  completedAt  DateTime?
-  projectId    String
-  project      Project       @relation(fields: [projectId], references: [id])
+  id          String    @id @default(cuid())
+  title       String
+  description String
+  dueDate     DateTime
+  status      String    @default("pending") // pending, in-progress, completed
+  completedAt DateTime?
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id])
 }
 
 model Deliverable {
@@ -173,6 +340,23 @@ model Deliverable {
   deliveredAt  DateTime?
   projectId    String
   project      Project         @relation(fields: [projectId], references: [id])
+
+  // Approval workflow
+  approvalStatus  ApprovalStatus @default(pending_review)
+  approvedAt      DateTime?
+  revisionNote    String?
+  approvals       DeliverableApproval[]
+}
+
+model DeliverableApproval {
+  id             String         @id @default(cuid())
+  deliverableId  String
+  deliverable    Deliverable    @relation(fields: [deliverableId], references: [id])
+  reviewerId     String
+  reviewer       User           @relation(fields: [reviewerId], references: [id])
+  status         ApprovalStatus
+  note           String?
+  createdAt      DateTime       @default(now())
 }
 
 model Invoice {
@@ -184,7 +368,9 @@ model Invoice {
   client        User          @relation("ClientInvoices", fields: [clientId], references: [id])
   projectId     String?
   project       Project?      @relation(fields: [projectId], references: [id])
-  
+  retainerId    String?
+  retainer      RetainerAgreement? @relation(fields: [retainerId], references: [id])
+
   items         InvoiceItem[]
   subtotal      Float
   tax           Float?
@@ -194,8 +380,9 @@ model Invoice {
   dueDate       DateTime
   paidAt        DateTime?
   paymentMethod String?
+  stripePaymentIntentId String?
   notes         String?
-  
+
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 }
@@ -208,4 +395,278 @@ model InvoiceItem {
   total       Float
   invoiceId   String
   invoice     Invoice  @relation(fields: [invoiceId], references: [id])
+}
+
+model ScheduledCall {
+  id          String              @id @default(cuid())
+  proId       String
+  pro         User                @relation("ProScheduledCalls", fields: [proId], references: [id])
+  contactName String
+  contactId   String?
+  scheduledAt DateTime
+  duration    Int                 @default(30) // minutes
+  callType    CallType            @default(video)
+  topic       String?
+  status      ScheduledCallStatus @default(pending)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+}
+
+// ─── Proposal ─────────────────────────────────────────────────────────────────
+
+model Proposal {
+  id          String         @id @default(cuid())
+  proId       String
+  pro         User           @relation("ProProposals", fields: [proId], references: [id])
+  clientId    String
+  client      User           @relation("ClientProposals", fields: [clientId], references: [id])
+  projectId   String?
+  project     Project?       @relation(fields: [projectId], references: [id])
+
+  title       String
+  summary     String
+  scope       String         // detailed scope of work
+  deliverables String[]      // list of deliverable descriptions
+  timeline    String         // e.g. "8 weeks"
+  price       Float
+  currency    String         @default("GBP")
+  validUntil  DateTime?
+
+  status      ProposalStatus @default(draft)
+  acceptedAt  DateTime?
+  rejectedAt  DateTime?
+  rejectionNote String?
+  notes       String?
+
+  contract    Contract?
+
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+// ─── Contract ─────────────────────────────────────────────────────────────────
+
+model Contract {
+  id           String         @id @default(cuid())
+  proId        String
+  pro          User           @relation("ProContracts", fields: [proId], references: [id])
+  clientId     String
+  client       User           @relation("ClientContracts", fields: [clientId], references: [id])
+  projectId    String?
+  project      Project?       @relation(fields: [projectId], references: [id])
+  proposalId   String?        @unique
+  proposal     Proposal?      @relation(fields: [proposalId], references: [id])
+
+  title        String
+  content      String         // full contract body (markdown/rich text)
+  value        Float?
+  currency     String         @default("GBP")
+
+  status       ContractStatus @default(draft)
+  proSignedAt  DateTime?
+  clientSignedAt DateTime?
+  expiresAt    DateTime?
+
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+}
+
+// ─── Retainer Agreement ───────────────────────────────────────────────────────
+
+model RetainerAgreement {
+  id             String        @id @default(cuid())
+  proId          String
+  pro            User          @relation("ProRetainers", fields: [proId], references: [id])
+  clientId       String
+  client         User          @relation("ClientRetainers", fields: [clientId], references: [id])
+
+  title          String
+  description    String?
+  monthlyRate    Float
+  currency       String        @default("GBP")
+  hoursIncluded  Int?          // included hours per month
+  billingDay     Int           @default(1) // day of month to auto-invoice
+  startDate      DateTime
+  endDate        DateTime?
+
+  status         RetainerStatus @default(active)
+  stripeSubscriptionId String?
+
+  invoices       Invoice[]
+  timeEntries    TimeEntry[]
+
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+// ─── Time Entry ───────────────────────────────────────────────────────────────
+
+model TimeEntry {
+  id          String             @id @default(cuid())
+  proId       String
+  pro         User               @relation(fields: [proId], references: [id])
+  projectId   String?
+  project     Project?           @relation(fields: [projectId], references: [id])
+  retainerId  String?
+  retainer    RetainerAgreement? @relation(fields: [retainerId], references: [id])
+
+  description String
+  hours       Float
+  date        DateTime
+  billable    Boolean            @default(true)
+  invoiced    Boolean            @default(false)
+
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+}
+
+// ─── Campaign ─────────────────────────────────────────────────────────────────
+
+model Campaign {
+  id          String           @id @default(cuid())
+  proId       String
+  pro         User             @relation("ProCampaigns", fields: [proId], references: [id])
+  projectId   String?
+  project     Project?         @relation(fields: [projectId], references: [id])
+
+  name        String
+  platform    CampaignPlatform @default(other)
+  objective   String?
+  startDate   DateTime
+  endDate     DateTime?
+  budget      Float?
+  currency    String           @default("GBP")
+  status      CampaignStatus   @default(draft)
+
+  // Aggregate metrics (updated periodically)
+  impressions  Int             @default(0)
+  clicks       Int             @default(0)
+  conversions  Int             @default(0)
+  spend        Float           @default(0)
+  revenue      Float           @default(0)
+
+  dailyMetrics CampaignMetric[]
+
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+model CampaignMetric {
+  id          String   @id @default(cuid())
+  campaignId  String
+  campaign    Campaign @relation(fields: [campaignId], references: [id])
+  date        DateTime @db.Date
+  impressions Int      @default(0)
+  clicks      Int      @default(0)
+  conversions Int      @default(0)
+  spend       Float    @default(0)
+  revenue     Float    @default(0)
+
+  @@unique([campaignId, date])
+}
+
+// ─── Content Calendar ─────────────────────────────────────────────────────────
+
+model ContentItem {
+  id             String        @id @default(cuid())
+  proId          String
+  pro            User          @relation(fields: [proId], references: [id])
+  projectId      String?
+  project        Project?      @relation(fields: [projectId], references: [id])
+
+  title          String
+  type           ContentType   @default(post)
+  platform       String?       // e.g. "Instagram", "Facebook"
+  content        String?       // body copy
+  caption        String?
+  fileUrl        String?
+  scheduledAt    DateTime?
+  publishedAt    DateTime?
+  status         ContentStatus @default(draft)
+
+  // Approval
+  approvalStatus ApprovalStatus @default(pending_review)
+  approvedAt     DateTime?
+  rejectionNote  String?
+
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+// ─── Brand Asset Manager ──────────────────────────────────────────────────────
+
+model BrandAsset {
+  id         String     @id @default(cuid())
+  proId      String
+  pro        User       @relation(fields: [proId], references: [id])
+  projectId  String?
+  project    Project?   @relation(fields: [projectId], references: [id])
+  clientName String?    // for reference without a project
+
+  name       String
+  type       AssetType  @default(other)
+  fileUrl    String
+  mimeType   String?
+  sizeBytes  Int?
+  notes      String?
+
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+}
+
+// ─── Project Brief (submitted by client) ─────────────────────────────────────
+
+model ProjectBrief {
+  id              String    @id @default(cuid())
+  clientId        String
+  client          User      @relation(fields: [clientId], references: [id])
+  projectId       String?   @unique
+  project         Project?  @relation(fields: [projectId], references: [id])
+
+  title           String
+  objective       String
+  targetAudience  String?
+  budget          Float?
+  currency        String    @default("GBP")
+  platforms       String[]
+  deliverables    String[]
+  timeline        String?
+  additionalNotes String?
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+// ─── Team Member (Agency Accounts) ───────────────────────────────────────────
+
+model TeamMember {
+  id        String    @id @default(cuid())
+  agencyId  String
+  agency    User      @relation("AgencyTeam", fields: [agencyId], references: [id])
+  memberId  String
+  member    User      @relation("MemberOf", fields: [memberId], references: [id])
+  role      TeamRole  @default(contributor)
+  createdAt DateTime  @default(now())
+
+  @@unique([agencyId, memberId])
+}
+
+// ─── Scheduled Report ─────────────────────────────────────────────────────────
+
+model ScheduledReport {
+  id          String        @id @default(cuid())
+  proId       String
+  pro         User          @relation(fields: [proId], references: [id])
+  projectId   String?
+  project     Project?      @relation(fields: [projectId], references: [id])
+
+  title       String
+  cadence     ReportCadence @default(monthly)
+  recipients  String[]      // email addresses
+  lastSentAt  DateTime?
+  nextSendAt  DateTime?
+  active      Boolean       @default(true)
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 }

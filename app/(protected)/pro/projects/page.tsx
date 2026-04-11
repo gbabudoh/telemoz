@@ -26,41 +26,13 @@ interface Project {
   tasksList?: Task[];
 }
 
-const projects: Project[] = [
-  {
-    id: 1,
-    name: "E-Commerce SEO Optimization",
-    client: "TechStart Inc.",
-    status: "active",
-    progress: 65,
-    budget: 5000,
-    deadline: "2024-12-15",
-    tasks: 12,
-    completedTasks: 8,
-  },
-  {
-    id: 2,
-    name: "PPC Campaign Management",
-    client: "Digital Retail Co.",
-    status: "active",
-    progress: 45,
-    budget: 3500,
-    deadline: "2024-12-20",
-    tasks: 15,
-    completedTasks: 7,
-  },
-  {
-    id: 3,
-    name: "Social Media Strategy",
-    client: "Local Business Hub",
-    status: "completed",
-    progress: 100,
-    budget: 2500,
-    deadline: "2024-11-30",
-    tasks: 10,
-    completedTasks: 10,
-  },
-];
+
+const formatDeadline = (iso: string) => {
+  const d = new Date(iso);
+  return isNaN(d.getTime())
+    ? iso
+    : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+};
 
 export default function ProjectsPage() {
   const [showProjectDetails, setShowProjectDetails] = useState(false);
@@ -70,6 +42,7 @@ export default function ProjectsPage() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [formError, setFormError] = useState("");
   const [newProject, setNewProject] = useState({
     name: "",
     client: "",
@@ -77,17 +50,9 @@ export default function ProjectsPage() {
     deadline: "",
     status: "active",
   });
-  const [projectsList, setProjectsList] = useState(projects);
-  const [completedTasks, setCompletedTasks] = useState<Record<number, number>>({
-    1: 8,
-    2: 7,
-    3: 10,
-  });
-  const [projectTasks, setProjectTasks] = useState<Record<number, Task[]>>({
-    1: Array.from({ length: 12 }, (_, i) => ({ id: i + 1, title: `Keyword Research Phase ${i + 1}`, completed: i < 8 })),
-    2: Array.from({ length: 15 }, (_, i) => ({ id: i + 1, title: `Ad Copy Review ${i + 1}`, completed: i < 7 })),
-    3: Array.from({ length: 10 }, (_, i) => ({ id: i + 1, title: `Content Calendar Week ${i + 1}`, completed: i < 10 })),
-  });
+  const [projectsList, setProjectsList] = useState<Project[]>([]);
+  const [completedTasks, setCompletedTasks] = useState<Record<number, number>>({});
+  const [projectTasks, setProjectTasks] = useState<Record<number, Task[]>>({});
 
   const handleViewDetails = (project: Project) => {
     setSelectedProject(project);
@@ -166,9 +131,10 @@ export default function ProjectsPage() {
 
   const handleAddNewProject = () => {
     if (!newProject.name || !newProject.client || !newProject.budget || !newProject.deadline) {
-      alert("Please fill in all required fields");
+      setFormError("Please fill in all required fields.");
       return;
     }
+    setFormError("");
 
     const newProjectId = projectsList.length > 0 ? Math.max(...projectsList.map((p) => p.id)) + 1 : 1;
     const addedProject = {
@@ -194,6 +160,7 @@ export default function ProjectsPage() {
       deadline: "",
       status: "active",
     });
+    setFormError("");
     setShowNewProjectModal(false);
   };
 
@@ -215,23 +182,23 @@ export default function ProjectsPage() {
     <div className="relative min-h-screen max-w-7xl mx-auto pb-12 space-y-8 overflow-hidden">
       {/* Dynamic Ambient Background Orbs */}
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-         <motion.div 
-            animate={{ 
-              x: ["-10%", "100%", "-10%"],
-              y: ["-20%", "50%", "-20%"],
+         <motion.div
+            animate={{
+              x: ["-10%", "calc(100vw - 500px)", "-10%"],
+              y: ["-20%", "50vh", "-20%"],
               scale: [1, 1.2, 1],
             }}
             transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-            className="absolute -top-[10%] -left-[10%] w-[500px] h-[500px] rounded-full bg-gradient-to-r from-teal-200/40 to-cyan-300/40 blur-[120px] mix-blend-multiply" 
+            className="absolute -top-[10%] -left-[10%] w-[500px] h-[500px] rounded-full bg-gradient-to-r from-teal-200/40 to-cyan-300/40 blur-[120px] mix-blend-multiply"
           />
-         <motion.div 
-            animate={{ 
-              x: ["100%", "-20%", "100%"],
-              y: ["80%", "-10%", "80%"],
+         <motion.div
+            animate={{
+              x: ["0%", "calc(-100vw + 600px)", "0%"],
+              y: ["0%", "calc(-100vh + 600px)", "0%"],
               scale: [1, 1.3, 1],
             }}
             transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-            className="absolute -bottom-[20%] -right-[10%] w-[600px] h-[600px] rounded-full bg-gradient-to-l from-indigo-200/30 to-purple-300/30 blur-[120px] mix-blend-multiply" 
+            className="absolute -bottom-[20%] -right-[10%] w-[600px] h-[600px] rounded-full bg-gradient-to-l from-indigo-200/30 to-purple-300/30 blur-[120px] mix-blend-multiply"
           />
       </div>
 
@@ -247,7 +214,7 @@ export default function ProjectsPage() {
                   <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 flex items-center gap-3">
                     Project Portfolio
                     <Badge variant="primary" size="sm" className="hidden sm:inline-flex bg-[#0a9396]/10 text-[#0a9396] border-[#0a9396]/20 py-1.5 px-3 rounded-xl shadow-inner font-bold tracking-wider text-[11px] uppercase">
-                      {projectsList.length} Active Records
+                      {projectsList.filter(p => p.status === "active").length} Active
                     </Badge>
                   </h1>
                   <p className="text-gray-500 mt-2 font-medium text-lg">
@@ -360,7 +327,7 @@ export default function ProjectsPage() {
                               </div>
                               <div>
                                 <p className="text-[10px] text-gray-400 uppercase tracking-widest font-black mb-0.5">Deadline</p>
-                                <span className="text-[15px] font-black text-gray-900">{updatedProject.deadline}</span>
+                                <span className="text-[15px] font-black text-gray-900">{formatDeadline(updatedProject.deadline)}</span>
                               </div>
                             </div>
                           </div>
@@ -512,7 +479,7 @@ export default function ProjectsPage() {
                       </div>
                       <div>
                         <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">Submission Deadline</p>
-                        <p className="text-[17px] font-black text-gray-900">{selectedProject.deadline}</p>
+                        <p className="text-[17px] font-black text-gray-900">{formatDeadline(selectedProject.deadline)}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-5 p-6 rounded-2xl border border-white shadow-[0_4px_20px_rgb(0,0,0,0.03)] bg-white hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-all group hover:-translate-y-1">
@@ -662,7 +629,7 @@ export default function ProjectsPage() {
                           placeholder="Type new project checklist criteria..."
                           value={newTaskTitle}
                           onChange={(e) => setNewTaskTitle(e.target.value)}
-                          onKeyPress={(e) => e.key === "Enter" && handleAddTask()}
+                          onKeyDown={(e) => e.key === "Enter" && handleAddTask()}
                           autoFocus
                           className="flex-1 bg-gray-50 border-gray-200 h-14 rounded-xl text-[16px] font-medium px-5 focus-visible:ring-[#0a9396]/30"
                         />
@@ -759,7 +726,7 @@ export default function ProjectsPage() {
                animate={{ opacity: 1 }}
                exit={{ opacity: 0 }}
                className="absolute inset-0 bg-gray-900/40 backdrop-blur-xl"
-               onClick={() => setShowNewProjectModal(false)}
+               onClick={() => { setShowNewProjectModal(false); setFormError(""); }}
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 30 }}
@@ -784,6 +751,7 @@ export default function ProjectsPage() {
                   onClick={() => {
                     setShowNewProjectModal(false);
                     setNewProject({ name: "", client: "", budget: "", deadline: "", status: "active" });
+                    setFormError("");
                   }}
                   className="p-3 rounded-full bg-white border border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-all shadow-sm mb-6"
                 >
@@ -836,7 +804,12 @@ export default function ProjectsPage() {
                   </div>
                 </div>
 
-                <div className="flex gap-4 pt-10 mt-6 border-t border-gray-200/50">
+                <div className="flex gap-4 pt-10 mt-6 border-t border-gray-200/50 flex-col">
+                  {formError && (
+                    <p className="text-sm font-semibold text-red-500 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
+                      {formError}
+                    </p>
+                  )}
                   <button
                     onClick={handleAddNewProject}
                     disabled={!newProject.name || !newProject.client || !newProject.budget || !newProject.deadline}

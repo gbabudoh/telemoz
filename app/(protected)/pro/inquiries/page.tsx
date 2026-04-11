@@ -24,78 +24,6 @@ import { useState } from "react";
 import { formatCurrency } from "@/lib/utils";
 import { Modal } from "@/components/ui/Modal";
 
-const initialInquiries = [
-  {
-    id: 1,
-    client: "TechStart Inc.",
-    company: "TechStart Inc.",
-    email: "contact@techstart.com",
-    phone: "+44 20 1234 5678",
-    project: "SEO Optimization Campaign",
-    budget: 2500,
-    status: "new",
-    time: "2 hours ago",
-    receivedDate: "2024-01-20",
-    description: "Looking for an SEO specialist to optimize our website and improve search rankings. We need someone with experience in technical SEO and content strategy.",
-    requirements: ["Technical SEO", "Content Strategy", "Analytics"],
-  },
-  {
-    id: 2,
-    client: "E-Commerce Pro",
-    company: "E-Commerce Pro Ltd",
-    email: "hello@ecommercepro.co.uk",
-    phone: "+44 20 2345 6789",
-    project: "PPC Management",
-    budget: 1800,
-    status: "reviewed",
-    time: "5 hours ago",
-    receivedDate: "2024-01-20",
-    description: "Need a PPC expert to manage our Google Ads and Facebook Ads campaigns. Looking for someone who can optimize ROAS and reduce cost per acquisition.",
-    requirements: ["Google Ads", "Facebook Ads", "Conversion Optimization"],
-  },
-  {
-    id: 3,
-    client: "Local Business Hub",
-    company: "Local Business Hub",
-    email: "info@localbusinesshub.com",
-    phone: "+44 20 3456 7890",
-    project: "Social Media Strategy",
-    budget: 1200,
-    status: "new",
-    time: "1 day ago",
-    receivedDate: "2024-01-19",
-    description: "Seeking a social media strategist to develop and execute a comprehensive social media strategy across multiple platforms.",
-    requirements: ["Social Media Management", "Content Creation", "Community Management"],
-  },
-  {
-    id: 4,
-    client: "Digital Solutions",
-    company: "Digital Solutions Ltd",
-    email: "contact@digitalsolutions.uk",
-    phone: "+44 20 4567 8901",
-    project: "Content Marketing Campaign",
-    budget: 2200,
-    status: "responded",
-    time: "2 days ago",
-    receivedDate: "2024-01-18",
-    description: "Looking for a content marketing expert to create and distribute high-quality content that drives engagement and leads.",
-    requirements: ["Content Creation", "Content Strategy", "SEO"],
-  },
-  {
-    id: 5,
-    client: "Startup Ventures",
-    company: "Startup Ventures",
-    email: "hello@startupventures.com",
-    phone: "+44 20 5678 9012",
-    project: "Email Marketing Automation",
-    budget: 1500,
-    status: "accepted",
-    time: "3 days ago",
-    receivedDate: "2024-01-17",
-    description: "Need help setting up email marketing automation sequences and optimizing our email campaigns for better conversion rates.",
-    requirements: ["Email Marketing", "Marketing Automation", "A/B Testing"],
-  },
-];
 
 const statusConfig = {
   new: { label: "New", color: "danger", icon: AlertCircle, theme: "bg-rose-50 text-rose-600 border-rose-200" },
@@ -105,15 +33,21 @@ const statusConfig = {
   declined: { label: "Declined", color: "default", icon: XCircle, theme: "bg-gray-50 text-gray-400 border-gray-200" },
 };
 
-const stats = [
-  { label: "New Inquiries", value: "2", icon: AlertCircle, color: "from-[#FF4D4D] to-[#FF0000]", glow:"shadow-[#FF4D4D]/40 text-[#FF4D4D]" },
-  { label: "Total Inquiries", value: "5", icon: MessageSquare, color: "from-[#00F0FF] to-[#0080FF]", glow:"shadow-[#00F0FF]/40 text-[#00F0FF]" },
-  { label: "Response Rate", value: "60%", icon: CheckCircle2, color: "from-[#00FF87] to-[#60EFFF]", glow:"shadow-[#00FF87]/40 text-[#00FF87]" },
-  { label: "Avg. Response Time", value: "4.2h", icon: Clock, color: "from-[#F59E0B] to-[#D97706]", glow:"shadow-[#F59E0B]/40 text-[#F59E0B]" },
+const statsConfig = [
+  { label: "New Inquiries", icon: AlertCircle, color: "from-[#FF4D4D] to-[#FF0000]", glow:"shadow-[#FF4D4D]/40 text-[#FF4D4D]" },
+  { label: "Total Inquiries", icon: MessageSquare, color: "from-[#00F0FF] to-[#0080FF]", glow:"shadow-[#00F0FF]/40 text-[#00F0FF]" },
+  { label: "Responded", icon: CheckCircle2, color: "from-[#00FF87] to-[#60EFFF]", glow:"shadow-[#00FF87]/40 text-[#00FF87]" },
+  { label: "Accepted", icon: Clock, color: "from-[#F59E0B] to-[#D97706]", glow:"shadow-[#F59E0B]/40 text-[#F59E0B]" },
 ];
 
+interface Inquiry {
+  id: number; client: string; company: string; email: string; phone: string;
+  project: string; budget: number; status: string; time: string;
+  receivedDate: string; description: string; requirements: string[];
+}
+
 export default function MarketplaceInquiriesPage() {
-  const [data, setData] = useState(initialInquiries);
+  const [data, setData] = useState<Inquiry[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [processingId, setProcessingId] = useState<number | null>(null);
@@ -296,30 +230,35 @@ export default function MarketplaceInquiriesPage() {
           animate="show"
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
         >
-          {stats.map((stat, i) => {
+          {statsConfig.map((stat, i) => {
             const Icon = stat.icon;
+            const derivedValues = [
+              String(data.filter(d => d.status === "new").length),
+              String(data.length),
+              String(data.filter(d => d.status === "responded" || d.status === "accepted").length),
+              String(data.filter(d => d.status === "accepted").length),
+            ];
             return (
               <motion.div key={stat.label} variants={itemVariants}>
                 <div className="relative group p-1 rounded-[2rem] bg-gradient-to-b from-white/60 to-white/20 hover:from-white/80 hover:to-white/40 transition-all duration-500 shadow-[0_8px_32px_rgb(0,0,0,0.04)] backdrop-blur-xl border border-white/50 hover:-translate-y-2">
                   <div className="absolute inset-x-4 -top-0.5 h-px bg-gradient-to-r from-transparent via-white to-transparent opacity-50" />
-                  
+
                   <div className="bg-white/40 h-full rounded-[1.75rem] p-6 lg:p-8 shadow-[inset_0_2px_15px_rgb(255,255,255,0.5)] flex flex-col justify-between overflow-hidden relative">
-                     {/* Heavy Glow Background Effect */}
                      <div className={`absolute -right-12 -bottom-12 w-40 h-40 rounded-full blur-[50px] opacity-15 bg-gradient-to-br ${stat.color} group-hover:scale-150 group-hover:opacity-25 transition-all duration-700`} />
-                     
+
                      <div className="flex items-start justify-between relative z-10 w-full mb-6">
                         <div className={`p-3 rounded-2xl bg-white shadow-lg ${stat.glow} border border-white/60 group-hover:-translate-y-1 transition-transform duration-500`}>
                           <Icon className={`h-6 w-6 ${stat.glow.split(' ')[1]}`} />
                         </div>
                      </div>
                      <div className="relative z-10">
-                        <motion.h3 
+                        <motion.h3
                            initial={{ opacity: 0, y: 10 }}
                            animate={{ opacity: 1, y: 0 }}
                            transition={{ duration: 0.8, delay: 0.2 + (i * 0.1) }}
                            className="text-4xl lg:text-5xl font-black text-gray-900 tracking-tighter mb-2"
                         >
-                           {stat.value}
+                           {derivedValues[i]}
                         </motion.h3>
                         <p className="text-sm font-bold text-gray-500 uppercase tracking-widest">{stat.label}</p>
                      </div>

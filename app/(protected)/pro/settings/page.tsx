@@ -146,10 +146,10 @@ export default function SettingsPage() {
   }, [session]);
 
   const tabs = [
-    { id: "account", label: "Identity", icon: User },
-    { id: "notifications", label: "Alerts Config", icon: Bell },
-    { id: "security", label: "Security & Access", icon: Shield },
-    { id: "billing", label: "Licenses & Billing", icon: CreditCard },
+    { id: "account", label: "Profile", icon: User },
+    { id: "notifications", label: "Notifications", icon: Bell },
+    { id: "security", label: "Security", icon: Shield },
+    { id: "billing", label: "Billing", icon: CreditCard },
   ];
 
   const handleSaveAccountInfo = async () => {
@@ -287,11 +287,11 @@ export default function SettingsPage() {
                </div>
                <div>
                   <h1 className="text-3xl sm:text-4xl font-black text-gray-900 tracking-tighter drop-shadow-sm flex items-center gap-3">
-                    System Parameters
+                    Settings
                   </h1>
                   <p className="text-gray-500 font-bold tracking-wide mt-1 flex items-center gap-2 text-[15px]">
                     <Sparkles className="h-4 w-4 text-emerald-500" />
-                    Global infrastructure and identity routing definitions.
+                    Manage your account, notifications, security, and billing.
                   </p>
                </div>
              </div>
@@ -349,53 +349,53 @@ export default function SettingsPage() {
               <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-6">
                 <motion.div variants={itemVariants} className="bg-white/40 backdrop-blur-2xl rounded-[2.5rem] border border-white/60 shadow-[inset_0_2px_15px_rgb(255,255,255,0.7),0_10px_30px_rgb(0,0,0,0.03)] overflow-hidden">
                    <div className="p-6 sm:p-8 md:p-10 border-b border-gray-100/50 bg-gradient-to-br from-white/40 to-transparent">
-                     <h2 className="text-2xl font-black text-gray-900 tracking-tight">Identity Nexus</h2>
-                     <p className="text-gray-500 font-medium text-[14px] mt-1">Global node identity and geolocation mapping.</p>
+                     <h2 className="text-2xl font-black text-gray-900 tracking-tight">Profile Information</h2>
+                     <p className="text-gray-500 font-medium text-[14px] mt-1">Update your name, email address, and location.</p>
                    </div>
                    
                    <div className="p-6 sm:p-8 md:p-10 bg-white/20">
                      {isFetching ? (
                         <div className="flex flex-col items-center justify-center py-12 gap-4">
                           <Loader2 className="h-8 w-8 animate-spin text-[#0a9396]" />
-                          <span className="text-gray-500 font-bold tracking-wide">Decrypting Identity Payload...</span>
+                          <span className="text-gray-500 font-bold tracking-wide">Loading your profile...</span>
                         </div>
                       ) : (
                         <div className="space-y-8">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <GlassInput
-                              label="Primary Designator"
+                              label="Full Name"
                               value={formData.name}
                               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                               disabled={isLoading}
                             />
                             <GlassInput
-                              label="Secure Auth Address"
+                              label="Email Address"
                               type="email"
                               value={formData.email}
                               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                               disabled={isLoading}
                             />
                             <GlassInput
-                              label="Comms Frequency"
+                              label="Phone Number"
                               value={formData.phone}
                               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                               placeholder="+1 (555) 000-0000"
                               disabled={isLoading}
                             />
                             <GlassInput
-                              label="Entity Cluster"
+                              label="Company"
                               value={formData.company}
                               onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                              placeholder="Corporation Node"
+                              placeholder="Your company name"
                               disabled={isLoading}
                             />
                             <GlassSelect
-                               label="Territory"
+                               label="Country"
                                value={formData.country}
                                onChange={(e) => setFormData({ ...formData, country: e.target.value })}
                                disabled={isLoading}
                             >
-                                <option value="">Select Territory</option>
+                                <option value="">Select Country</option>
                                 {regions.map((region) => (
                                   <optgroup key={region} label={region}>
                                     {countriesByRegion[region].map((country) => (
@@ -405,10 +405,10 @@ export default function SettingsPage() {
                                 ))}
                             </GlassSelect>
                             <GlassInput
-                              label="Zone"
+                              label="City"
                               value={formData.city}
                               onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                              placeholder="London Sector"
+                              placeholder="Your city"
                               disabled={isLoading}
                             />
                           </div>
@@ -418,7 +418,7 @@ export default function SettingsPage() {
                              {saveSuccess && (
                                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200">
                                  <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-                                 <span className="text-sm font-bold text-emerald-900 tracking-wide">Identity matrix updated.</span>
+                                 <span className="text-sm font-bold text-emerald-900 tracking-wide">Profile updated successfully.</span>
                                </motion.div>
                              )}
                              {saveError && (
@@ -436,13 +436,13 @@ export default function SettingsPage() {
                               className="bg-gray-900 hover:bg-black text-white hover:shadow-lg hover:shadow-gray-900/20 rounded-xl px-6 h-12 border-none transition-all disabled:opacity-50"
                             >
                               {isLoading ? (
-                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Committing...</>
+                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
                               ) : (
-                                <><Save className="mr-2 h-4 w-4 text-teal-400" /> Commit Identity</>
+                                <><Save className="mr-2 h-4 w-4 text-teal-400" /> Save Changes</>
                               )}
                             </Button>
                             <Button variant="ghost" className="rounded-xl px-6 h-12 font-bold tracking-wide hover:bg-white/60" onClick={() => { setSaveSuccess(false); setSaveError(""); }}>
-                              Revert
+                              Cancel
                             </Button>
                           </div>
                         </div>
@@ -452,14 +452,14 @@ export default function SettingsPage() {
 
                 <motion.div variants={itemVariants} className="bg-white/40 backdrop-blur-2xl rounded-[2.5rem] border border-white/60 shadow-[inset_0_2px_15px_rgb(255,255,255,0.7),0_10px_30px_rgb(0,0,0,0.03)] overflow-hidden">
                    <div className="p-6 sm:p-8 md:p-10 border-b border-gray-100/50 bg-gradient-to-br from-white/40 to-transparent">
-                     <h2 className="text-2xl font-black text-gray-900 tracking-tight">Localization Physics</h2>
-                     <p className="text-gray-500 font-medium text-[14px] mt-1">Chronological and economic display formatting.</p>
+                     <h2 className="text-2xl font-black text-gray-900 tracking-tight">Preferences</h2>
+                     <p className="text-gray-500 font-medium text-[14px] mt-1">Set your timezone, date format, currency, and language.</p>
                    </div>
                    
                    <div className="p-6 sm:p-8 md:p-10 bg-white/20">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-8">
                          <GlassSelect
-                           label="Chronosphere (Timezone)"
+                           label="Timezone"
                            value={preferences.timezone}
                            onChange={(e) => setPreferences({ ...preferences, timezone: e.target.value })}
                          >
@@ -469,7 +469,7 @@ export default function SettingsPage() {
                             <option value="America/Los_Angeles">America/Los_Angeles (PST)</option>
                          </GlassSelect>
                          <GlassSelect
-                           label="Cycle Layout (Date)"
+                           label="Date Format"
                            value={preferences.dateFormat}
                            onChange={(e) => setPreferences({ ...preferences, dateFormat: e.target.value })}
                          >
@@ -478,7 +478,7 @@ export default function SettingsPage() {
                             <option value="YYYY-MM-DD">YYYY-MM-DD</option>
                          </GlassSelect>
                          <GlassSelect
-                           label="Economic Standard (Currency)"
+                           label="Currency"
                            value={preferences.currency}
                            onChange={(e) => setPreferences({ ...preferences, currency: e.target.value })}
                          >
@@ -487,7 +487,7 @@ export default function SettingsPage() {
                             <option value="EUR">EUR (€)</option>
                          </GlassSelect>
                          <GlassSelect
-                           label="Linguistics"
+                           label="Language"
                            value={preferences.language}
                            onChange={(e) => setPreferences({ ...preferences, language: e.target.value })}
                          >
@@ -520,19 +520,19 @@ export default function SettingsPage() {
                        <Bell className="h-6 w-6" />
                      </div>
                      <div>
-                       <h2 className="text-2xl font-black text-gray-900 tracking-tight">System Alerts</h2>
-                       <p className="text-gray-500 font-medium text-[14px] mt-1">Configure event listeners and pushes.</p>
+                       <h2 className="text-2xl font-black text-gray-900 tracking-tight">Notifications</h2>
+                       <p className="text-gray-500 font-medium text-[14px] mt-1">Choose what you want to be notified about.</p>
                      </div>
                    </div>
                    
                    <div className="p-6 sm:p-8 md:p-10 bg-white/20">
                      <div className="space-y-4">
                         {[
-                          { id: "emailNotifications", title: "Direct Email Push", desc: "Route core notifications directly to your secure email vault." },
-                          { id: "projectUpdates", title: "Funnel & Pipeline Events", desc: "Real-time alerts on project state modifications." },
-                          { id: "newInquiries", title: "Marketplace Inbound", desc: "Instant node pings for new lead entries in the marketplace." },
-                          { id: "paymentReceived", title: "Economic Transfers", desc: "Transaction success and remittance confirmations." },
-                          { id: "marketingEmails", title: "Telemoz Broadcasts", desc: "Feature dispatches and strategic insight newsletters." }
+                          { id: "emailNotifications", title: "Email Notifications", desc: "Receive important notifications directly to your email address." },
+                          { id: "projectUpdates", title: "Project Updates", desc: "Get notified when a project status changes or is updated." },
+                          { id: "newInquiries", title: "New Inquiries", desc: "Instant alerts when a new lead or inquiry arrives in the marketplace." },
+                          { id: "paymentReceived", title: "Payment Received", desc: "Notifications when a client payment is confirmed." },
+                          { id: "marketingEmails", title: "Telemoz Updates", desc: "Product news, feature releases, and tips from Telemoz." }
                         ].map((setting, idx) => (
                           <div key={idx} className="flex items-center justify-between p-5 rounded-2xl bg-white/60 border border-white hover:bg-white hover:shadow-md transition-all">
                              <div className="pr-4">
@@ -551,7 +551,7 @@ export default function SettingsPage() {
                          {saveSuccess && (
                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="flex items-center gap-3 p-4 mt-6 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200">
                              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-                             <span className="text-sm font-bold text-emerald-900 tracking-wide">Alert listeners committed.</span>
+                             <span className="text-sm font-bold text-emerald-900 tracking-wide">Notification preferences saved.</span>
                            </motion.div>
                          )}
                          {saveError && (
@@ -568,7 +568,7 @@ export default function SettingsPage() {
                           disabled={isLoading}
                           className="bg-gray-900 hover:bg-black text-white hover:shadow-lg hover:shadow-gray-900/20 rounded-xl px-6 h-12 border-none transition-all w-full sm:w-auto"
                         >
-                          {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : <><Save className="mr-2 h-4 w-4 text-blue-400" /> Persist Alert Config</>}
+                          {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : <><Save className="mr-2 h-4 w-4 text-blue-400" /> Save Preferences</>}
                         </Button>
                       </div>
                    </div>
@@ -587,15 +587,15 @@ export default function SettingsPage() {
                        <Shield className="h-6 w-6" />
                      </div>
                      <div>
-                       <h2 className="text-2xl font-black text-gray-900 tracking-tight">Security Gateway</h2>
-                       <p className="text-gray-500 font-medium text-[14px] mt-1">Regulate cryptographic access to your node.</p>
+                       <h2 className="text-2xl font-black text-gray-900 tracking-tight">Change Password</h2>
+                       <p className="text-gray-500 font-medium text-[14px] mt-1">Update your account password to keep your account secure.</p>
                      </div>
                    </div>
 
                    <div className="p-6 sm:p-8 md:p-10 bg-white/20">
                      <div className="space-y-6 mb-8 max-w-lg">
                        <GlassInput
-                         label="Master Key (Current Password)"
+                         label="Current Password"
                          type={showPassword ? "text" : "password"}
                          value={formData.currentPassword}
                          onChange={(e) => setFormData({ ...formData, currentPassword: e.target.value })}
@@ -603,7 +603,7 @@ export default function SettingsPage() {
                        
                        <div className="relative">
                          <GlassInput
-                           label="New Cryptography"
+                           label="New Password"
                            type={showPassword ? "text" : "password"}
                            value={formData.newPassword}
                            onChange={(e) => setFormData({ ...formData, newPassword: e.target.value })}
@@ -618,7 +618,7 @@ export default function SettingsPage() {
                        </div>
 
                        <GlassInput
-                         label="Confirm Cryptography"
+                         label="Confirm New Password"
                          type={showPassword ? "text" : "password"}
                          value={formData.confirmPassword}
                          onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
@@ -631,7 +631,7 @@ export default function SettingsPage() {
                           disabled={isLoading}
                           className="bg-gray-900 hover:bg-black text-white hover:shadow-lg hover:shadow-gray-900/20 rounded-xl px-6 h-12 border-none transition-all"
                         >
-                          {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Engaged...</> : <><Lock className="mr-2 h-4 w-4 text-gray-400" /> Apply Cipher</>}
+                          {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Updating...</> : <><Lock className="mr-2 h-4 w-4 text-gray-400" /> Update Password</>}
                         </Button>
                       </div>
                    </div>
@@ -641,11 +641,11 @@ export default function SettingsPage() {
                  <motion.div variants={itemVariants} className="bg-white/40 backdrop-blur-2xl rounded-[2.5rem] border border-white/60 shadow-[inset_0_2px_15px_rgb(255,255,255,0.7),0_10px_30px_rgb(0,0,0,0.03)] overflow-hidden">
                    <div className="p-6 sm:p-8 md:p-10 flex items-center justify-between gap-6 md:flex-row flex-col text-left w-full md:items-center">
                      <div>
-                       <h2 className="text-xl font-black text-gray-900 tracking-tight">Multi-Factor Protocol (2FA)</h2>
-                       <p className="text-gray-500 font-medium text-[14px] mt-1 max-w-xl">Mandate standard authenticator tokens alongside your Master Key for terminal logins.</p>
+                       <h2 className="text-xl font-black text-gray-900 tracking-tight">Two-Factor Authentication (2FA)</h2>
+                       <p className="text-gray-500 font-medium text-[14px] mt-1 max-w-xl">Add an extra layer of security by requiring a verification code alongside your password when signing in.</p>
                      </div>
                      <Button className="shrink-0 bg-white border border-gray-200 text-gray-900 hover:bg-gray-50 hover:shadow-sm rounded-xl px-6 h-11 w-full md:w-auto font-bold tracking-wide">
-                        Enable Protocol
+                        Enable 2FA
                      </Button>
                    </div>
                  </motion.div>
@@ -658,16 +658,16 @@ export default function SettingsPage() {
                        <h2 className="text-xl font-black text-red-600 tracking-tight flex items-center gap-2">
                          <AlertCircle className="h-5 w-5" /> Danger Zone
                        </h2>
-                       <p className="text-red-900/60 font-semibold text-[13px] mt-1">Irreversible state destruction vectors.</p>
+                       <p className="text-red-900/60 font-semibold text-[13px] mt-1">Proceed with caution — these actions cannot be undone.</p>
                      </div>
                      <div className="p-6 sm:p-8 md:p-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 bg-red-50/20">
                        <div className="max-w-xl">
-                         <h4 className="font-bold text-red-900 text-[15px]">Wipe Node Instance</h4>
-                         <p className="text-sm font-semibold text-red-800/70 mt-1">Permanently unbind and destroy all data shards related to this instance. This cannot be undone.</p>
+                         <h4 className="font-bold text-red-900 text-[15px]">Delete Account</h4>
+                         <p className="text-sm font-semibold text-red-800/70 mt-1">Permanently delete your account and all associated data. This action cannot be undone.</p>
                        </div>
                        <Button variant="outline" className="shrink-0 group/del border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 rounded-xl px-6 h-11 w-full md:w-auto font-bold tracking-wide">
                          <Trash2 className="mr-2 h-4 w-4 group-hover/del:scale-110 transition-transform" />
-                         Init Self-Destruct
+                         Delete Account
                        </Button>
                      </div>
                    </div>
@@ -698,12 +698,12 @@ export default function SettingsPage() {
                              <h4 className="font-black text-gray-900 text-xl tracking-tight">DigitalBOX Core</h4>
                              <Badge variant="primary" className="bg-gradient-to-r from-[#0a9396] to-teal-500 border-none font-bold text-[10px] uppercase tracking-wide px-2 shadow-sm pointer-events-none">Live</Badge>
                           </div>
-                          <p className="text-[14px] font-semibold text-gray-500">Free starter infrastructure tier.</p>
-                          <p className="text-xs font-bold text-gray-400 mt-3 pt-3 border-t border-teal-100/50">Elevate clearance to deploy CRM and AI node pipelines.</p>
+                          <p className="text-[14px] font-semibold text-gray-500">Free starter plan.</p>
+                          <p className="text-xs font-bold text-gray-400 mt-3 pt-3 border-t border-teal-100/50">Upgrade to unlock the full CRM, AI tools, and advanced reporting.</p>
                        </div>
                        <div className="flex gap-3 w-full md:w-auto">
                           <Button className="flex-1 md:flex-none h-11 px-6 rounded-xl bg-gradient-to-r from-[#0a9396] to-teal-500 hover:from-teal-500 hover:to-[#0a9396] text-white border-none shadow-lg shadow-teal-500/30 font-bold tracking-wide">
-                            Elevate Rank
+                            Upgrade Plan
                           </Button>
                        </div>
                      </div>
@@ -712,17 +712,17 @@ export default function SettingsPage() {
 
                  <motion.div variants={itemVariants} className="bg-white/40 backdrop-blur-2xl rounded-[2.5rem] border border-white/60 shadow-[inset_0_2px_15px_rgb(255,255,255,0.7),0_10px_30px_rgb(0,0,0,0.03)] overflow-hidden">
                    <div className="p-6 sm:p-8 md:p-10 border-b border-gray-100/50 bg-gradient-to-br from-white/40 to-transparent">
-                     <h2 className="text-xl font-black text-gray-900 tracking-tight">Ledger Archives</h2>
-                     <p className="text-gray-500 font-medium text-[14px] mt-1">Cryptographic payment history and invoices.</p>
+                     <h2 className="text-xl font-black text-gray-900 tracking-tight">Billing History</h2>
+                     <p className="text-gray-500 font-medium text-[14px] mt-1">View your past payments and invoices.</p>
                    </div>
                    <div className="p-12 text-center bg-white/20">
                       <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-gray-50 border border-gray-100 shadow-inner mb-4">
                         <CreditCard className="h-6 w-6 text-gray-300" />
                       </div>
-                      <h3 className="text-lg font-bold text-gray-900 tracking-tight mb-1">Null Ledger</h3>
-                      <p className="text-[14px] font-semibold text-gray-500 mb-6">No confirmed billing cycles detected for this instance.</p>
+                      <h3 className="text-lg font-bold text-gray-900 tracking-tight mb-1">No Billing History</h3>
+                      <p className="text-[14px] font-semibold text-gray-500 mb-6">No payments have been made yet.</p>
                       <Button variant="outline" className="rounded-xl h-11 px-6 font-bold tracking-wide border-gray-200">
-                        Bind Credit Method
+                        Add Payment Method
                       </Button>
                    </div>
                  </motion.div>

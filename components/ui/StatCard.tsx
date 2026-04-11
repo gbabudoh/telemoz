@@ -12,6 +12,7 @@ interface StatCardProps {
   icon?: LucideIcon;
   trend?: "up" | "down" | "neutral";
   gradient?: string;
+  iconColor?: string;
   className?: string;
   animate?: boolean;
   format?: "currency" | "number" | "percentage";
@@ -24,6 +25,7 @@ export function StatCard({
   icon: Icon,
   trend = "neutral",
   gradient,
+  iconColor,
   className,
   animate = true,
   format,
@@ -164,8 +166,11 @@ export function StatCard({
             </div>
           </div>
           {Icon && (
-            <div className="p-2 rounded-lg bg-[#0a9396]/10">
-              <Icon className="h-5 w-5 text-[#0a9396]" />
+            <div
+              className="p-2 rounded-lg"
+              style={gradient ? { background: gradient, opacity: 0.9 } : { background: "rgba(10,147,150,0.1)" }}
+            >
+              <Icon className="h-5 w-5" style={{ color: iconColor ?? (gradient ? "#fff" : "#0a9396") }} />
             </div>
           )}
         </div>

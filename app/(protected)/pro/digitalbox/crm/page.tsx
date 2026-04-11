@@ -17,9 +17,13 @@ import {
   Eye,
   X,
   LayoutGrid,
+  Pencil,
+  Trash2,
+  PhoneCall,
+  UserCheck,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 interface Client {
@@ -36,67 +40,19 @@ interface Client {
   nextFollowUp: string;
 }
 
-const clients: Client[] = [
-  {
-    id: 1,
-    clientId: "client-1",
-    name: "TechStart Inc.",
-    email: "contact@techstart.com",
-    phone: "+44 20 1234 5678",
-    company: "TechStart Inc.",
-    status: "active",
-    value: 2500,
-    projects: 3,
-    lastContact: "2 days ago",
-    nextFollowUp: "2024-01-15",
-  },
-  {
-    id: 2,
-    clientId: "client-2",
-    name: "E-Commerce Pro",
-    email: "hello@ecommercepro.co.uk",
-    phone: "+44 20 2345 6789",
-    company: "E-Commerce Pro Ltd",
-    status: "active",
-    value: 1800,
-    projects: 2,
-    lastContact: "1 week ago",
-    nextFollowUp: "2024-01-20",
-  },
-  {
-    id: 3,
-    clientId: "client-3",
-    name: "Local Business Hub",
-    email: "info@localbusinesshub.com",
-    phone: "+44 20 3456 7890",
-    company: "Local Business Hub",
-    status: "lead",
-    value: 1200,
-    projects: 0,
-    lastContact: "3 days ago",
-    nextFollowUp: "2024-01-18",
-  },
-  {
-    id: 4,
-    clientId: "client-4",
-    name: "Digital Solutions",
-    email: "contact@digitalsolutions.uk",
-    phone: "+44 20 4567 8901",
-    company: "Digital Solutions Ltd",
-    status: "active",
-    value: 3200,
-    projects: 4,
-    lastContact: "5 days ago",
-    nextFollowUp: "2024-01-22",
-  },
+const statsConfig = [
+  { label: "Total Clients", icon: Users, color: "from-[#0a9396] to-[#015f63]", shadow: "shadow-[#0a9396]/40", iconClass: "text-[#0a9396]" },
+  { label: "Active Projects", icon: TrendingUp, color: "from-[#4B70F5] to-[#3651B3]", shadow: "shadow-[#4B70F5]/40", iconClass: "text-[#4B70F5]" },
+  { label: "Total Value", icon: DollarSign, color: "from-[#7C3AED] to-[#5B21B6]", shadow: "shadow-[#7C3AED]/40", iconClass: "text-[#7C3AED]" },
+  { label: "Follow-ups Due", icon: Calendar, color: "from-[#F97316] to-[#C2410C]", shadow: "shadow-[#F97316]/40", iconClass: "text-[#F97316]" },
 ];
 
-const stats = [
-  { label: "Total Clients", value: "12", icon: Users, color: "from-[#0a9396] to-[#015f63]", glow:"shadow-[#0a9396]/40 text-[#0a9396]" },
-  { label: "Active Projects", value: "9", icon: TrendingUp, color: "from-[#4B70F5] to-[#3651B3]", glow:"shadow-[#4B70F5]/40 text-[#4B70F5]" },
-  { label: "Monthly Revenue", value: "£8,700", icon: DollarSign, color: "from-[#7C3AED] to-[#5B21B6]", glow:"shadow-[#7C3AED]/40 text-[#7C3AED]" },
-  { label: "Follow-ups Due", value: "5", icon: Calendar, color: "from-[#F97316] to-[#C2410C]", glow:"shadow-[#F97316]/40 text-[#F97316]" },
-];
+const formatFollowUp = (iso: string) => {
+  const d = new Date(iso);
+  return isNaN(d.getTime())
+    ? iso
+    : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+};
 
 export default function CRMPage() {
   const router = useRouter();
@@ -105,6 +61,11 @@ export default function CRMPage() {
   const [showClientDetailsModal, setShowClientDetailsModal] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [clientsList, setClientsList] = useState<Client[]>([]);
+  const [formError, setFormError] = useState("");
+  const [formSuccess, setFormSuccess] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const [newClient, setNewClient] = useState({
     name: "",
     email: "",
@@ -118,7 +79,30 @@ export default function CRMPage() {
     setShowClientDetailsModal(true);
   };
 
-  const filteredClients = clients.filter(
+  // Close context menu when clicking outside
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpenMenuId(null);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const handleDeleteClient = (clientId: number) => {
+    setClientsList((prev) => prev.filter((c) => c.id !== clientId));
+    setOpenMenuId(null);
+  };
+
+  const handleMarkActive = (clientId: number) => {
+    setClientsList((prev) =>
+      prev.map((c) => (c.id === clientId ? { ...c, status: "active" } : c))
+    );
+    setOpenMenuId(null);
+  };
+
+  const filteredClients = clientsList.filter(
     (client) =>
       client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       client.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -127,25 +111,37 @@ export default function CRMPage() {
 
   const handleAddClient = async () => {
     if (!newClient.name || !newClient.email) {
-      alert("Please fill in at least name and email");
+      setFormError("Please fill in at least name and email.");
       return;
     }
-
+    setFormError("");
     setIsLoading(true);
     try {
       await new Promise((resolve) => setTimeout(resolve, 500));
-      setNewClient({
-        name: "",
-        email: "",
-        phone: "",
-        company: "",
-        status: "lead",
-      });
-      setShowAddClientModal(false);
-      alert("Client added successfully!");
+      const newId = clientsList.length > 0 ? Math.max(...clientsList.map((c) => c.id)) + 1 : 1;
+      const added: Client = {
+        id: newId,
+        clientId: `client-${newId}`,
+        name: newClient.name,
+        email: newClient.email,
+        phone: newClient.phone,
+        company: newClient.company || newClient.name,
+        status: newClient.status,
+        value: 0,
+        projects: 0,
+        lastContact: "Just now",
+        nextFollowUp: "",
+      };
+      setClientsList((prev) => [added, ...prev]);
+      setNewClient({ name: "", email: "", phone: "", company: "", status: "lead" });
+      setFormSuccess(true);
+      setTimeout(() => {
+        setFormSuccess(false);
+        setShowAddClientModal(false);
+      }, 1200);
     } catch (error) {
       console.error("Error adding client:", error);
-      alert("Failed to add client. Please try again.");
+      setFormError("Failed to add client. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -169,23 +165,23 @@ export default function CRMPage() {
     <div className="relative min-h-screen max-w-7xl mx-auto pb-12 space-y-8 overflow-hidden">
       {/* Dynamic Ambient Background Orbs */}
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-         <motion.div 
-            animate={{ 
-              x: ["-10%", "100%", "-10%"],
-              y: ["-20%", "50%", "-20%"],
+         <motion.div
+            animate={{
+              x: ["-10%", "calc(100vw - 500px)", "-10%"],
+              y: ["-20%", "50vh", "-20%"],
               scale: [1, 1.2, 1],
             }}
             transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-            className="absolute -top-[10%] -left-[10%] w-[500px] h-[500px] rounded-full bg-gradient-to-r from-teal-200/40 to-cyan-300/40 blur-[120px] mix-blend-multiply" 
+            className="absolute -top-[10%] -left-[10%] w-[500px] h-[500px] rounded-full bg-gradient-to-r from-teal-200/40 to-cyan-300/40 blur-[120px] mix-blend-multiply"
           />
-         <motion.div 
-            animate={{ 
-              x: ["100%", "-20%", "100%"],
-              y: ["80%", "-10%", "80%"],
+         <motion.div
+            animate={{
+              x: ["0%", "calc(-100vw + 600px)", "0%"],
+              y: ["0%", "calc(-100vh + 600px)", "0%"],
               scale: [1, 1.3, 1],
             }}
             transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-            className="absolute -bottom-[20%] -right-[10%] w-[600px] h-[600px] rounded-full bg-gradient-to-l from-indigo-200/30 to-purple-300/30 blur-[120px] mix-blend-multiply" 
+            className="absolute -bottom-[20%] -right-[10%] w-[600px] h-[600px] rounded-full bg-gradient-to-l from-indigo-200/30 to-purple-300/30 blur-[120px] mix-blend-multiply"
           />
       </div>
 
@@ -219,7 +215,7 @@ export default function CRMPage() {
             <div className="absolute inset-[1px] rounded-[15px] bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
             <span className="relative z-10 flex items-center justify-center text-white text-[16px]">
               <Plus className="mr-2 h-5 w-5" />
-              Register Client Let
+              Register Client
             </span>
           </button>
         </div>
@@ -231,30 +227,35 @@ export default function CRMPage() {
           animate="show"
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
         >
-          {stats.map((stat, i) => {
+          {statsConfig.map((stat, i) => {
             const Icon = stat.icon;
+            const derivedValues = [
+              String(clientsList.length),
+              String(clientsList.reduce((s, c) => s + c.projects, 0)),
+              `£${clientsList.reduce((s, c) => s + c.value, 0).toLocaleString()}`,
+              String(clientsList.filter(c => c.nextFollowUp && new Date(c.nextFollowUp) <= new Date()).length),
+            ];
             return (
               <motion.div key={stat.label} variants={itemVariants}>
                 <div className="relative group p-1 rounded-[2rem] bg-gradient-to-b from-white/60 to-white/20 hover:from-white/80 hover:to-white/40 transition-all duration-500 shadow-[0_8px_32px_rgb(0,0,0,0.04)] backdrop-blur-xl border border-white/50 hover:-translate-y-2">
                   <div className="absolute inset-x-4 -top-0.5 h-px bg-gradient-to-r from-transparent via-white to-transparent opacity-50" />
-                  
+
                   <div className="bg-white/40 h-full rounded-[1.75rem] p-6 lg:p-8 shadow-[inset_0_2px_15px_rgb(255,255,255,0.5)] flex flex-col justify-between overflow-hidden relative">
-                     {/* Heavy Glow Background Effect */}
                      <div className={`absolute -right-12 -bottom-12 w-40 h-40 rounded-full blur-[50px] opacity-15 bg-gradient-to-br ${stat.color} group-hover:scale-150 group-hover:opacity-25 transition-all duration-700`} />
-                     
+
                      <div className="flex items-start justify-between relative z-10 w-full mb-6">
-                        <div className={`p-3 rounded-2xl bg-white shadow-lg ${stat.glow} border border-white/60 group-hover:-translate-y-1 transition-transform duration-500`}>
-                          <Icon className={`h-6 w-6 ${stat.glow.split(' ')[1]}`} />
+                        <div className={`p-3 rounded-2xl bg-white shadow-lg ${stat.shadow} border border-white/60 group-hover:-translate-y-1 transition-transform duration-500`}>
+                          <Icon className={`h-6 w-6 ${stat.iconClass}`} />
                         </div>
                      </div>
                      <div className="relative z-10">
-                        <motion.h3 
+                        <motion.h3
                            initial={{ opacity: 0, y: 10 }}
                            animate={{ opacity: 1, y: 0 }}
                            transition={{ duration: 0.8, delay: 0.2 + (i * 0.1) }}
                            className="text-4xl lg:text-5xl font-black text-gray-900 tracking-tighter mb-2"
                         >
-                           {stat.value}
+                           {derivedValues[i]}
                         </motion.h3>
                         <p className="text-sm font-bold text-gray-500 uppercase tracking-widest">{stat.label}</p>
                      </div>
@@ -277,9 +278,6 @@ export default function CRMPage() {
               className="pl-14 border-white shadow-[inset_0_2px_8px_rgb(0,0,0,0.02)] bg-white/80 h-14 rounded-2xl text-[15px] font-medium focus-visible:ring-[#0a9396]/30 focus-visible:border-[#0a9396]/50 transition-all placeholder:text-gray-400"
             />
           </div>
-          <div className="flex gap-2 w-full md:w-auto hidden">
-            {/* Extended filtering layout placeholder for when the user adds it */}
-          </div>
         </div>
 
         {/* Ultra-Premium Glass Tickets ListView */}
@@ -290,47 +288,122 @@ export default function CRMPage() {
           className="grid grid-cols-1 lg:grid-cols-2 gap-8"
         >
           <AnimatePresence>
-            {filteredClients.map((client) => {
-              const isActive = client.status === "active";
-              
-              return (
+            {filteredClients.map((client) => (
                 <motion.div
                   layout
                   key={client.id}
                   variants={itemVariants}
                   className="group relative"
                 >
-                  <div className="border-white/80 bg-white/60 shadow-[0_8px_32px_rgb(0,0,0,0.04)] rounded-[2.5rem] border backdrop-blur-xl relative overflow-hidden transition-all duration-500 hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-1">
-                    
-                    {/* Glossy top edge highlight */}
-                    <div className="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent" />
+                  {/* overflow-visible so dropdown escapes the card boundary */}
+                  <div className="border-white/80 bg-white/60 shadow-[0_8px_32px_rgb(0,0,0,0.04)] rounded-[2.5rem] border backdrop-blur-xl relative transition-all duration-500 hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-1">
 
-                    <div className="flex flex-col sm:flex-row h-full">
+                    {/* Glossy top edge highlight */}
+                    <div className="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent pointer-events-none z-10" />
+
+                    {/* Dropdown rendered here — outside overflow-hidden, anchored to card */}
+                    <AnimatePresence>
+                      {openMenuId === client.id && (
+                        <motion.div
+                          ref={menuRef}
+                          initial={{ opacity: 0, scale: 0.92, y: -4 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.92, y: -4 }}
+                          transition={{ type: "spring", stiffness: 300, damping: 22 }}
+                          className="absolute right-4 top-16 z-50 w-52 bg-white rounded-2xl border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.12)]"
+                        >
+                          <div className="p-1.5">
+                            <button
+                              onClick={() => { handleViewDetails(client); setOpenMenuId(null); }}
+                              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors text-left"
+                            >
+                              <Eye className="h-4 w-4 text-gray-400 shrink-0" />
+                              View Details
+                            </button>
+                            <button
+                              onClick={() => { router.push(`/pro/messaging?clientId=${client.clientId}`); setOpenMenuId(null); }}
+                              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors text-left"
+                            >
+                              <Mail className="h-4 w-4 text-gray-400 shrink-0" />
+                              Send Message
+                            </button>
+                            <button
+                              onClick={() => { setOpenMenuId(null); }}
+                              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors text-left"
+                            >
+                              <PhoneCall className="h-4 w-4 text-gray-400 shrink-0" />
+                              Log a Call
+                            </button>
+                            <button
+                              onClick={() => { setOpenMenuId(null); }}
+                              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors text-left"
+                            >
+                              <Pencil className="h-4 w-4 text-gray-400 shrink-0" />
+                              Edit Client
+                            </button>
+                            {client.status !== "active" && (
+                              <button
+                                onClick={() => handleMarkActive(client.id)}
+                                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold text-emerald-700 hover:bg-emerald-50 transition-colors text-left"
+                              >
+                                <UserCheck className="h-4 w-4 text-emerald-500 shrink-0" />
+                                Mark as Active
+                              </button>
+                            )}
+                            <div className="my-1 border-t border-gray-100" />
+                            <button
+                              onClick={() => handleDeleteClient(client.id)}
+                              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors text-left"
+                            >
+                              <Trash2 className="h-4 w-4 shrink-0" />
+                              Delete Client
+                            </button>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    {/* Inner content — overflow-hidden keeps panel backgrounds clipped to card shape */}
+                    <div className="flex flex-col sm:flex-row h-full overflow-hidden rounded-[2.5rem]">
                       {/* Left: Main Client Context Area */}
                       <div className="p-8 lg:p-10 flex-1 relative z-10 flex flex-col justify-between">
                          <div>
-                            <div className="flex items-start justify-between mb-2">
-                               <div>
-                                  <div className="flex items-center gap-3 mb-2">
-                                    <h3 className="text-2xl font-black text-gray-900 tracking-tight group-hover:text-[#0a9396] transition-colors">{client.name}</h3>
-                                    <Badge 
-                                       variant={isActive ? "success" : "info"} 
-                                       size="md" 
-                                       className="flex items-center gap-1.5 uppercase font-black tracking-widest text-[10px] px-3 py-1 shadow-sm"
-                                    >
-                                       {client.status}
-                                    </Badge>
-                                  </div>
-                                  <p className="text-[14px] font-bold text-gray-500 flex items-center gap-2 mb-6 bg-white/50 px-3 py-1.5 rounded-lg border border-white/80 shadow-sm w-max">
-                                    <Building2 className="h-4 w-4 text-[#0a9396]" />
-                                    {client.company}
+                            <div className="flex items-start justify-between gap-4 mb-5">
+                               {/* Name + Company */}
+                               <div className="flex-1 min-w-0">
+                                  <h3 className="text-2xl font-black text-gray-900 tracking-tight group-hover:text-[#0a9396] transition-colors truncate mb-1">
+                                    {client.name}
+                                  </h3>
+                                  <p className="text-[13px] font-semibold text-gray-400 flex items-center gap-1.5">
+                                    <Building2 className="h-3.5 w-3.5 text-[#0a9396] shrink-0" />
+                                    <span className="truncate">{client.company}</span>
                                   </p>
                                </div>
-                               
-                               {/* Context Menu Icon */}
-                               <button className="text-gray-400 hover:text-gray-900 transition-colors bg-white/50 hover:bg-white shadow-sm border border-gray-200/50 rounded-xl p-2.5 shrink-0 hidden sm:block">
-                                 <MoreVertical className="h-5 w-5" />
-                               </button>
+
+                               {/* Status badge + menu button only — dropdown is hoisted to card level */}
+                               <div className="flex items-center gap-2 shrink-0 pt-0.5">
+                                  <Badge
+                                    variant={client.status === "active" ? "success" : client.status === "lead" ? "primary" : "default"}
+                                    size="sm"
+                                    className="flex items-center gap-1.5 uppercase font-black tracking-widest text-[10px] h-7 px-3 rounded-full border shadow-sm"
+                                  >
+                                    <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${
+                                      client.status === "active" ? "bg-emerald-500" :
+                                      client.status === "lead" ? "bg-[#0a9396]" : "bg-gray-400"
+                                    }`} />
+                                    {client.status}
+                                  </Badge>
+                                  <button
+                                    onClick={() => setOpenMenuId(openMenuId === client.id ? null : client.id)}
+                                    className={`flex items-center justify-center h-7 w-7 rounded-full border transition-all shadow-sm ${
+                                      openMenuId === client.id
+                                        ? "bg-gray-900 border-gray-900 text-white"
+                                        : "bg-white border-gray-200 text-gray-400 hover:text-gray-700 hover:bg-gray-50 hover:border-gray-300"
+                                    }`}
+                                  >
+                                    <MoreVertical className="h-3.5 w-3.5" />
+                                  </button>
+                               </div>
                             </div>
 
                             {/* Essential Data Grid */}
@@ -355,42 +428,38 @@ export default function CRMPage() {
                          </div>
                       </div>
 
-                      {/* Right: Floating Actions Detached Panel */}
-                      <div className="p-6 lg:p-8 flex flex-col justify-center sm:w-[220px] bg-gray-50/60 backdrop-blur-md border-t sm:border-t-0 sm:border-l border-white shadow-[inset_1px_0_0_rgb(0,0,0,0.02)] relative z-20 gap-3">
-                         
-                         <button 
-                           onClick={() => router.push(`/pro/messaging?clientId=${client.clientId || client.id}`)}
-                           className="w-full relative group h-12 rounded-xl overflow-hidden font-bold tracking-wide shadow-md shadow-[#0a9396]/10 transition-all hover:scale-[1.03] active:scale-[0.98]"
-                         >
-                           <div className="absolute inset-0 bg-white/80 backdrop-blur border border-white/60 group-hover:bg-[#0a9396]/5 transition-colors" />
-                           <span className="relative z-10 flex items-center justify-center text-gray-700 group-hover:text-[#0a9396] text-[15px]">
-                             <Mail className="mr-2 h-4 w-4" />
-                             Contact Lead
-                           </span>
-                         </button>
+                      {/* Right: Action Panel */}
+                      <div className="flex flex-col gap-2.5 w-[168px] shrink-0 bg-gray-50/40 border-t sm:border-t-0 sm:border-l border-gray-100 px-4 py-5 relative z-20 justify-center">
 
-                         <button 
-                           onClick={() => handleViewDetails(client)}
-                           className="w-full relative group h-12 rounded-xl overflow-hidden font-bold tracking-wide shadow-lg shadow-gray-900/10 transition-all hover:scale-[1.03] active:scale-[0.98]"
-                         >
-                           <div className="absolute inset-0 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 bg-[length:200%_auto] group-hover:animate-gradient" />
-                           <div className="absolute inset-[1px] rounded-[11px] bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
-                           <span className="relative z-10 flex items-center justify-center text-white text-[15px]">
-                             <Eye className="mr-2 h-4 w-4 group-hover:scale-110 transition-transform" />
-                             Full Details
-                           </span>
-                         </button>
+                        <button
+                          onClick={() => handleViewDetails(client)}
+                          className="w-full h-10 shrink-0 flex items-center justify-center gap-2 rounded-xl bg-gray-900 text-white text-[13px] font-semibold hover:bg-[#0a9396] active:scale-[0.97] transition-all"
+                        >
+                          <Eye className="h-4 w-4 shrink-0" />
+                          View Details
+                        </button>
 
-                         <div className="mt-4 pt-4 border-t border-gray-200/60 text-center">
-                           <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1.5 flex justify-center items-center gap-1.5"><Calendar className="h-3 w-3" /> Last Ping</p>
-                           <p className="text-[13px] text-gray-700 font-bold bg-white/50 border border-white py-1 rounded-lg">{client.lastContact}</p>
-                         </div>
+                        <button
+                          onClick={() => router.push(`/pro/messaging?clientId=${client.clientId || client.id}`)}
+                          className="w-full h-10 shrink-0 flex items-center justify-center gap-2 rounded-xl bg-white border border-gray-200 text-gray-600 text-[13px] font-semibold hover:border-[#0a9396] hover:text-[#0a9396] active:scale-[0.97] transition-all"
+                        >
+                          <Mail className="h-4 w-4 shrink-0" />
+                          Message
+                        </button>
+
+                        <div className="w-full h-10 shrink-0 flex items-center gap-2 rounded-xl border border-gray-100 bg-white px-3">
+                          <Calendar className="h-4 w-4 text-gray-400 shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-[9px] font-bold uppercase tracking-widest text-gray-400 leading-none mb-[3px]">Contacted</p>
+                            <p className="text-[12px] font-semibold text-gray-700 truncate leading-none">{client.lastContact}</p>
+                          </div>
+                        </div>
+
                       </div>
                     </div>
                   </div>
                 </motion.div>
-              );
-            })}
+            ))}
           </AnimatePresence>
         </motion.div>
 
@@ -433,7 +502,7 @@ export default function CRMPage() {
                animate={{ opacity: 1 }}
                exit={{ opacity: 0 }}
                className="absolute inset-0 bg-gray-900/40 backdrop-blur-xl"
-               onClick={() => setShowAddClientModal(false)}
+               onClick={() => { setShowAddClientModal(false); setFormError(""); setFormSuccess(false); }}
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 30 }}
@@ -458,6 +527,8 @@ export default function CRMPage() {
                   onClick={() => {
                       setShowAddClientModal(false);
                       setNewClient({ name: "", email: "", phone: "", company: "", status: "lead" });
+                      setFormError("");
+                      setFormSuccess(false);
                   }}
                   className="p-3 rounded-full bg-white border border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-all shadow-sm mb-6"
                 >
@@ -519,7 +590,17 @@ export default function CRMPage() {
                   </select>
                 </div>
                 
-                <div className="flex gap-4 pt-10 mt-6 border-t border-gray-200/50">
+                <div className="flex flex-col gap-4 pt-10 mt-6 border-t border-gray-200/50">
+                  {formError && (
+                    <p className="text-sm font-semibold text-red-500 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
+                      {formError}
+                    </p>
+                  )}
+                  {formSuccess && (
+                    <p className="text-sm font-semibold text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-3">
+                      Client registered successfully.
+                    </p>
+                  )}
                   <button
                     onClick={handleAddClient}
                     disabled={isLoading || !newClient.name || !newClient.email}
@@ -679,7 +760,7 @@ export default function CRMPage() {
                       <div className="relative z-10 flex-1 pl-4 text-center">
                          <div className="absolute left-1/2 -translate-x-1/2 -translate-y-[calc(50%+4px)] top-1/2 w-4 h-4 bg-[#0a9396] rounded-full ring-8 ring-white shadow-[0_0_15px_rgb(10,147,150,0.6)] animate-pulse" />
                          <p className="text-[12px] font-black tracking-widest uppercase text-[#0a9396] mb-1 mt-6">Next Follow Up</p>
-                         <p className="text-xl text-gray-900 font-black">{selectedClient.nextFollowUp}</p>
+                         <p className="text-xl text-gray-900 font-black">{formatFollowUp(selectedClient.nextFollowUp)}</p>
                       </div>
                   </div>
                 </div>

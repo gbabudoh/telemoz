@@ -17,103 +17,15 @@ import {
   Building2,
   X,
   CreditCard,
+  Trash2,
+  User,
+  Mail,
+  Briefcase,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { formatCurrency } from "@/lib/utils";
 
-const invoices = [
-  {
-    id: 1,
-    invoiceNumber: "INV-000001",
-    client: "TechStart Inc.",
-    clientEmail: "contact@techstart.com",
-    project: "SEO Optimization Campaign",
-    items: [
-      { description: "SEO Audit & Strategy", quantity: 1, unitPrice: 1500, total: 1500 },
-      { description: "Technical SEO Implementation", quantity: 1, unitPrice: 1000, total: 1000 },
-    ],
-    subtotal: 2500,
-    tax: 0,
-    total: 2500,
-    currency: "GBP",
-    status: "paid",
-    dueDate: "2024-01-15",
-    paidAt: "2024-01-14",
-    createdAt: "2024-01-01",
-  },
-  {
-    id: 2,
-    invoiceNumber: "INV-000002",
-    client: "E-Commerce Pro",
-    clientEmail: "hello@ecommercepro.co.uk",
-    project: "PPC Management",
-    items: [
-      { description: "PPC Campaign Setup", quantity: 1, unitPrice: 800, total: 800 },
-      { description: "Monthly Management Fee", quantity: 1, unitPrice: 1000, total: 1000 },
-    ],
-    subtotal: 1800,
-    tax: 0,
-    total: 1800,
-    currency: "GBP",
-    status: "sent",
-    dueDate: "2024-01-25",
-    createdAt: "2024-01-10",
-  },
-  {
-    id: 3,
-    invoiceNumber: "INV-000003",
-    client: "Local Business Hub",
-    clientEmail: "info@localbusinesshub.com",
-    project: "Social Media Strategy",
-    items: [
-      { description: "Social Media Strategy Development", quantity: 1, unitPrice: 1200, total: 1200 },
-    ],
-    subtotal: 1200,
-    tax: 0,
-    total: 1200,
-    currency: "GBP",
-    status: "overdue",
-    dueDate: "2024-01-10",
-    createdAt: "2024-01-01",
-  },
-  {
-    id: 4,
-    invoiceNumber: "INV-000004",
-    client: "Digital Solutions",
-    clientEmail: "contact@digitalsolutions.uk",
-    project: "Content Marketing Campaign",
-    items: [
-      { description: "Content Strategy & Planning", quantity: 1, unitPrice: 1000, total: 1000 },
-      { description: "Content Creation (10 articles)", quantity: 10, unitPrice: 120, total: 1200 },
-    ],
-    subtotal: 2200,
-    tax: 0,
-    total: 2200,
-    currency: "GBP",
-    status: "draft",
-    dueDate: "2024-02-01",
-    createdAt: "2024-01-18",
-  },
-  {
-    id: 5,
-    invoiceNumber: "INV-000005",
-    client: "Startup Ventures",
-    clientEmail: "hello@startupventures.com",
-    project: "Email Marketing Automation",
-    items: [
-      { description: "Email Automation Setup", quantity: 1, unitPrice: 800, total: 800 },
-      { description: "Email Template Design (5 templates)", quantity: 5, unitPrice: 140, total: 700 },
-    ],
-    subtotal: 1500,
-    tax: 0,
-    total: 1500,
-    currency: "GBP",
-    status: "sent",
-    dueDate: "2024-01-30",
-    createdAt: "2024-01-15",
-  },
-];
 
 const statusConfig = {
   draft: { label: "Draft", color: "default", icon: FileText, dot: 'bg-gray-400' },
@@ -123,21 +35,39 @@ const statusConfig = {
   cancelled: { label: "Cancelled", color: "default", icon: XCircle, dot: 'bg-gray-500' },
 };
 
-const stats = [
-  { label: "Total Revenue", value: "£9,200", icon: DollarSign, color: "from-emerald-400 to-teal-600", glow:"shadow-emerald-500/40 text-emerald-50" },
-  { label: "Outstanding", value: "£5,500", icon: Clock, color: "from-[#F59E0B] to-[#D97706]", glow:"shadow-[#F59E0B]/40 text-amber-50" },
-  { label: "Overdue", value: "£1,200", icon: XCircle, color: "from-[#EF4444] to-[#B91C1C]", glow:"shadow-[#EF4444]/40 text-red-50" },
-  { label: "This Month", value: "£4,300", icon: Calendar, color: "from-[#3B82F6] to-[#1D4ED8]", glow:"shadow-[#3B82F6]/40 text-blue-50" },
+const statsConfig = [
+  { label: "Total Revenue", icon: DollarSign, color: "from-emerald-400 to-teal-600", glow:"shadow-emerald-500/40 text-emerald-50" },
+  { label: "Outstanding", icon: Clock, color: "from-[#F59E0B] to-[#D97706]", glow:"shadow-[#F59E0B]/40 text-amber-50" },
+  { label: "Overdue", icon: XCircle, color: "from-[#EF4444] to-[#B91C1C]", glow:"shadow-[#EF4444]/40 text-red-50" },
+  { label: "This Month", icon: Calendar, color: "from-[#3B82F6] to-[#1D4ED8]", glow:"shadow-[#3B82F6]/40 text-blue-50" },
 ];
 
-type InvoiceType = typeof invoices[0];
+interface InvoiceItem { description: string; quantity: number; unitPrice: number; total: number; }
+interface InvoiceType {
+  id: number; invoiceNumber: string; client: string; clientEmail: string;
+  project: string; items: InvoiceItem[]; subtotal: number; tax: number;
+  total: number; currency: string; status: string; dueDate: string;
+  createdAt: string; paidAt?: string;
+}
 
 export default function InvoicingPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [invoicesList, setInvoicesList] = useState(invoices);
+  const [invoicesList, setInvoicesList] = useState<InvoiceType[]>([]);
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceType | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isNewInvoiceOpen, setIsNewInvoiceOpen] = useState(false);
+  const [newInvoiceData, setNewInvoiceData] = useState({
+    client: "",
+    clientEmail: "",
+    project: "",
+    dueDate: "",
+    notes: "",
+    sendImmediately: false,
+  });
+  const [newInvoiceItems, setNewInvoiceItems] = useState([
+    { description: "", quantity: 1, unitPrice: 0 },
+  ]);
   const [notificationModal, setNotificationModal] = useState<{
     isOpen: boolean;
     title: string;
@@ -162,24 +92,86 @@ export default function InvoicingPage() {
   const handleDownloadPDF = (invoice: InvoiceType) => {
     setSelectedInvoice(invoice);
     setIsViewModalOpen(true);
-    setTimeout(() => {
-      window.print();
-    }, 500);
   };
 
   const handleSendInvoice = (id: number) => {
-    setInvoicesList(prev => prev.map(inv => inv.id === id ? { ...inv, status: 'sent' } : inv));
-    showNotification("Invoice Sent out", "The billing instance has been routed to the client via email.", "success");
+    setInvoicesList((prev: InvoiceType[]) => prev.map((inv: InvoiceType) => inv.id === id ? { ...inv, status: 'sent' } : inv));
+    showNotification("Invoice Sent", "The invoice has been sent to the client via email.", "success");
   };
 
   const handleSendReminder = (id: number) => {
-    showNotification("Reminder Deployed", `A payment reminder ping has been initiated for ID: ${id}.`, "success");
+    showNotification("Reminder Sent", `A payment reminder has been sent to the client for invoice #${id}.`, "success");
   };
 
 
 
   const handleCreateInvoice = () => {
-    showNotification("Create Record", "Opening universal invoice builder...", "info");
+    setNewInvoiceData({ client: "", clientEmail: "", project: "", dueDate: "", notes: "", sendImmediately: false });
+    setNewInvoiceItems([{ description: "", quantity: 1, unitPrice: 0 }]);
+    setIsNewInvoiceOpen(true);
+  };
+
+  const addInvoiceItem = () => {
+    setNewInvoiceItems((prev) => [...prev, { description: "", quantity: 1, unitPrice: 0 }]);
+  };
+
+  const removeInvoiceItem = (idx: number) => {
+    setNewInvoiceItems((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const updateInvoiceItem = (idx: number, field: string, value: string | number) => {
+    setNewInvoiceItems((prev) =>
+      prev.map((item, i) => (i === idx ? { ...item, [field]: value } : item))
+    );
+  };
+
+  const newInvoiceSubtotal = newInvoiceItems.reduce(
+    (sum, item) => sum + item.quantity * item.unitPrice,
+    0
+  );
+
+  const handleSaveNewInvoice = () => {
+    if (!newInvoiceData.client.trim() || !newInvoiceData.project.trim() || !newInvoiceData.dueDate) {
+      showNotification("Missing Fields", "Please fill in client name, project, and due date.", "error");
+      return;
+    }
+    if (newInvoiceItems.some((i) => !i.description.trim())) {
+      showNotification("Missing Fields", "Please fill in a description for each line item.", "error");
+      return;
+    }
+    const nextNumber = `INV-${String(invoicesList.length + 1).padStart(6, "0")}`;
+    const today = new Date().toISOString().split("T")[0];
+    const items = newInvoiceItems.map((i) => ({
+      description: i.description,
+      quantity: i.quantity,
+      unitPrice: i.unitPrice,
+      total: i.quantity * i.unitPrice,
+    }));
+    const subtotal = items.reduce((s, i) => s + i.total, 0);
+    const newInv = {
+      id: invoicesList.length + 1,
+      invoiceNumber: nextNumber,
+      client: newInvoiceData.client,
+      clientEmail: newInvoiceData.clientEmail,
+      project: newInvoiceData.project,
+      items,
+      subtotal,
+      tax: 0,
+      total: subtotal,
+      currency: "GBP",
+      status: newInvoiceData.sendImmediately ? "sent" : "draft",
+      dueDate: newInvoiceData.dueDate,
+      createdAt: today,
+    };
+    setInvoicesList((prev: InvoiceType[]) => [newInv, ...prev]);
+    setIsNewInvoiceOpen(false);
+    showNotification(
+      newInvoiceData.sendImmediately ? "Invoice Sent" : "Invoice Saved",
+      newInvoiceData.sendImmediately
+        ? `${nextNumber} has been sent to ${newInvoiceData.clientEmail || newInvoiceData.client}.`
+        : `${nextNumber} saved as a draft.`,
+      "success"
+    );
   };
 
   const filteredInvoices = invoicesList.filter((invoice) => {
@@ -217,23 +209,23 @@ export default function InvoicingPage() {
     <div className="relative min-h-screen max-w-7xl mx-auto pb-12 space-y-8 overflow-hidden">
       {/* Deep Financial Ambient Light Orbs */}
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-         <motion.div 
-            animate={{ 
-              x: ["-10%", "100%", "-10%"],
-              y: ["-20%", "50%", "-20%"],
+         <motion.div
+            animate={{
+              x: ["-10%", "calc(100vw - 500px)", "-10%"],
+              y: ["-20%", "50vh", "-20%"],
               scale: [1, 1.2, 1],
             }}
             transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-            className="absolute -top-[10%] -left-[10%] w-[500px] h-[500px] rounded-full bg-gradient-to-r from-emerald-200/40 to-teal-300/40 blur-[120px] mix-blend-multiply" 
+            className="absolute -top-[10%] -left-[10%] w-[500px] h-[500px] rounded-full bg-gradient-to-r from-emerald-200/40 to-teal-300/40 blur-[120px] mix-blend-multiply"
           />
-         <motion.div 
-            animate={{ 
-              x: ["100%", "-20%", "100%"],
-              y: ["80%", "-10%", "80%"],
+         <motion.div
+            animate={{
+              x: ["0%", "calc(-100vw + 600px)", "0%"],
+              y: ["0%", "calc(-100vh + 600px)", "0%"],
               scale: [1, 1.3, 1],
             }}
             transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-            className="absolute -bottom-[20%] -right-[10%] w-[600px] h-[600px] rounded-full bg-gradient-to-l from-blue-200/30 to-indigo-300/30 blur-[120px] mix-blend-multiply" 
+            className="absolute -bottom-[20%] -right-[10%] w-[600px] h-[600px] rounded-full bg-gradient-to-l from-blue-200/30 to-indigo-300/30 blur-[120px] mix-blend-multiply"
           />
       </div>
 
@@ -253,7 +245,7 @@ export default function InvoicingPage() {
                     </Badge>
                   </h1>
                   <p className="text-gray-500 mt-2 font-medium text-lg">
-                    Build, deploy, and clear client financial obligations.
+                    Manage, send, and track client invoices.
                   </p>
               </div>
             </div>
@@ -267,7 +259,7 @@ export default function InvoicingPage() {
             <div className="absolute inset-[1px] rounded-[15px] bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
             <span className="relative z-10 flex items-center justify-center text-white text-[16px]">
               <Plus className="mr-2 h-5 w-5" />
-              Draw New Invoice
+              New Invoice
             </span>
           </button>
         </div>
@@ -279,30 +271,37 @@ export default function InvoicingPage() {
           animate="show"
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
         >
-          {stats.map((stat, i) => {
+          {statsConfig.map((stat, i) => {
             const Icon = stat.icon;
+            const now = new Date();
+            const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+            const derivedValues = [
+              formatCurrency(invoicesList.filter(inv => inv.status === "paid").reduce((s, inv) => s + inv.total, 0)),
+              formatCurrency(invoicesList.filter(inv => inv.status === "sent").reduce((s, inv) => s + inv.total, 0)),
+              formatCurrency(invoicesList.filter(inv => inv.status === "overdue").reduce((s, inv) => s + inv.total, 0)),
+              formatCurrency(invoicesList.filter(inv => new Date(inv.createdAt) >= thisMonthStart).reduce((s, inv) => s + inv.total, 0)),
+            ];
             return (
               <motion.div key={stat.label} variants={itemVariants}>
                 <div className="relative group p-1 rounded-[2rem] bg-gradient-to-b from-white/60 to-white/20 hover:from-white/80 hover:to-white/40 transition-all duration-500 shadow-[0_8px_32px_rgb(0,0,0,0.04)] backdrop-blur-xl border border-white/50 hover:-translate-y-2">
                   <div className="absolute inset-x-4 -top-0.5 h-px bg-gradient-to-r from-transparent via-white to-transparent opacity-50" />
-                  
+
                   <div className="bg-white/40 h-full rounded-[1.75rem] p-6 lg:p-8 shadow-[inset_0_2px_15px_rgb(255,255,255,0.5)] flex flex-col justify-between overflow-hidden relative">
-                     {/* Heavy Glow Background Effect */}
                      <div className={`absolute -right-12 -bottom-12 w-48 h-48 rounded-full blur-[50px] opacity-[0.12] bg-gradient-to-br ${stat.color} group-hover:scale-150 group-hover:opacity-20 transition-all duration-700`} />
-                     
+
                      <div className="flex items-start justify-between relative z-10 w-full mb-6">
                         <div className={`p-3.5 rounded-2xl bg-gradient-to-br ${stat.color} shadow-lg ${stat.glow} border border-white/20 group-hover:-translate-y-1 transition-transform duration-500`}>
-                          <Icon className={`h-6 w-6`} />
+                          <Icon className="h-6 w-6" />
                         </div>
                      </div>
                      <div className="relative z-10">
-                        <motion.h3 
+                        <motion.h3
                            initial={{ opacity: 0, y: 10 }}
                            animate={{ opacity: 1, y: 0 }}
                            transition={{ duration: 0.8, delay: 0.2 + (i * 0.1) }}
                            className="text-4xl lg:text-5xl font-black text-gray-900 tracking-tighter mb-2"
                         >
-                           {stat.value}
+                           {derivedValues[i]}
                         </motion.h3>
                         <p className="text-sm font-bold text-gray-500 uppercase tracking-widest">{stat.label}</p>
                      </div>
@@ -319,7 +318,7 @@ export default function InvoicingPage() {
             <Search className="absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 group-focus-within:text-emerald-500 transition-colors" />
             <Input
               type="search"
-              placeholder="Search specific target nodes or identities..."
+              placeholder="Search invoices, clients, or projects..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-14 border-white shadow-[inset_0_2px_8px_rgb(0,0,0,0.02)] bg-white/80 h-14 rounded-2xl text-[15px] font-medium focus-visible:ring-emerald-500/30 focus-visible:border-emerald-500/50 transition-all placeholder:text-gray-400"
@@ -331,11 +330,11 @@ export default function InvoicingPage() {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="h-14 px-5 lg:min-w-[200px] rounded-2xl border-white shadow-[inset_0_2px_8px_rgb(0,0,0,0.02)] bg-white/80 text-[15px] text-gray-700 font-bold focus:border-emerald-500 focus:outline-none focus:ring-4 focus:ring-emerald-500/20 transition-all cursor-pointer w-full md:w-auto appearance-none"
             >
-              <option value="all">Universal Status</option>
-              <option value="draft">Draft Protocol</option>
-              <option value="sent">Awaiting Funds</option>
-              <option value="paid">100% Cleared</option>
-              <option value="overdue">Escalated Due</option>
+              <option value="all">All Statuses</option>
+              <option value="draft">Draft</option>
+              <option value="sent">Sent</option>
+              <option value="paid">Paid</option>
+              <option value="overdue">Overdue</option>
             </select>
           </div>
         </div>
@@ -348,7 +347,7 @@ export default function InvoicingPage() {
           className="grid grid-cols-1 xl:grid-cols-2 gap-8"
         >
           <AnimatePresence>
-            {filteredInvoices.map((invoice) => {
+            {filteredInvoices.map((invoice: InvoiceType) => {
               const statusInfo = statusConfig[invoice.status as keyof typeof statusConfig];
               const daysUntilDue = getDaysUntilDue(invoice.dueDate);
               const isOverdue = daysUntilDue < 0 && invoice.status !== "paid";
@@ -406,7 +405,7 @@ export default function InvoicingPage() {
                                </div>
                                
                                <div className="text-right shrink-0">
-                                  <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1">Obligation</p>
+                                  <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1">Amount Due</p>
                                   <p className="text-3xl font-black text-gray-900 tracking-tighter">{formatCurrency(invoice.total)}</p>
                                </div>
                             </div>
@@ -414,7 +413,7 @@ export default function InvoicingPage() {
                             {/* Condensed Items Preview inside frosted cell */}
                             <div className="bg-white/40 border border-white/60 rounded-2xl p-5 mb-5 shadow-[inset_0_2px_10px_rgb(255,255,255,0.5)]">
                               <div className="space-y-4 text-sm">
-                                {invoice.items.slice(0, 2).map((item, idx) => (
+                                {invoice.items.slice(0, 2).map((item: InvoiceItem, idx: number) => (
                                   <div key={idx} className="flex justify-between items-center group/item hover:bg-white/50 p-2 -my-2 rounded-lg transition-colors cursor-default">
                                     <span className="text-gray-700 font-bold truncate pr-4 text-[15px]">
                                       {item.description} 
@@ -439,7 +438,7 @@ export default function InvoicingPage() {
                             {/* Timelines Tracker Cell */}
                             <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
                                <div>
-                                 <p className="text-[11px] text-gray-400 font-bold uppercase tracking-widest mb-0.5">Created Target</p>
+                                 <p className="text-[11px] text-gray-400 font-bold uppercase tracking-widest mb-0.5">Issue Date</p>
                                  <p className="text-[14px] font-bold text-gray-800 flex items-center gap-1.5">
                                     <Calendar className="w-4 h-4 text-gray-400" />
                                     {new Date(invoice.createdAt).toLocaleDateString()}
@@ -450,7 +449,7 @@ export default function InvoicingPage() {
                                
                                <div>
                                  <p className="text-[11px] text-emerald-500 font-bold uppercase tracking-widest mb-0.5 relative flex items-center gap-1.5">
-                                    Hard Boundary
+                                    Due Date
                                     {isOverdue && <span className="absolute -top-1 -right-2 w-2 h-2 rounded-full bg-red-500 animate-ping" />}
                                  </p>
                                  <p className={`text-[14px] font-black flex items-center gap-1.5 ${isOverdue ? 'text-red-600' : 'text-gray-800'}`}>
@@ -473,7 +472,7 @@ export default function InvoicingPage() {
                                 <div className="mx-auto w-16 h-16 border-4 border-emerald-500 text-emerald-600 flex items-center justify-center rounded-full mb-3 shadow-[0_0_30px_rgb(16,185,129,0.2)]">
                                    <CheckCircle2 className="w-8 h-8" />
                                 </div>
-                                <p className="font-black text-emerald-700 tracking-widest uppercase text-sm">Balanced</p>
+                                <p className="font-black text-emerald-700 tracking-widest uppercase text-sm">Paid</p>
                                 <p className="font-bold text-emerald-600/60 tracking-wider uppercase text-[10px] mt-1">{new Date(invoice.paidAt!).toLocaleDateString()}</p>
                              </div>
                           ) : isOverdue ? (
@@ -481,15 +480,15 @@ export default function InvoicingPage() {
                                 <div className="mx-auto w-16 h-16 border-4 border-red-500 text-red-600 flex items-center justify-center rounded-full mb-3 shadow-[0_0_30px_rgb(239,68,68,0.2)]">
                                    <XCircle className="w-8 h-8" />
                                 </div>
-                                <p className="font-black text-red-700 tracking-widest uppercase text-sm">Delinquent</p>
-                                <p className="font-bold text-red-600/60 tracking-wider uppercase text-[10px] mt-1">{Math.abs(daysUntilDue)} Days Past</p>
+                                <p className="font-black text-red-700 tracking-widest uppercase text-sm">Overdue</p>
+                                <p className="font-bold text-red-600/60 tracking-wider uppercase text-[10px] mt-1">{Math.abs(daysUntilDue)} Days Overdue</p>
                              </div>
                           ) : (
                              <div className="text-center mb-6 opacity-80 mix-blend-multiply">
                                 <div className="mx-auto w-16 h-16 border-4 border-blue-400 text-blue-500 flex items-center justify-center rounded-full mb-3 shadow-[0_0_30px_rgb(96,165,250,0.2)]">
                                    <Send className="w-7 h-7 ml-1" />
                                 </div>
-                                <p className="font-black text-blue-600 tracking-widest uppercase text-[12px] whitespace-nowrap overflow-hidden text-ellipsis">{invoice.status === 'draft' ? 'Local Draft' : 'Transmission Active'}</p>
+                                <p className="font-black text-blue-600 tracking-widest uppercase text-[12px] whitespace-nowrap overflow-hidden text-ellipsis">{invoice.status === 'draft' ? 'Draft' : 'Sent'}</p>
                              </div>
                           )}
   
@@ -502,7 +501,7 @@ export default function InvoicingPage() {
                                <div className="absolute inset-0 bg-white/80 backdrop-blur border border-white/60 group-hover:bg-gray-50 transition-colors" />
                                <span className="relative z-10 flex items-center justify-center text-gray-700 text-[14px]">
                                  <Eye className="mr-2 h-4 w-4" />
-                                 Review Matrix
+                                 View Invoice
                                </span>
                             </button>
   
@@ -515,7 +514,7 @@ export default function InvoicingPage() {
                                  <div className="absolute inset-[1px] rounded-[11px] bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
                                  <span className="relative z-10 flex items-center justify-center text-white text-[14px]">
                                    <Send className="mr-2 h-4 w-4 group-hover:-translate-y-1 group-hover:translate-x-1 transition-transform" />
-                                   Dispatch Target
+                                   Send Invoice
                                  </span>
                               </button>
                             )}
@@ -543,7 +542,7 @@ export default function InvoicingPage() {
                                  <div className="absolute inset-[1px] rounded-[11px] bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
                                  <span className="relative z-10 flex items-center justify-center text-white text-[14px]">
                                    <Send className="mr-2 h-4 w-4 group-hover:scale-125 transition-transform" />
-                                   Force Reminder
+                                   Send Reminder
                                  </span>
                               </button>
                             )}
@@ -565,11 +564,11 @@ export default function InvoicingPage() {
                   <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent rounded-full animate-ping" />
                   <FileText className="h-10 w-10 text-gray-400 relative z-10" />
                </div>
-               <h3 className="text-3xl font-black text-gray-900 mb-3 tracking-tight">Empty Database</h3>
+               <h3 className="text-3xl font-black text-gray-900 mb-3 tracking-tight">No Invoices Found</h3>
                <p className="text-gray-500 text-lg max-w-md mx-auto font-medium leading-relaxed mb-8">
                  {searchQuery || statusFilter !== "all"
-                   ? "We couldn't ping any ledger targets with that query constraint."
-                   : "Deploy your first financial request onto the dashboard to begin tracking yield."}
+                   ? "No invoices match your search or filter criteria."
+                   : "Create your first invoice to start tracking payments."}
                </p>
                <button 
                   onClick={handleCreateInvoice}
@@ -579,17 +578,246 @@ export default function InvoicingPage() {
                  <div className="absolute inset-[1px] rounded-[15px] bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
                  <span className="relative z-10 flex items-center justify-center text-white text-[16px]">
                    <Plus className="mr-2 h-5 w-5" />
-                   Initiate Ledger Entry
+                   Create Invoice
                  </span>
                </button>
            </div>
          </motion.div>
       )}
 
+      {/* New Invoice Modal */}
+      <AnimatePresence>
+        {isNewInvoiceOpen && (
+          <div className="fixed inset-0 z-50 flex items-start justify-center p-4 overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/40 backdrop-blur-xl"
+              onClick={() => setIsNewInvoiceOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 30 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 30 }}
+              transition={{ type: "spring", stiffness: 260, damping: 22 }}
+              className="relative z-10 w-full max-w-2xl my-8 bg-white rounded-3xl shadow-[0_30px_80px_-10px_rgba(0,0,0,0.35)] border border-gray-200 overflow-hidden"
+            >
+              {/* Header */}
+              <div className="bg-gray-900 px-7 py-5 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-white/10 rounded-xl border border-white/10">
+                    <FileText className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-black text-white tracking-tight">New Invoice</h2>
+                    <p className="text-[12px] text-gray-400 font-medium mt-0.5">Fill in the details below</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsNewInvoiceOpen(false)}
+                  className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-white border border-white/10 transition-all cursor-pointer"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="p-7 space-y-7 max-h-[calc(100vh-12rem)] overflow-y-auto">
+
+                {/* Client & Project */}
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-3">Client Details</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[13px] font-bold text-gray-600 flex items-center gap-1.5">
+                        <User className="h-3.5 w-3.5" /> Client Name <span className="text-red-400">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. TechStart Inc."
+                        value={newInvoiceData.client}
+                        onChange={(e) => setNewInvoiceData({ ...newInvoiceData, client: e.target.value })}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium text-gray-900 placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[13px] font-bold text-gray-600 flex items-center gap-1.5">
+                        <Mail className="h-3.5 w-3.5" /> Client Email
+                      </label>
+                      <input
+                        type="email"
+                        placeholder="e.g. hello@client.com"
+                        value={newInvoiceData.clientEmail}
+                        onChange={(e) => setNewInvoiceData({ ...newInvoiceData, clientEmail: e.target.value })}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium text-gray-900 placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all"
+                      />
+                    </div>
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <label className="text-[13px] font-bold text-gray-600 flex items-center gap-1.5">
+                        <Briefcase className="h-3.5 w-3.5" /> Project / Description <span className="text-red-400">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. SEO Optimisation Campaign"
+                        value={newInvoiceData.project}
+                        onChange={(e) => setNewInvoiceData({ ...newInvoiceData, project: e.target.value })}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium text-gray-900 placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Line Items */}
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-3">Line Items</p>
+                  <div className="space-y-3">
+                    {/* Column labels */}
+                    <div className="grid grid-cols-[1fr_80px_100px_40px] gap-2 px-1">
+                      <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Description</span>
+                      <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">Qty</span>
+                      <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider text-right">Unit Price</span>
+                      <span />
+                    </div>
+                    {newInvoiceItems.map((item, idx) => (
+                      <div key={idx} className="grid grid-cols-[1fr_80px_100px_40px] gap-2 items-center">
+                        <input
+                          type="text"
+                          placeholder="Service or product..."
+                          value={item.description}
+                          onChange={(e) => updateInvoiceItem(idx, "description", e.target.value)}
+                          className="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-900 placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all"
+                        />
+                        <input
+                          type="number"
+                          min={1}
+                          value={item.quantity}
+                          onChange={(e) => updateInvoiceItem(idx, "quantity", Math.max(1, parseInt(e.target.value) || 1))}
+                          className="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-bold text-gray-900 text-center focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all"
+                        />
+                        <input
+                          type="number"
+                          min={0}
+                          step={0.01}
+                          placeholder="0.00"
+                          value={item.unitPrice || ""}
+                          onChange={(e) => updateInvoiceItem(idx, "unitPrice", parseFloat(e.target.value) || 0)}
+                          className="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-bold text-gray-900 text-right focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all"
+                        />
+                        <button
+                          onClick={() => removeInvoiceItem(idx)}
+                          disabled={newInvoiceItems.length === 1}
+                          className="h-10 w-10 flex items-center justify-center rounded-xl text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      onClick={addInvoiceItem}
+                      className="flex items-center gap-2 text-[13px] font-bold text-emerald-600 hover:text-emerald-700 px-2 py-1 rounded-lg hover:bg-emerald-50 transition-all cursor-pointer"
+                    >
+                      <Plus className="h-4 w-4" /> Add Line Item
+                    </button>
+                  </div>
+
+                  {/* Subtotal */}
+                  <div className="mt-4 bg-gray-50 border border-gray-100 rounded-xl px-5 py-3 flex items-center justify-between">
+                    <span className="text-sm font-bold text-gray-500">Subtotal</span>
+                    <span className="text-xl font-black text-gray-900">
+                      {formatCurrency(newInvoiceSubtotal)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Due Date & Notes */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[13px] font-bold text-gray-600 flex items-center gap-1.5">
+                      <Calendar className="h-3.5 w-3.5" /> Due Date <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      value={newInvoiceData.dueDate}
+                      min={new Date().toISOString().split("T")[0]}
+                      onChange={(e) => setNewInvoiceData({ ...newInvoiceData, dueDate: e.target.value })}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium text-gray-900 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[13px] font-bold text-gray-600">Notes <span className="text-gray-400 font-medium">(optional)</span></label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Payment within 30 days..."
+                      value={newInvoiceData.notes}
+                      onChange={(e) => setNewInvoiceData({ ...newInvoiceData, notes: e.target.value })}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium text-gray-900 placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* Send toggle */}
+                <label className="flex items-center gap-3 p-4 bg-emerald-50 border border-emerald-100 rounded-xl cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    checked={newInvoiceData.sendImmediately}
+                    onChange={(e) => setNewInvoiceData({ ...newInvoiceData, sendImmediately: e.target.checked })}
+                    className="h-4 w-4 accent-emerald-500 cursor-pointer"
+                  />
+                  <div>
+                    <p className="text-sm font-bold text-gray-800">Send to client immediately</p>
+                    <p className="text-xs text-gray-500 font-medium mt-0.5">Otherwise the invoice will be saved as a draft</p>
+                  </div>
+                </label>
+              </div>
+
+              {/* Footer actions */}
+              <div className="px-7 py-5 border-t border-gray-100 flex gap-3 justify-end bg-gray-50/60">
+                <button
+                  onClick={() => setIsNewInvoiceOpen(false)}
+                  className="h-11 px-5 rounded-xl border border-gray-200 bg-white text-sm font-bold text-gray-600 hover:bg-gray-50 transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveNewInvoice}
+                  className="relative group h-11 px-7 rounded-xl overflow-hidden font-bold text-white text-sm shadow-lg shadow-emerald-500/20 transition-all hover:scale-[1.03] active:scale-[0.98] cursor-pointer"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-500 bg-[length:200%_auto] group-hover:animate-gradient" />
+                  <div className="absolute inset-[1px] rounded-[11px] bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
+                  <span className="relative z-10 flex items-center gap-2">
+                    {newInvoiceData.sendImmediately ? (
+                      <><Send className="h-4 w-4" /> Send Invoice</>
+                    ) : (
+                      <><FileText className="h-4 w-4" /> Save as Draft</>
+                    )}
+                  </span>
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Cinematic A4 Paper Print Modal */}
       <AnimatePresence>
         {isViewModalOpen && selectedInvoice && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <style>{`
+              @media print {
+                body * { visibility: hidden !important; }
+                #printable-invoice, #printable-invoice * { visibility: visible !important; }
+                #printable-invoice {
+                  position: fixed !important;
+                  top: 0 !important;
+                  left: 0 !important;
+                  width: 100% !important;
+                  height: auto !important;
+                  padding: 40px !important;
+                  background: white !important;
+                  overflow: visible !important;
+                }
+              }
+            `}</style>
              {/* Massive Depth Blur overlay */}
              <motion.div
                  initial={{ opacity: 0 }}
@@ -614,9 +842,9 @@ export default function InvoicingPage() {
                    <div>
                       <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-3">
                         {selectedInvoice.invoiceNumber}
-                        <span className="px-2 py-0.5 rounded-md bg-white/10 text-gray-300 text-[10px] uppercase font-black tracking-widest leading-none border border-white/5">Local Copy</span>
+                        <span className="px-2 py-0.5 rounded-md bg-white/10 text-gray-300 text-[10px] uppercase font-black tracking-widest leading-none border border-white/5">Preview</span>
                       </h2>
-                      <p className="text-[13px] font-medium text-gray-400 mt-0.5">Physical Render Preview Mode</p>
+                      <p className="text-[13px] font-medium text-gray-400 mt-0.5">Invoice Preview</p>
                    </div>
                 </div>
                 <div className="flex gap-4 items-center">
@@ -625,7 +853,7 @@ export default function InvoicingPage() {
                       <div className="absolute inset-[1px] rounded-[11px] bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
                       <span className="relative z-10 flex items-center justify-center text-white text-[14px]">
                         <Download className="mr-2 h-4 w-4" />
-                        Execute Print Command
+                        Print / Download
                       </span>
                    </button>
                    <button onClick={() => setIsViewModalOpen(false)} className="p-3 bg-white/10 hover:bg-white/20 transition-all rounded-xl text-white border border-white/5 hover:scale-110 active:scale-95">
@@ -660,7 +888,7 @@ export default function InvoicingPage() {
                    <div className="bg-white pr-8 pb-8 z-0 inline-block">
                      <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-3 flex items-center gap-2">
                        <Building2 className="w-3 h-3" />
-                       Recipient Corporation
+                       Bill To
                      </p>
                      <p className="font-black text-gray-900 text-2xl tracking-tight mb-2">{selectedInvoice.client}</p>
                      <p className="text-gray-600 font-semibold mb-1">{selectedInvoice.clientEmail}</p>
@@ -671,14 +899,14 @@ export default function InvoicingPage() {
                       <div>
                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 flex items-center gap-2">
                           <Calendar className="w-3 h-3" />
-                          Generated Target
+                          Issue Date
                         </p>
                         <p className="font-black text-gray-900 text-xl">{new Date(selectedInvoice.createdAt).toLocaleDateString()}</p>
                       </div>
                       <div>
                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 flex items-center gap-2">
                           <Clock className="w-3 h-3" />
-                          Settlement Boundary
+                          Due Date
                         </p>
                         <p className="font-black text-gray-900 text-xl">{new Date(selectedInvoice.dueDate).toLocaleDateString()}</p>
                       </div>
@@ -690,10 +918,10 @@ export default function InvoicingPage() {
                   <table className="w-full">
                     <thead className="bg-gray-900 text-white">
                       <tr className="text-left">
-                        <th className="py-5 px-6 font-black tracking-widest uppercase text-[10px]">Description Logic</th>
-                        <th className="py-5 px-6 font-black tracking-widest uppercase text-[10px] text-center">Unit Volume</th>
-                        <th className="py-5 px-6 font-black tracking-widest uppercase text-[10px] text-right hidden sm:table-cell">Base Point</th>
-                        <th className="py-5 px-6 font-black tracking-widest uppercase text-[10px] text-right">Row Total</th>
+                        <th className="py-5 px-6 font-black tracking-widest uppercase text-[10px]">Description</th>
+                        <th className="py-5 px-6 font-black tracking-widest uppercase text-[10px] text-center">Qty</th>
+                        <th className="py-5 px-6 font-black tracking-widest uppercase text-[10px] text-right hidden sm:table-cell print:table-cell">Unit Price</th>
+                        <th className="py-5 px-6 font-black tracking-widest uppercase text-[10px] text-right">Amount</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y-2 divide-gray-100 bg-white">
@@ -701,7 +929,7 @@ export default function InvoicingPage() {
                         <tr key={i}>
                           <td className="py-6 px-6 font-bold text-gray-900 text-[15px]">{item.description}</td>
                           <td className="py-6 px-6 font-bold text-gray-500 text-center">{item.quantity}</td>
-                          <td className="py-6 px-6 font-bold text-gray-500 text-right hidden sm:table-cell">{formatCurrency(item.unitPrice)}</td>
+                          <td className="py-6 px-6 font-bold text-gray-500 text-right hidden sm:table-cell print:table-cell">{formatCurrency(item.unitPrice)}</td>
                           <td className="py-6 px-6 font-black text-gray-900 text-right text-lg">{formatCurrency(item.total)}</td>
                         </tr>
                       ))}
@@ -711,20 +939,20 @@ export default function InvoicingPage() {
 
                 <div className="flex flex-col sm:flex-row justify-between items-start gap-12">
                   <div className="w-full sm:w-[50%]">
-                     <p className="text-[11px] font-black text-gray-900 uppercase tracking-widest mb-3 border-b-2 border-gray-900 pb-2 inline-block">Direct Routing Instructions</p>
+                     <p className="text-[11px] font-black text-gray-900 uppercase tracking-widest mb-3 border-b-2 border-gray-900 pb-2 inline-block">Payment Instructions</p>
                      <p className="text-gray-600 font-semibold text-sm leading-relaxed mb-4">
-                       Automated clearance requires funds delivered exactly on or before the stated <span className="font-bold text-gray-900">{new Date(selectedInvoice.dueDate).toLocaleDateString()}</span> boundary. References must include string: <span className="font-bold text-gray-900 tracking-wider bg-gray-100 px-2 py-0.5 rounded">{selectedInvoice.invoiceNumber}</span>.
+                       Please ensure payment is received on or before <span className="font-bold text-gray-900">{new Date(selectedInvoice.dueDate).toLocaleDateString()}</span>. Use reference: <span className="font-bold text-gray-900 tracking-wider bg-gray-100 px-2 py-0.5 rounded">{selectedInvoice.invoiceNumber}</span>.
                      </p>
-                     <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 text-xs font-bold text-gray-500 font-mono">
-                        {/* Bank Sort Code: 20-45-77 */}
-                        <br />
-                        {/* Target Account: 80921234 */}
+                     <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 text-xs font-bold text-gray-500 font-mono space-y-1">
+                        <p>Sort Code: 20-45-77</p>
+                        <p>Account: 80921234</p>
+                        <p>Account Name: DigitalBOX Ltd</p>
                      </div>
                   </div>
                   
                   <div className="w-full sm:w-[400px] bg-gray-900 text-white rounded-3xl p-8 shadow-[4px_8px_0px_#10b981]">
                       <div className="flex justify-between py-2 text-gray-400 font-bold mb-2">
-                        <span className="uppercase tracking-widest text-[11px]">Subtotal Node</span>
+                        <span className="uppercase tracking-widest text-[11px]">Subtotal</span>
                         <span className="text-white text-[15px]">{formatCurrency(selectedInvoice.subtotal)}</span>
                       </div>
                       <div className="flex justify-between py-2 border-b border-gray-700 pb-6 mb-6">

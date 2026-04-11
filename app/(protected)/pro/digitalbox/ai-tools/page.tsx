@@ -19,6 +19,8 @@ import {
   BarChart3,
   Type,
   Mail,
+  ClipboardList,
+  AlertTriangle,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
@@ -120,6 +122,22 @@ const aiTools = [
     category: "PPC",
     color: "from-red-500 to-pink-500",
   },
+  {
+    id: 13,
+    name: "Campaign Brief Summariser",
+    description: "Paste a client brief and extract structured scope, KPIs, timeline, and deliverables",
+    icon: ClipboardList,
+    category: "Strategy",
+    color: "from-[#0a9396] to-teal-500",
+  },
+  {
+    id: 14,
+    name: "Performance Anomaly Analyser",
+    description: "Describe a campaign metric change and get an AI explanation with recommended actions",
+    icon: AlertTriangle,
+    category: "Analytics",
+    color: "from-amber-500 to-yellow-500",
+  },
 ];
 
 export default function AIToolsPage() {
@@ -155,6 +173,8 @@ export default function AIToolsPage() {
     length: "1500",
     tone: "professional",
   });
+  const [briefData, setBriefData] = useState({ rawBrief: "" });
+  const [anomalyData, setAnomalyData] = useState({ metric: "", change: "", platform: "", context: "" });
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -306,20 +326,20 @@ export default function AIToolsPage() {
           </div>
           
           <h2 className="text-4xl lg:text-5xl font-black tracking-tighter text-gray-900 mb-6 relative z-10">
-            Intelligent <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#0a9396] to-teal-400">Generations</span>
+            Your AI <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#0a9396] to-teal-400">Toolkit</span>
           </h2>
           <p className="text-gray-500 font-medium max-w-lg mx-auto mb-12 text-lg leading-relaxed relative z-10">
-            Select an algorithmic module from the active terminal library to instantly synthesize content, align SEO nodes, or architect marketing sequences.
+            Select a tool from the library on the left to get started. Generate content, research keywords, write ad copy, and more.
           </p>
-          
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 w-full max-w-xl relative z-10">
             <div className="p-5 rounded-2xl bg-white/60 border border-white/80 shadow-[0_4px_20px_rgb(0,0,0,0.02)] flex items-center gap-4 backdrop-blur-xl hover:shadow-lg hover:-translate-y-1 transition-all">
               <div className="p-3 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl shadow-lg shadow-amber-500/20">
                 <Zap className="h-6 w-6 text-white" />
               </div>
               <div className="text-left">
-                <div className="font-extrabold tracking-tight text-gray-900 text-base mb-0.5">Hyper Results</div>
-                <div className="text-[13px] font-medium text-gray-500">Zero latency translations</div>
+                <div className="font-extrabold tracking-tight text-gray-900 text-base mb-0.5">Fast Results</div>
+                <div className="text-[13px] font-medium text-gray-500">Generate content in seconds</div>
               </div>
             </div>
             <div className="p-5 rounded-2xl bg-white/60 border border-white/80 shadow-[0_4px_20px_rgb(0,0,0,0.02)] flex items-center gap-4 backdrop-blur-xl hover:shadow-lg hover:-translate-y-1 transition-all">
@@ -327,8 +347,8 @@ export default function AIToolsPage() {
                 <BarChart3 className="h-6 w-6 text-white" />
               </div>
               <div className="text-left">
-                <div className="font-extrabold tracking-tight text-gray-900 text-base mb-0.5">Telemetry Driven</div>
-                <div className="text-[13px] font-medium text-gray-500">Conversion node mapping</div>
+                <div className="font-extrabold tracking-tight text-gray-900 text-base mb-0.5">Data Driven</div>
+                <div className="text-[13px] font-medium text-gray-500">Built for better conversions</div>
               </div>
             </div>
           </div>
@@ -367,7 +387,7 @@ export default function AIToolsPage() {
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <label className="text-[13px] font-bold tracking-widest uppercase text-gray-600 ml-1">Target EndPoint URL</label>
+                      <label className="text-[13px] font-bold tracking-widest uppercase text-gray-600 ml-1">Target URL</label>
                       <GlassInput
                         placeholder="https://example.com/page"
                         value={topicGapData.url}
@@ -375,9 +395,9 @@ export default function AIToolsPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[13px] font-bold tracking-widest uppercase text-gray-600 ml-1">Focus Keyword Node</label>
+                      <label className="text-[13px] font-bold tracking-widest uppercase text-gray-600 ml-1">Focus Keyword</label>
                       <GlassInput
-                        placeholder="e.g., digital marketing vectors"
+                        placeholder="e.g., digital marketing"
                         value={topicGapData.keyword}
                         onChange={(e) => setTopicGapData({ ...topicGapData, keyword: e.target.value })}
                       />
@@ -389,9 +409,9 @@ export default function AIToolsPage() {
                     className={`w-full bg-gradient-to-r ${tool.color} text-white shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all cursor-pointer h-14 rounded-2xl text-lg font-black tracking-wide uppercase mt-4 active:scale-[0.98] border border-white/20`}
                   >
                     {isLoading ? (
-                      <><Loader2 className="mr-3 h-5 w-5 animate-spin" /> Transmitting...</>
+                      <><Loader2 className="mr-3 h-5 w-5 animate-spin" /> Analysing...</>
                     ) : (
-                      <><Search className="mr-3 h-5 w-5" /> Compile Gap Analysis</>
+                      <><Search className="mr-3 h-5 w-5" /> Analyse Topic Gaps</>
                     )}
                   </Button>
                 </>
@@ -401,17 +421,17 @@ export default function AIToolsPage() {
               {activeTool === 2 && (
                 <>
                   <div className="space-y-2">
-                    <label className="text-[13px] font-bold tracking-widest uppercase text-gray-600 ml-1">Origin URL Pipeline</label>
+                    <label className="text-[13px] font-bold tracking-widest uppercase text-gray-600 ml-1">Page URL</label>
                     <GlassInput
-                      placeholder="https://example.com/page-to-optimize"
+                      placeholder="https://example.com/page-to-optimise"
                       value={seoOptData.url}
                       onChange={(e) => setSeoOptData({ ...seoOptData, url: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[13px] font-bold tracking-widest uppercase text-gray-600 ml-1">Raw HTML Content Block</label>
+                    <label className="text-[13px] font-bold tracking-widest uppercase text-gray-600 ml-1">Page Content</label>
                     <GlassTextarea
-                      placeholder="Paste your unparsed html/text segment here..."
+                      placeholder="Paste your page content or HTML here..."
                       value={seoOptData.content}
                       onChange={(e) => setSeoOptData({ ...seoOptData, content: e.target.value })}
                       className="min-h-[180px]"
@@ -423,9 +443,9 @@ export default function AIToolsPage() {
                     className={`w-full bg-gradient-to-r ${tool.color} text-white shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all cursor-pointer h-14 rounded-2xl text-lg font-black tracking-wide uppercase mt-4 active:scale-[0.98] border border-white/20`}
                   >
                     {isLoading ? (
-                      <><Loader2 className="mr-3 h-5 w-5 animate-spin" /> Synthesizing...</>
+                      <><Loader2 className="mr-3 h-5 w-5 animate-spin" /> Optimising...</>
                     ) : (
-                      <><TrendingUp className="mr-3 h-5 w-5" /> Optimize DOM Nodes</>
+                      <><TrendingUp className="mr-3 h-5 w-5" /> Optimise Content</>
                     )}
                   </Button>
                 </>
@@ -436,17 +456,17 @@ export default function AIToolsPage() {
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <label className="text-[13px] font-bold tracking-widest uppercase text-gray-600 ml-1">Vector / Product Service</label>
+                      <label className="text-[13px] font-bold tracking-widest uppercase text-gray-600 ml-1">Product / Service</label>
                       <GlassInput
-                        placeholder="e.g., enterprise SEO tooling"
+                        placeholder="e.g., SEO consulting service"
                         value={adCopyData.product}
                         onChange={(e) => setAdCopyData({ ...adCopyData, product: e.target.value })}
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[13px] font-bold tracking-widest uppercase text-gray-600 ml-1">Target Market Node</label>
+                      <label className="text-[13px] font-bold tracking-widest uppercase text-gray-600 ml-1">Target Audience</label>
                       <GlassInput
-                        placeholder="e.g., fractional CMOs"
+                        placeholder="e.g., small business owners"
                         value={adCopyData.targetAudience}
                         onChange={(e) => setAdCopyData({ ...adCopyData, targetAudience: e.target.value })}
                       />
@@ -454,24 +474,24 @@ export default function AIToolsPage() {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <label className="text-[13px] font-bold tracking-widest uppercase text-gray-600 ml-1">Unique Anchor (USP)</label>
+                      <label className="text-[13px] font-bold tracking-widest uppercase text-gray-600 ml-1">Unique Selling Point (USP)</label>
                       <GlassInput
-                        placeholder="e.g., 200% conversion metrics"
+                        placeholder="e.g., results in 30 days guaranteed"
                         value={adCopyData.usp}
                         onChange={(e) => setAdCopyData({ ...adCopyData, usp: e.target.value })}
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[13px] font-bold tracking-widest uppercase text-gray-600 ml-1">Delivery Platform</label>
+                      <label className="text-[13px] font-bold tracking-widest uppercase text-gray-600 ml-1">Ad Platform</label>
                       <div className="relative">
                          <GlassSelect
                            value={adCopyData.platform}
                            onChange={(e) => setAdCopyData({ ...adCopyData, platform: e.target.value })}
                          >
-                           <option value="Google">Google Search Console</option>
-                           <option value="Facebook">Facebook Business Ops</option>
-                           <option value="LinkedIn">LinkedIn B2B</option>
-                           <option value="Twitter">Twitter Vectors</option>
+                           <option value="Google">Google</option>
+                           <option value="Facebook">Facebook</option>
+                           <option value="LinkedIn">LinkedIn</option>
+                           <option value="Twitter">Twitter / X</option>
                          </GlassSelect>
                          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
                             <TrendingUp className="h-4 w-4" />
@@ -485,9 +505,9 @@ export default function AIToolsPage() {
                     className={`w-full bg-gradient-to-r ${tool.color} text-white shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all cursor-pointer h-14 rounded-2xl text-lg font-black tracking-wide uppercase mt-4 active:scale-[0.98] border border-white/20`}
                   >
                     {isLoading ? (
-                      <><Loader2 className="mr-3 h-5 w-5 animate-spin" /> Parsing...</>
+                      <><Loader2 className="mr-3 h-5 w-5 animate-spin" /> Generating...</>
                     ) : (
-                      <><Sparkles className="mr-3 h-5 w-5" /> Generate Variations</>
+                      <><Sparkles className="mr-3 h-5 w-5" /> Generate Ad Copy</>
                     )}
                   </Button>
                 </>
@@ -498,33 +518,33 @@ export default function AIToolsPage() {
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <label className="text-[13px] font-bold tracking-widest uppercase text-gray-600 ml-1">Sequence Intent Path</label>
+                      <label className="text-[13px] font-bold tracking-widest uppercase text-gray-600 ml-1">Sequence Purpose</label>
                       <GlassInput
-                        placeholder="e.g., onboarding drip sequence"
+                        placeholder="e.g., onboarding new subscribers"
                         value={emailData.purpose}
                         onChange={(e) => setEmailData({ ...emailData, purpose: e.target.value })}
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[13px] font-bold tracking-widest uppercase text-gray-600 ml-1">Receiver Profile Segment</label>
+                      <label className="text-[13px] font-bold tracking-widest uppercase text-gray-600 ml-1">Target Audience</label>
                       <GlassInput
-                        placeholder="e.g., verified beta signups"
+                        placeholder="e.g., new trial sign-ups"
                         value={emailData.audience}
                         onChange={(e) => setEmailData({ ...emailData, audience: e.target.value })}
                       />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[13px] font-bold tracking-widest uppercase text-gray-600 ml-1">Automation Depth (Emails)</label>
+                    <label className="text-[13px] font-bold tracking-widest uppercase text-gray-600 ml-1">Sequence Length</label>
                     <div className="relative">
                       <GlassSelect
                         value={emailData.sequenceLength}
                         onChange={(e) => setEmailData({ ...emailData, sequenceLength: e.target.value })}
                       >
-                        <option value="3">3 node drip (Brief)</option>
-                        <option value="5">5 node drip (Standard)</option>
-                        <option value="7">7 node drip (Extended)</option>
-                        <option value="10">10 node drip (Aggressive)</option>
+                        <option value="3">3 emails (Brief)</option>
+                        <option value="5">5 emails (Standard)</option>
+                        <option value="7">7 emails (Extended)</option>
+                        <option value="10">10 emails (Full)</option>
                       </GlassSelect>
                       <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
                          <Mail className="h-4 w-4" />
@@ -536,7 +556,7 @@ export default function AIToolsPage() {
                     disabled={!emailData.purpose || !emailData.audience || isLoading}
                     className={`w-full bg-gradient-to-r ${tool.color} text-white shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all cursor-pointer h-14 rounded-2xl text-lg font-black tracking-wide uppercase mt-4 active:scale-[0.98] border border-white/20`}
                   >
-                     {isLoading ? <><Loader2 className="mr-3 h-5 w-5 animate-spin" /> Drafting...</> : <><MessageSquare className="mr-3 h-5 w-5" /> Architect Sequence Array</>}
+                     {isLoading ? <><Loader2 className="mr-3 h-5 w-5 animate-spin" /> Creating...</> : <><MessageSquare className="mr-3 h-5 w-5" /> Create Email Sequence</>}
                   </Button>
                 </>
               )}
@@ -545,26 +565,26 @@ export default function AIToolsPage() {
               {activeTool === 5 && (
                 <>
                   <div className="space-y-2">
-                    <label className="text-[13px] font-bold tracking-widest uppercase text-gray-600 ml-1">Protocol Seed Node</label>
+                    <label className="text-[13px] font-bold tracking-widest uppercase text-gray-600 ml-1">Seed Keyword</label>
                     <GlassInput
-                      placeholder="e.g., sustainable marketing strategies"
+                      placeholder="e.g., sustainable marketing"
                       value={keywordData.seedKeyword}
                       onChange={(e) => setKeywordData({ ...keywordData, seedKeyword: e.target.value })}
                     />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <label className="text-[13px] font-bold tracking-widest uppercase text-gray-600 ml-1">Dataset Geolocation</label>
+                      <label className="text-[13px] font-bold tracking-widest uppercase text-gray-600 ml-1">Location</label>
                       <div className="relative">
                         <GlassSelect
                           value={keywordData.location}
                           onChange={(e) => setKeywordData({ ...keywordData, location: e.target.value })}
                         >
-                          <option value="United Kingdom">United Kingdom Matrix</option>
-                          <option value="United States">United States Matrix</option>
-                          <option value="Canada">Canada Matrix</option>
-                          <option value="Australia">Australia Hub</option>
-                          <option value="Global">Global Feed</option>
+                          <option value="United Kingdom">United Kingdom</option>
+                          <option value="United States">United States</option>
+                          <option value="Canada">Canada</option>
+                          <option value="Australia">Australia</option>
+                          <option value="Global">Global</option>
                         </GlassSelect>
                         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
                            <TrendingUp className="h-4 w-4" />
@@ -572,7 +592,7 @@ export default function AIToolsPage() {
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[13px] font-bold tracking-widest uppercase text-gray-600 ml-1">Syntax Language Code</label>
+                      <label className="text-[13px] font-bold tracking-widest uppercase text-gray-600 ml-1">Language</label>
                       <div className="relative">
                         <GlassSelect
                           value={keywordData.language}
@@ -594,7 +614,7 @@ export default function AIToolsPage() {
                     disabled={!keywordData.seedKeyword || isLoading}
                     className={`w-full bg-gradient-to-r ${tool.color} text-white shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all cursor-pointer h-14 rounded-2xl text-lg font-black tracking-wide uppercase mt-4 active:scale-[0.98] border border-white/20`}
                   >
-                     {isLoading ? <><Loader2 className="mr-3 h-5 w-5 animate-spin" /> Mining...</> : <><Hash className="mr-3 h-5 w-5" /> Execute Data Mining</>}
+                     {isLoading ? <><Loader2 className="mr-3 h-5 w-5 animate-spin" /> Researching...</> : <><Hash className="mr-3 h-5 w-5" /> Research Keywords</>}
                   </Button>
                 </>
               )}
@@ -603,26 +623,26 @@ export default function AIToolsPage() {
               {activeTool === 6 && (
                 <>
                   <div className="space-y-2">
-                    <label className="text-[13px] font-bold tracking-widest uppercase text-gray-600 ml-1">Synthesis Topic Core</label>
+                    <label className="text-[13px] font-bold tracking-widest uppercase text-gray-600 ml-1">Topic</label>
                     <GlassInput
-                      placeholder="e.g., Decoding the 2024 core algorithms"
+                      placeholder="e.g., How to improve your SEO in 2024"
                       value={contentData.topic}
                       onChange={(e) => setContentData({ ...contentData, topic: e.target.value })}
                     />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <label className="text-[13px] font-bold tracking-widest uppercase text-gray-600 ml-1">Formatting Node</label>
+                      <label className="text-[13px] font-bold tracking-widest uppercase text-gray-600 ml-1">Content Type</label>
                       <div className="relative">
                         <GlassSelect
                           value={contentData.type}
                           onChange={(e) => setContentData({ ...contentData, type: e.target.value })}
                         >
-                          <option value="blog-post">Standard Blog Form</option>
-                          <option value="article">Deep-dive Article</option>
+                          <option value="blog-post">Blog Post</option>
+                          <option value="article">Article</option>
                           <option value="guide">Step-by-step Guide</option>
-                          <option value="how-to">Instructional Array</option>
-                          <option value="listicle">Listicle Index</option>
+                          <option value="how-to">How-to Guide</option>
+                          <option value="listicle">Listicle</option>
                         </GlassSelect>
                          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
                            <FileText className="h-4 w-4" />
@@ -630,17 +650,17 @@ export default function AIToolsPage() {
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[13px] font-bold tracking-widest uppercase text-gray-600 ml-1">String Length Capacity</label>
+                      <label className="text-[13px] font-bold tracking-widest uppercase text-gray-600 ml-1">Word Count</label>
                       <div className="relative">
                         <GlassSelect
                           value={contentData.length}
                           onChange={(e) => setContentData({ ...contentData, length: e.target.value })}
                         >
-                          <option value="1000">1,000 strings (Short)</option>
-                          <option value="1500">1,500 strings (Standard)</option>
-                          <option value="2000">2,000 strings (Dense)</option>
-                          <option value="2500">2,500 strings (Extended)</option>
-                          <option value="3000">3,000+ strings (Maximum depth)</option>
+                          <option value="1000">~1,000 words (Short)</option>
+                          <option value="1500">~1,500 words (Standard)</option>
+                          <option value="2000">~2,000 words (Medium)</option>
+                          <option value="2500">~2,500 words (Long)</option>
+                          <option value="3000">3,000+ words (Detailed)</option>
                         </GlassSelect>
                         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
                            <FileText className="h-4 w-4" />
@@ -649,17 +669,17 @@ export default function AIToolsPage() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[13px] font-bold tracking-widest uppercase text-gray-600 ml-1">Sentiment Modifier</label>
+                    <label className="text-[13px] font-bold tracking-widest uppercase text-gray-600 ml-1">Tone</label>
                     <div className="relative">
                       <GlassSelect
                         value={contentData.tone}
                         onChange={(e) => setContentData({ ...contentData, tone: e.target.value })}
                       >
-                        <option value="professional">Enterprise Professional</option>
-                        <option value="casual">Startup Casual</option>
-                        <option value="friendly">Network Friendly</option>
-                        <option value="authoritative">Command Authoritative</option>
-                        <option value="conversational">Direct Conversational</option>
+                        <option value="professional">Professional</option>
+                        <option value="casual">Casual</option>
+                        <option value="friendly">Friendly</option>
+                        <option value="authoritative">Authoritative</option>
+                        <option value="conversational">Conversational</option>
                       </GlassSelect>
                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
                            <MessageSquare className="h-4 w-4" />
@@ -671,19 +691,91 @@ export default function AIToolsPage() {
                     disabled={!contentData.topic || isLoading}
                     className={`w-full bg-gradient-to-r ${tool.color} text-white shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all cursor-pointer h-14 rounded-2xl text-lg font-black tracking-wide uppercase mt-4 active:scale-[0.98] border border-white/20`}
                   >
-                     {isLoading ? <><Loader2 className="mr-3 h-5 w-5 animate-spin" /> Compiling...</> : <><PenTool className="mr-3 h-5 w-5" /> Compile Node Block</>}
+                     {isLoading ? <><Loader2 className="mr-3 h-5 w-5 animate-spin" /> Generating...</> : <><PenTool className="mr-3 h-5 w-5" /> Generate Content</>}
+                  </Button>
+                </>
+              )}
+
+              {/* Campaign Brief Summariser */}
+              {activeTool === 13 && (
+                <>
+                  <div className="space-y-2">
+                    <label className="text-[13px] font-bold tracking-widest uppercase text-gray-600 ml-1">Paste Client Brief</label>
+                    <textarea
+                      rows={10}
+                      placeholder="Paste the raw client brief here — email, document, or notes..."
+                      value={briefData.rawBrief}
+                      onChange={e => setBriefData({ rawBrief: e.target.value })}
+                      className="w-full bg-white/40 backdrop-blur-md border border-white/60 rounded-2xl px-5 py-4 text-sm font-medium text-gray-900 placeholder-gray-400 focus:border-[#0a9396]/40 focus:ring-4 focus:ring-[#0a9396]/10 outline-none transition-all shadow-inner resize-none"
+                    />
+                  </div>
+                  <Button
+                    onClick={async () => {
+                      if (!briefData.rawBrief) return;
+                      setIsLoading(true);
+                      try {
+                        const res = await fetch("/api/ai/brief-summarise", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(briefData) });
+                        const data = await res.json();
+                        setResults(data.summary || data.error || "Summary generated.");
+                      } catch { setResults("Error generating summary."); }
+                      finally { setIsLoading(false); }
+                    }}
+                    disabled={!briefData.rawBrief || isLoading}
+                    className={`w-full bg-gradient-to-r ${tool.color} text-white shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all cursor-pointer h-14 rounded-2xl text-lg font-black tracking-wide uppercase mt-4 active:scale-[0.98] border border-white/20`}
+                  >
+                    {isLoading ? <><Loader2 className="mr-3 h-5 w-5 animate-spin" /> Summarising...</> : <><ClipboardList className="mr-3 h-5 w-5" /> Summarise Brief</>}
+                  </Button>
+                </>
+              )}
+
+              {/* Performance Anomaly Analyser */}
+              {activeTool === 14 && (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-[13px] font-bold tracking-widest uppercase text-gray-600 ml-1">Metric</label>
+                      <GlassInput placeholder="e.g. CTR, ROAS, CPA, Conversions" value={anomalyData.metric} onChange={e => setAnomalyData({ ...anomalyData, metric: e.target.value })} />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[13px] font-bold tracking-widest uppercase text-gray-600 ml-1">Change Observed</label>
+                      <GlassInput placeholder="e.g. dropped 40% week-over-week" value={anomalyData.change} onChange={e => setAnomalyData({ ...anomalyData, change: e.target.value })} />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[13px] font-bold tracking-widest uppercase text-gray-600 ml-1">Platform</label>
+                      <GlassInput placeholder="e.g. Meta Ads, Google Ads" value={anomalyData.platform} onChange={e => setAnomalyData({ ...anomalyData, platform: e.target.value })} />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[13px] font-bold tracking-widest uppercase text-gray-600 ml-1">Context</label>
+                      <GlassInput placeholder="e.g. no creative changes, same budget" value={anomalyData.context} onChange={e => setAnomalyData({ ...anomalyData, context: e.target.value })} />
+                    </div>
+                  </div>
+                  <Button
+                    onClick={async () => {
+                      if (!anomalyData.metric || !anomalyData.change) return;
+                      setIsLoading(true);
+                      try {
+                        const res = await fetch("/api/ai/anomaly-analyse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(anomalyData) });
+                        const data = await res.json();
+                        setResults(data.analysis || data.error || "Analysis generated.");
+                      } catch { setResults("Error generating analysis."); }
+                      finally { setIsLoading(false); }
+                    }}
+                    disabled={!anomalyData.metric || !anomalyData.change || isLoading}
+                    className={`w-full bg-gradient-to-r ${tool.color} text-white shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all cursor-pointer h-14 rounded-2xl text-lg font-black tracking-wide uppercase mt-4 active:scale-[0.98] border border-white/20`}
+                  >
+                    {isLoading ? <><Loader2 className="mr-3 h-5 w-5 animate-spin" /> Analysing...</> : <><AlertTriangle className="mr-3 h-5 w-5" /> Analyse Anomaly</>}
                   </Button>
                 </>
               )}
 
               {/* Remaining Tools simplified mapping... */}
-              {activeTool !== null && activeTool >= 7 && (
+              {activeTool !== null && activeTool >= 7 && activeTool !== 13 && activeTool !== 14 && (
                 <div className="flex flex-col items-center justify-center p-12 text-center rounded-3xl bg-white/20 border border-white/40 shadow-inner">
                    <div className="p-4 bg-white/40 rounded-full mb-4">
                      <Icon className="h-8 w-8 text-gray-600" />
                    </div>
-                   <h3 className="text-xl font-bold text-gray-900 mb-2">Module Initializing</h3>
-                   <p className="text-gray-500 font-medium">This generative node is currently booting its neural path logic.</p>
+                   <h3 className="text-xl font-bold text-gray-900 mb-2">Coming Soon</h3>
+                   <p className="text-gray-500 font-medium">This tool is being built and will be available soon.</p>
                 </div>
               )}
 
@@ -706,7 +798,7 @@ export default function AIToolsPage() {
                           <div className={`rounded-full bg-gradient-to-br ${tool.color} p-1.5 shadow-md`}>
                             <CheckCircle2 className="h-5 w-5 text-white" />
                           </div>
-                          <h4 className="font-bold text-gray-900 tracking-tight text-lg">Transmission Complete</h4>
+                          <h4 className="font-bold text-gray-900 tracking-tight text-lg">Results</h4>
                         </div>
                         <button
                           onClick={() => handleCopy(results)}
@@ -715,12 +807,12 @@ export default function AIToolsPage() {
                           {copied ? (
                             <>
                               <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                              <span className="text-emerald-600">Buffer Copied</span>
+                              <span className="text-emerald-600">Copied!</span>
                             </>
                           ) : (
                             <>
                               <Copy className="h-4 w-4" />
-                              <span>Copy Block</span>
+                              <span>Copy</span>
                             </>
                           )}
                         </button>
@@ -767,13 +859,13 @@ export default function AIToolsPage() {
               </div>
               <div>
                 <h1 className="text-3xl sm:text-4xl font-black text-gray-900 tracking-tighter flex items-center gap-3 mb-1">
-                  AI Interface Module
+                  AI Tools
                   <Badge variant="primary" size="lg" className="hidden sm:inline-flex bg-gradient-to-r from-teal-400 to-[#0a9396] text-white border-none py-1.5 px-3">
-                    Pro Matrix
+                    Pro
                   </Badge>
                 </h1>
                 <p className="text-gray-500 font-bold tracking-wide">
-                  Execute intelligent synthesis tasks using core LLM endpoints.
+                  Generate content, optimise SEO, and automate marketing with AI.
                 </p>
               </div>
             </div>
@@ -787,7 +879,7 @@ export default function AIToolsPage() {
                 <div className="relative group/search">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within/search:text-[#0a9396] transition-colors" />
                   <GlassInput 
-                    placeholder="Scan active module nodes..." 
+                    placeholder="Search tools..."
                     className="pl-12 !h-14 font-medium"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -802,7 +894,7 @@ export default function AIToolsPage() {
                         : "bg-white/60 text-gray-600 border border-white hover:bg-white hover:shadow-sm"
                     }`}
                   >
-                    All Schemas
+                    All Tools
                   </button>
                   {categories.map((category) => (
                     <button
@@ -826,7 +918,7 @@ export default function AIToolsPage() {
                     <div className="p-4 bg-white/40 rounded-full mb-3 shadow-inner">
                       <Search className="h-8 w-8 text-gray-400" />
                     </div>
-                    <p className="font-bold tracking-wide">No modules align with that parameter.</p>
+                    <p className="font-bold tracking-wide">No tools match your search.</p>
                   </div>
                 ) : (
                   filteredTools.map((tool, index) => {

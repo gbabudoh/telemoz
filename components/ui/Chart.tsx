@@ -56,10 +56,12 @@ export function Chart({
         return (
           <AreaChart data={data}>
             <defs>
-              <linearGradient id="colorPrimary" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={colors[0]} stopOpacity={0.3} />
-                <stop offset="95%" stopColor={colors[0]} stopOpacity={0} />
-              </linearGradient>
+              {dataKeys.map((key, index) => (
+                <linearGradient key={key} id={`colorArea${index}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={colors[index % colors.length]} stopOpacity={0.3} />
+                  <stop offset="95%" stopColor={colors[index % colors.length]} stopOpacity={0} />
+                </linearGradient>
+              ))}
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
             <XAxis dataKey={dataKey} stroke="#6b7280" />
@@ -72,13 +74,17 @@ export function Chart({
                 color: "#111827",
               }}
             />
-            <Area
-              type="monotone"
-              dataKey={dataKeys[0] || "value"}
-              stroke={colors[0]}
-              fillOpacity={1}
-              fill="url(#colorPrimary)"
-            />
+            <Legend />
+            {dataKeys.map((key, index) => (
+              <Area
+                key={key}
+                type="monotone"
+                dataKey={key}
+                stroke={colors[index % colors.length]}
+                fillOpacity={1}
+                fill={`url(#colorArea${index})`}
+              />
+            ))}
           </AreaChart>
         );
       case "bar":

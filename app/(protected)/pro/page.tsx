@@ -9,7 +9,6 @@ import {
   DollarSign,
   Users,
   FolderKanban,
-  AlertCircle,
   CheckCircle2,
   Clock,
   Zap,
@@ -22,81 +21,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 
-// Mock data for charts
-const revenueData = [
-  { month: "Jan", revenue: 4500, profit: 3200 },
-  { month: "Feb", revenue: 5200, profit: 3800 },
-  { month: "Mar", revenue: 4800, profit: 3500 },
-  { month: "Apr", revenue: 6100, profit: 4500 },
-  { month: "May", revenue: 5500, profit: 4100 },
-  { month: "Jun", revenue: 6800, profit: 5100 },
-];
-
-const projectStatusData = [
-  { name: "On Track", value: 3, color: "#0a9396" }, // Emerald/Teal
-  { name: "Needs Attention", value: 1, color: "#f59e0b" }, // Amber
-  { name: "Completed", value: 5, color: "#8b5cf6" }, // Violet
-];
-
-const recentInquiries = [
-  {
-    id: 1,
-    client: "TechStart Inc.",
-    project: "SEO Optimization Campaign",
-    budget: 2500,
-    status: "new",
-    time: "2 hours ago",
-    avatar: "T"
-  },
-  {
-    id: 2,
-    client: "E-Commerce Pro",
-    project: "PPC Management",
-    budget: 1800,
-    status: "reviewed",
-    time: "5 hours ago",
-    avatar: "E"
-  },
-  {
-    id: 3,
-    client: "Local Business Hub",
-    project: "Social Media Strategy",
-    budget: 1200,
-    status: "new",
-    time: "1 day ago",
-    avatar: "L"
-  },
-];
-
-const actionItems = [
-  {
-    id: 1,
-    type: "urgent",
-    title: "Client X: SEO Audit - Technical Fixes",
-    description: "3 days overdue",
-    icon: AlertCircle,
-    color: "text-red-500",
-    bg: "bg-red-500/10",
-  },
-  {
-    id: 2,
-    type: "billing",
-    title: "Client Y: Invoice #1002",
-    description: "7 days past due",
-    icon: DollarSign,
-    color: "text-amber-500",
-    bg: "bg-amber-500/10",
-  },
-  {
-    id: 3,
-    type: "performance",
-    title: "Client Z (PPC): ROAS dropped 15%",
-    description: "Last 48 hours",
-    icon: TrendingUp,
-    color: "text-blue-500",
-    bg: "bg-blue-500/10",
-  },
-];
+type RevenuePoint = { month: string; revenue: number; profit: number };
+type StatusPoint = { name: string; value: number; color: string };
+type Inquiry = { id: number; client: string; project: string; budget: number; status: string; time: string; avatar: string };
+type ActionItem = { id: number; type: string; title: string; description: string; icon: React.ComponentType<{ className?: string }>; color: string; bg: string };
 
 interface DashboardStats {
   totalRevenue: number;
@@ -123,6 +51,10 @@ export default function ProDashboard() {
     projectsChange: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [revenueData] = useState<RevenuePoint[]>([]);
+  const [projectStatusData] = useState<StatusPoint[]>([]);
+  const [recentInquiries] = useState<Inquiry[]>([]);
+  const [actionItems] = useState<ActionItem[]>([]);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -185,7 +117,7 @@ export default function ProDashboard() {
                </div>
                <div>
                  <h1 className="text-3xl sm:text-4xl font-black text-gray-900 tracking-tighter drop-shadow-sm flex items-center gap-3">
-                   Welcome Array, {userName}
+                   Welcome back, {userName}
                    <div className="hidden lg:flex items-center relative group/badge cursor-default">
                      <div className="absolute inset-0 bg-gradient-to-r from-teal-400 to-[#0a9396] rounded-full blur opacity-40 group-hover/badge:opacity-80 transition-opacity duration-500 animate-pulse"></div>
                      <Badge variant="primary" size="lg" className="relative bg-gradient-to-r from-[#0a9396] to-teal-500 border border-white/30 shadow-lg text-[9px] uppercase tracking-[0.15em] h-7 w-auto min-w-max items-center px-4 gap-2.5 overflow-hidden font-black">
@@ -200,14 +132,14 @@ export default function ProDashboard() {
                  </h1>
                  <p className="text-gray-500 font-bold tracking-wide mt-1 flex items-center gap-2 text-[15px]">
                    <Activity className="h-4 w-4 text-blue-500" />
-                   System telemetry and business nodes are synced.
+                   Here&apos;s an overview of your business performance.
                  </p>
                </div>
              </div>
 
              <div className="flex items-center gap-3 w-full md:w-auto shrink-0">
                <div className="hidden sm:flex flex-col items-end mr-2">
-                 <div className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">Node Integrity</div>
+                 <div className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">Profile Completion</div>
                  <div className="flex items-center gap-2">
                     <div className="h-2 w-24 bg-gray-200 rounded-full overflow-hidden shrink-0">
                        <div className="h-full w-[95%] bg-gradient-to-r from-emerald-400 to-[#0a9396] rounded-full" />
@@ -262,7 +194,7 @@ export default function ProDashboard() {
                   icon={TrendingUp}
                   gradient="linear-gradient(135deg, #34d399 0%, #0a9396 100%)"
                   animate={!isLoading}
-                  format="currency"
+                  format="percentage"
                 />
               </div>
             </div>
@@ -368,39 +300,48 @@ export default function ProDashboard() {
                   <Zap className="h-6 w-6" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-black text-gray-900 tracking-tight">System Alerts</h2>
-                  <p className="text-gray-500 font-medium text-[13px] tracking-wide">Action nodes pending resolution</p>
+                  <h2 className="text-2xl font-black text-gray-900 tracking-tight">Action Items</h2>
+                  <p className="text-gray-500 font-medium text-[13px] tracking-wide">Items requiring your attention</p>
                 </div>
               </div>
 
               <div className="space-y-4 relative z-10 flex-1">
-                <AnimatePresence>
-                  {actionItems.map((item, index) => {
-                    const Icon = item.icon;
-                    return (
-                      <motion.div
-                        key={item.id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.1 * index }}
-                        className="group/item flex items-center justify-between gap-4 p-4 rounded-2xl bg-white/60 border border-white hover:bg-white hover:shadow-lg hover:shadow-gray-200/50 hover:-translate-y-0.5 transition-all cursor-pointer backdrop-blur-sm"
-                      >
-                         <div className="flex items-center gap-4">
-                           <div className={`p-3 rounded-xl ${item.bg} ${item.color} shadow-inner group-hover/item:scale-110 transition-transform`}>
-                             <Icon className="h-5 w-5" />
-                           </div>
-                           <div>
+                {actionItems.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full py-10 text-center">
+                    <div className="h-14 w-14 rounded-full bg-amber-50 border border-amber-100 flex items-center justify-center mb-3">
+                      <Zap className="h-6 w-6 text-amber-400" />
+                    </div>
+                    <p className="text-sm font-bold text-gray-500">No action items right now.</p>
+                  </div>
+                ) : (
+                  <AnimatePresence>
+                    {actionItems.map((item, index) => {
+                      const Icon = item.icon;
+                      return (
+                        <motion.div
+                          key={item.id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.1 * index }}
+                          className="group/item flex items-center justify-between gap-4 p-4 rounded-2xl bg-white/60 border border-white hover:bg-white hover:shadow-lg hover:shadow-gray-200/50 hover:-translate-y-0.5 transition-all cursor-pointer backdrop-blur-sm"
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className={`p-3 rounded-xl ${item.bg} ${item.color} shadow-inner group-hover/item:scale-110 transition-transform`}>
+                              <Icon className="h-5 w-5" />
+                            </div>
+                            <div>
                               <p className="font-bold text-gray-900 tracking-tight text-[15px]">{item.title}</p>
                               <p className="text-[13px] font-semibold text-gray-500 mt-0.5">{item.description}</p>
-                           </div>
-                         </div>
-                         <Button variant="ghost" size="sm" className="h-10 w-10 p-0 rounded-full opacity-0 group-hover/item:opacity-100 -translate-x-2 group-hover/item:translate-x-0 transition-all bg-gray-50 hover:bg-gray-100 flex items-center justify-center">
-                           <ArrowRight className="h-4 w-4 text-gray-600" />
-                         </Button>
-                      </motion.div>
-                    );
-                  })}
-                </AnimatePresence>
+                            </div>
+                          </div>
+                          <Button variant="ghost" size="sm" className="h-10 w-10 p-0 rounded-full opacity-0 group-hover/item:opacity-100 -translate-x-2 group-hover/item:translate-x-0 transition-all bg-gray-50 hover:bg-gray-100 flex items-center justify-center">
+                            <ArrowRight className="h-4 w-4 text-gray-600" />
+                          </Button>
+                        </motion.div>
+                      );
+                    })}
+                  </AnimatePresence>
+                )}
               </div>
             </div>
           </motion.div>
@@ -418,74 +359,97 @@ export default function ProDashboard() {
                   <Users className="h-6 w-6" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-black text-gray-900 tracking-tight">Active Pipelines</h2>
-                  <p className="text-gray-500 font-medium text-[13px] tracking-wide">Client nodes entering funnel</p>
+                  <h2 className="text-2xl font-black text-gray-900 tracking-tight">Recent Inquiries</h2>
+                  <p className="text-gray-500 font-medium text-[13px] tracking-wide">New client requests from the marketplace</p>
                 </div>
               </div>
 
               <div className="space-y-4 relative z-10 flex-1">
-                <AnimatePresence>
-                  {recentInquiries.map((inquiry, index) => (
-                    <motion.div
-                      key={inquiry.id}
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.1 * index }}
-                      className="group/item flex items-center justify-between gap-4 p-4 rounded-2xl bg-white/60 border border-white hover:bg-white hover:shadow-lg hover:shadow-gray-200/50 hover:-translate-y-0.5 transition-all cursor-pointer backdrop-blur-sm"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-indigo-50 to-blue-50 border border-blue-100 flex items-center justify-center text-lg font-black text-blue-600 shadow-inner shrink-0 group-hover/item:shadow-blue-200/50 transition-all">
-                          {inquiry.avatar}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                             <h4 className="font-bold text-gray-900 tracking-tight text-[15px]">{inquiry.client}</h4>
-                             <Badge variant={inquiry.status === "new" ? "primary" : "outline"} className="text-[10px] uppercase font-black px-1.5 py-0 h-5">
-                               {inquiry.status}
-                             </Badge>
+                {recentInquiries.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full py-10 text-center">
+                    <div className="h-14 w-14 rounded-full bg-teal-50 border border-teal-100 flex items-center justify-center mb-3">
+                      <Users className="h-6 w-6 text-[#0a9396]" />
+                    </div>
+                    <p className="text-sm font-bold text-gray-500">No inquiries yet.</p>
+                  </div>
+                ) : (
+                  <AnimatePresence>
+                    {recentInquiries.map((inquiry, index) => (
+                      <motion.div
+                        key={inquiry.id}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.1 * index }}
+                        className="group/item flex items-center justify-between gap-4 p-4 rounded-2xl bg-white/60 border border-white hover:bg-white hover:shadow-lg hover:shadow-gray-200/50 hover:-translate-y-0.5 transition-all cursor-pointer backdrop-blur-sm"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-indigo-50 to-blue-50 border border-blue-100 flex items-center justify-center text-lg font-black text-blue-600 shadow-inner shrink-0 group-hover/item:shadow-blue-200/50 transition-all">
+                            {inquiry.avatar}
                           </div>
-                          <p className="text-[13px] font-semibold text-gray-500 truncate mt-0.5">{inquiry.project}</p>
-                          <div className="flex items-center gap-2 mt-1.5 opacity-70">
-                             <Badge variant="outline" className="text-[10px] font-bold border-gray-200 bg-gray-50/50 rounded-md py-0 h-[18px]">
-                               {formatCurrency(inquiry.budget)}
-                             </Badge>
-                             <span className="text-gray-300">•</span>
-                             <span className="text-[11px] font-bold text-gray-400 tracking-wide uppercase">{inquiry.time}</span>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-bold text-gray-900 tracking-tight text-[15px]">{inquiry.client}</h4>
+                              <Badge variant={inquiry.status === "new" ? "primary" : "outline"} className="text-[10px] uppercase font-black px-1.5 py-0 h-5">
+                                {inquiry.status}
+                              </Badge>
+                            </div>
+                            <p className="text-[13px] font-semibold text-gray-500 truncate mt-0.5">{inquiry.project}</p>
+                            <div className="flex items-center gap-2 mt-1.5 opacity-70">
+                              <Badge variant="outline" className="text-[10px] font-bold border-gray-200 bg-gray-50/50 rounded-md py-0 h-[18px]">
+                                {formatCurrency(inquiry.budget)}
+                              </Badge>
+                              <span className="text-gray-300">•</span>
+                              <span className="text-[11px] font-bold text-gray-400 tracking-wide uppercase">{inquiry.time}</span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      
-                      <Button className="hidden sm:inline-flex shrink-0 opacity-0 group-hover/item:opacity-100 -translate-x-2 group-hover/item:translate-x-0 transition-all bg-gray-900 text-white hover:bg-black rounded-xl cursor-pointer shadow-md">
-                        Respond
-                      </Button>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
+                        <Button className="hidden sm:inline-flex shrink-0 opacity-0 group-hover/item:opacity-100 -translate-x-2 group-hover/item:translate-x-0 transition-all bg-gray-900 text-white hover:bg-black rounded-xl cursor-pointer shadow-md">
+                          Respond
+                        </Button>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                )}
               </div>
             </div>
           </motion.div>
         </motion.div>
 
         {/* Quick Stats Footer row */}
-        <motion.div 
+        <motion.div
            initial={{ opacity: 0, y: 20 }}
            animate={{ opacity: 1, y: 0 }}
            transition={{ delay: 0.8 }}
            className="grid grid-cols-1 md:grid-cols-3 gap-5"
         >
-          {[
-            { title: "Marketplace Rating", value: "4.8/5", icon: CheckCircle2, color: "emerald", gradient: "from-emerald-400 to-teal-500" },
-            { title: "Inquiry Conversion", value: "68%", icon: TrendingUp, color: "blue", gradient: "from-blue-400 to-indigo-500" },
-            { title: "Avg. Response Time", value: "2.4h", icon: Clock, color: "violet", gradient: "from-violet-400 to-purple-500" }
-          ].map((stat, i) => (
+          {([
+            {
+              title: "Marketplace Rating", value: "—", icon: CheckCircle2,
+              gradient: "from-emerald-400 to-teal-500",
+              iconBg: "bg-emerald-500/10 border-emerald-500/20",
+              iconText: "text-emerald-500",
+            },
+            {
+              title: "Inquiry Conversion", value: "—", icon: TrendingUp,
+              gradient: "from-blue-400 to-indigo-500",
+              iconBg: "bg-blue-500/10 border-blue-500/20",
+              iconText: "text-blue-500",
+            },
+            {
+              title: "Avg. Response Time", value: "—", icon: Clock,
+              gradient: "from-violet-400 to-purple-500",
+              iconBg: "bg-violet-500/10 border-violet-500/20",
+              iconText: "text-violet-500",
+            },
+          ] as const).map((stat, i) => (
              <div key={i} className="group relative bg-white/40 backdrop-blur-2xl rounded-2xl border border-white/60 p-5 flex items-center justify-between shadow-[inset_0_2px_15px_rgb(255,255,255,0.7),0_4px_20px_rgb(0,0,0,0.02)] hover:bg-white/60 transition-colors overflow-hidden cursor-pointer">
                 <div className={`absolute top-0 bottom-0 left-0 w-1.5 bg-gradient-to-b ${stat.gradient} opacity-0 group-hover:opacity-100 transition-opacity`} />
                 <div className="relative z-10">
                   <p className="text-[12px] font-bold tracking-widest uppercase text-gray-500 mb-1">{stat.title}</p>
                   <p className="text-2xl font-black text-gray-900 tracking-tighter">{stat.value}</p>
                 </div>
-                <div className={`p-3 rounded-xl bg-${stat.color}-500/10 border border-${stat.color}-500/20 shadow-inner group-hover:bg-gradient-to-br ${stat.gradient} transition-all duration-300 relative z-10`}>
-                  <stat.icon className={`h-6 w-6 text-${stat.color}-500 group-hover:text-white transition-colors`} />
+                <div className={`p-3 rounded-xl border shadow-inner group-hover:bg-gradient-to-br ${stat.iconBg} ${stat.gradient} transition-all duration-300 relative z-10`}>
+                  <stat.icon className={`h-6 w-6 ${stat.iconText} group-hover:text-white transition-colors`} />
                 </div>
              </div>
           ))}
