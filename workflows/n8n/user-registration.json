@@ -1,0 +1,104 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "telemoz/user-registered",
+        "options": {}
+      },
+      "id": "e4922687-bf6f-47dc-a567-c104869c9b77",
+      "name": "Webhook: User Registered",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ],
+      "webhookId": "telemoz-user-registration"
+    },
+    {
+      "parameters": {
+        "content": "## Telemoz Onboarding Workflow\nThis workflow triggers when a new user registers on the platform.\n\n### Data received:\n- `id`\n- `name`\n- `email`\n- `userType` (pro/client)",
+        "height": 268,
+        "width": 328
+      },
+      "id": "b0f7e91d-5b3e-4613-8b77-a8bd67699d9b",
+      "name": "Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        210,
+        150
+      ]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "notifications",
+          "mode": "list",
+          "cachedResultName": "notifications"
+        },
+        "text": "=🚀 *New User Registered on Telemoz*\n\n*Name:* {{$json[\"body\"][\"name\"]}}\n*Email:* {{$json[\"body\"][\"email\"]}}\n*Type:* {{$json[\"body\"][\"userType\"]}}\n\nCheck the dashboard for details.",
+        "otherOptions": {}
+      },
+      "id": "76d4992b-8a9d-4876-8cc0-032c109786a3",
+      "name": "Slack: Notify Admin",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [
+        550,
+        200
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "placeholder-slack",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "onboarding@telemoz.com",
+        "toEmail": "={{$json[\"body\"][\"email\"]}}",
+        "subject": "=Welcome to Telemoz, {{$json[\"body\"][\"name\"]}}! 🚀",
+        "text": "=Hi {{$json[\"body\"][\"name\"]}},\n\nWelcome to Telemoz! We're excited to have you onboard as a {{$json[\"body\"][\"userType\"]}}.\n\nYou can now log in and complete your profile to get started.\n\nBest regards,\nThe Telemoz Team",
+        "html": "=Hi <b>{{$json[\"body\"][\"name\"]}}</b>,<br><br>Welcome to <b>Telemoz</b>! We're excited to have you onboard as a <b>{{$json[\"body\"][\"userType\"]}}</b>.<br><br>You can now log in and complete your profile to get started.<br><br>Best regards,<br>The Telemoz Team",
+        "options": {}
+      },
+      "id": "d0a8b9e1-f672-4d33-90d2-97282b0f4435",
+      "name": "Email: Welcome Sequence",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        550,
+        400
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "placeholder-smtp",
+          "name": "SMTP account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook: User Registered": {
+      "main": [
+        [
+          {
+            "node": "Slack: Notify Admin",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Email: Welcome Sequence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

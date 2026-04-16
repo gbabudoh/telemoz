@@ -22,6 +22,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { countriesByRegion, regions } from "@/lib/countries";
+import { DeleteAccountModal } from "@/components/settings/DeleteAccountModal";
 
 export default function ClientSettingsPage() {
   const { data: session } = useSession();
@@ -44,6 +45,19 @@ export default function ClientSettingsPage() {
     newPassword: "",
     confirmPassword: "",
   });
+
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+  const handleDeleteAccount = async () => {
+    try {
+      const response = await fetch("/api/user/delete", { method: "DELETE" });
+      if (response.ok) {
+        await signOut({ callbackUrl: "/" });
+      }
+    } catch (error) {
+      console.error("Error deleting account:", error);
+    }
+  };
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -592,12 +606,21 @@ export default function ClientSettingsPage() {
                 </p>
               </div>
             </div>
-            <button className="h-11 px-6 rounded-xl bg-red-600 hover:bg-red-700 text-white font-medium text-sm shadow-sm border-none transition-all cursor-pointer flex items-center gap-2 shrink-0">
+            <button 
+              onClick={() => setIsDeleteModalOpen(true)}
+              className="h-11 px-6 rounded-xl bg-red-600 hover:bg-red-700 text-white font-medium text-sm shadow-sm border-none transition-all cursor-pointer flex items-center gap-2 shrink-0"
+            >
               <Trash2 className="h-4 w-4" />
               Delete Account
             </button>
           </div>
         </div>
+
+        <DeleteAccountModal 
+          isOpen={isDeleteModalOpen} 
+          onClose={() => setIsDeleteModalOpen(false)} 
+          onConfirm={handleDeleteAccount}
+        />
 
       </div>
     </div>

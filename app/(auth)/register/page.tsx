@@ -420,7 +420,7 @@ export default function RegisterPage() {
                 <div className="space-y-4">
                   {[
                     { icon: CheckCircle2, text: "Free to join — no subscription or sign-up fees" },
-                    { icon: CheckCircle2, text: "Secure escrow payments protect both sides" },
+                    { icon: CheckCircle2, text: "Secure payment protection protects both sides" },
                     { icon: CheckCircle2, text: "AI-powered tools included for Professionals" },
                   ].map(({ icon: Icon, text }) => (
                     <div key={text} className="flex items-center gap-3">

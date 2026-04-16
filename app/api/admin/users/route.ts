@@ -1,20 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import mongoose from "mongoose";
-import User from "@/models/User";
+import prisma from "@/lib/prisma";
 
-async function connectDB() {
-  if (mongoose.connections[0].readyState) {
-    return;
-  }
-  try {
-    await mongoose.connect(process.env.MONGODB_URI || "");
-  } catch (error) {
-    console.error("MongoDB connection error:", error);
-    throw error;
-  }
-}
+// No need for connectDB with Prisma as it's handled by the client singleton
 
 // GET /api/admin/users - Get all users
 export async function GET(request: NextRequest) {
@@ -29,9 +18,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    await connectDB();
-
-    const users = await User.find({}).select("-password").sort({ createdAt: -1 });
+    const users = await prisma.user.findMany({
+      orderBy: { createdAt: "desc" },
+    });
 
     return NextResponse.json({ users });
   } catch (error) {

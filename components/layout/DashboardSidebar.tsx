@@ -149,14 +149,26 @@ const clientNavGroups: NavGroup[] = [
 
 const adminNavGroups: NavGroup[] = [
   {
-    label: "Admin",
+    label: "Overview",
     defaultOpen: true,
     items: [
       { title: "Dashboard", href: "/admin", icon: LayoutDashboard },
+      { title: "Reports", href: "/admin/reports", icon: BarChart3 },
+    ],
+  },
+  {
+    label: "Management",
+    defaultOpen: true,
+    items: [
       { title: "Users", href: "/admin/users", icon: Users },
       { title: "Projects", href: "/admin/projects", icon: FolderKanban },
       { title: "Transactions", href: "/admin/transactions", icon: CreditCard },
-      { title: "Reports", href: "/admin/reports", icon: BarChart3 },
+    ],
+  },
+  {
+    label: "System",
+    defaultOpen: true,
+    items: [
       { title: "Settings", href: "/admin/settings", icon: Settings },
     ],
   },

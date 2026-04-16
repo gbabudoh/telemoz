@@ -1,0 +1,57 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "telemoz/project-created",
+        "options": {}
+      },
+      "id": "project-created-webhook",
+      "name": "Webhook: Project Created",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "channelId": {
+          "__rl": true,
+          "value": "projects",
+          "mode": "list"
+        },
+        "text": "=🔔 *New Project Posted on Telemoz*\n\n*Project:* {{$json[\"body\"][\"name\"]}}\n*Budget:* {{$json[\"body\"][\"budget\"]}}\n*Client ID:* {{$json[\"body\"][\"clientId\"]}}\n\nCheck the project board to approve/manage.",
+        "otherOptions": {}
+      },
+      "id": "slack-project-notify",
+      "name": "Slack: Project Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [
+        500,
+        300
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "placeholder-slack",
+          "name": "Slack account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook: Project Created": {
+      "main": [
+        [
+          {
+            "node": "Slack: Project Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

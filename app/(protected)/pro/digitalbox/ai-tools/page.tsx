@@ -140,6 +140,30 @@ const aiTools = [
   },
 ];
 
+// Reusable components for the glass inputs (defined outside to prevent focus loss on re-render)
+const GlassInput = (props: React.InputHTMLAttributes<HTMLInputElement>) => (
+  <input
+    {...props}
+    className={`w-full px-5 h-12 rounded-xl border border-white/60 bg-white/40 focus:bg-white/90 text-sm text-gray-900 placeholder-gray-500 focus:border-[#0a9396]/60 focus:outline-none focus:ring-4 focus:ring-[#0a9396]/10 transition-all backdrop-blur-md shadow-[inset_0_2px_4px_rgb(0,0,0,0.02)] ${props.className || ''}`}
+  />
+);
+
+const GlassSelect = (props: React.SelectHTMLAttributes<HTMLSelectElement>) => (
+  <select
+    {...props}
+    className={`w-full px-5 h-12 rounded-xl border border-white/60 bg-white/40 focus:bg-white/90 text-sm text-gray-900 focus:border-[#0a9396]/60 focus:outline-none focus:ring-4 focus:ring-[#0a9396]/10 transition-all backdrop-blur-md shadow-[inset_0_2px_4px_rgb(0,0,0,0.02)] appearance-none cursor-pointer ${props.className || ''}`}
+  >
+    {props.children}
+  </select>
+);
+
+const GlassTextarea = (props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) => (
+  <textarea
+    {...props}
+    className={`w-full px-5 py-4 rounded-xl border border-white/60 bg-white/40 focus:bg-white/90 text-sm text-gray-900 placeholder-gray-500 focus:border-[#0a9396]/60 focus:outline-none focus:ring-4 focus:ring-[#0a9396]/10 transition-all backdrop-blur-md shadow-[inset_0_2px_4px_rgb(0,0,0,0.02)] resize-y ${props.className || ''}`}
+  />
+);
+
 export default function AIToolsPage() {
   const [activeTool, setActiveTool] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -288,30 +312,6 @@ export default function AIToolsPage() {
       setIsLoading(false);
     }
   };
-
-  // Reusable component for the glass inputs
-  const GlassInput = (props: React.InputHTMLAttributes<HTMLInputElement>) => (
-    <input
-      {...props}
-      className={`w-full px-5 h-12 rounded-xl border border-white/60 bg-white/40 focus:bg-white/90 text-sm text-gray-900 placeholder-gray-500 focus:border-[#0a9396]/60 focus:outline-none focus:ring-4 focus:ring-[#0a9396]/10 transition-all backdrop-blur-md shadow-[inset_0_2px_4px_rgb(0,0,0,0.02)] ${props.className || ''}`}
-    />
-  );
-
-  const GlassSelect = (props: React.SelectHTMLAttributes<HTMLSelectElement>) => (
-    <select
-      {...props}
-      className={`w-full px-5 h-12 rounded-xl border border-white/60 bg-white/40 focus:bg-white/90 text-sm text-gray-900 focus:border-[#0a9396]/60 focus:outline-none focus:ring-4 focus:ring-[#0a9396]/10 transition-all backdrop-blur-md shadow-[inset_0_2px_4px_rgb(0,0,0,0.02)] appearance-none cursor-pointer ${props.className || ''}`}
-    >
-      {props.children}
-    </select>
-  );
-
-  const GlassTextarea = (props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) => (
-    <textarea
-      {...props}
-      className={`w-full px-5 py-4 rounded-xl border border-white/60 bg-white/40 focus:bg-white/90 text-sm text-gray-900 placeholder-gray-500 focus:border-[#0a9396]/60 focus:outline-none focus:ring-4 focus:ring-[#0a9396]/10 transition-all backdrop-blur-md shadow-[inset_0_2px_4px_rgb(0,0,0,0.02)] resize-y ${props.className || ''}`}
-    />
-  );
 
   const renderToolInterface = () => {
     const tool = aiTools.find((t) => t.id === activeTool);

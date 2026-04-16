@@ -18,92 +18,85 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
 
-const reports = [
-  {
-    id: 1,
-    projectId: 1,
-    projectName: "Q4 Social Media Campaign",
-    pro: "Digital Marketing Pro",
-    period: "October – December 2024",
-    generatedDate: "2024-12-10",
-    status: "active",
-    metrics: {
-      traffic: 45000,
-      leads: 1570,
-      conversions: 445,
-      revenue: 12500,
-      roas: 4.2,
-    },
-  },
-  {
-    id: 2,
-    projectId: 2,
-    projectName: "SEO Optimisation",
-    pro: "SEO Experts Ltd",
-    period: "November – December 2024",
-    generatedDate: "2024-12-05",
-    status: "active",
-    metrics: {
-      traffic: 32000,
-      leads: 980,
-      conversions: 245,
-      revenue: 8500,
-      roas: 3.8,
-    },
-  },
-  {
-    id: 3,
-    projectId: 3,
-    projectName: "Email Marketing Campaign",
-    pro: "Digital Marketing Pro",
-    period: "September – November 2024",
-    generatedDate: "2024-11-30",
-    status: "completed",
-    metrics: {
-      traffic: 28000,
-      leads: 1200,
-      conversions: 380,
-      revenue: 9500,
-      roas: 4.5,
-    },
-  },
-];
+interface ReportMetrics {
+  traffic: number;
+  leads: number;
+  conversions: number;
+  revenue: number;
+  roas: number;
+}
 
-const overallStats = {
-  totalTraffic: 105000,
-  totalLeads: 3750,
-  totalConversions: 1070,
-  totalRevenue: 30500,
-  avgROAS: 4.2,
-  activeProjects: 2,
-};
+interface Report {
+  id: string;
+  projectId: string;
+  projectName: string;
+  pro: string;
+  status: string;
+  createdAt: string;
+  metrics: ReportMetrics;
+}
 
-const chartData = [
-  { month: "Oct", traffic: 22000, leads: 380, conversions: 120 },
-  { month: "Nov", traffic: 28000, leads: 520, conversions: 145 },
-  { month: "Dec", traffic: 35000, leads: 600, conversions: 180 },
-  { month: "Jan", traffic: 45000, leads: 750, conversions: 210 },
-];
-
-const statsConfig = [
-  { label: "Total Traffic", value: overallStats.totalTraffic.toLocaleString(), icon: Activity },
-  { label: "Total Leads", value: overallStats.totalLeads.toLocaleString(), icon: Users },
-  { label: "Conversions", value: overallStats.totalConversions.toLocaleString(), icon: Target },
-  { label: "Total Revenue", value: formatCurrency(overallStats.totalRevenue), icon: DollarSign },
-  { label: "Avg. ROAS", value: `${overallStats.avgROAS}x`, icon: BarChart3 },
-  { label: "Active Projects", value: overallStats.activeProjects, icon: TrendingUp },
-];
+interface OverallStats {
+  totalTraffic: number;
+  totalLeads: number;
+  totalConversions: number;
+  totalRevenue: number;
+  avgROAS: number;
+  activeProjects: number;
+}
 
 export default function ClientReportsPage() {
+  const [reports, setReports] = useState<Report[]>([]);
+  const [overallStats, setOverallStats] = useState<OverallStats>({
+    totalTraffic: 0,
+    totalLeads: 0,
+    totalConversions: 0,
+    totalRevenue: 0,
+    avgROAS: 0,
+    activeProjects: 0,
+  });
+  const [chartData, setChartData] = useState<{ month: string; traffic: number; leads: number; conversions: number }[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isExporting, setIsExporting] = useState(false);
   const [exportSuccess, setExportSuccess] = useState(false);
-  const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setIsLoading(true);
+    fetch("/api/client/reports")
+      .then((r) => r.json())
+      .then((d) => {
+        setReports(d.reports ?? []);
+        if (d.overallStats) setOverallStats(d.overallStats);
+      })
+      .catch(console.error)
+      .finally(() => setIsLoading(false));
+  }, []);
+
+  // Build chart data from reports (aggregate by project creation month)
+  useEffect(() => {
+    if (reports.length === 0) {
+      setChartData([]);
+      return;
+    }
+    const monthMap = new Map<string, { traffic: number; leads: number; conversions: number }>();
+    for (const r of reports) {
+      const month = new Date(r.createdAt).toLocaleDateString("en-GB", { month: "short" });
+      const existing = monthMap.get(month) ?? { traffic: 0, leads: 0, conversions: 0 };
+      monthMap.set(month, {
+        traffic: existing.traffic + r.metrics.traffic,
+        leads: existing.leads + r.metrics.leads,
+        conversions: existing.conversions + r.metrics.conversions,
+      });
+    }
+    setChartData(Array.from(monthMap.entries()).map(([month, data]) => ({ month, ...data })));
+  }, [reports]);
 
   const filteredReports = reports.filter((report) => {
     const matchesSearch =
@@ -115,18 +108,27 @@ export default function ClientReportsPage() {
 
   const handleExport = async () => {
     setIsExporting(true);
-    await new Promise(r => setTimeout(r, 1200));
+    await new Promise((r) => setTimeout(r, 1200));
     setIsExporting(false);
     setExportSuccess(true);
     setTimeout(() => setExportSuccess(false), 3000);
   };
 
-  const handleDownloadPDF = async (id: number) => {
+  const handleDownloadPDF = async (id: string) => {
     setDownloadingId(id);
-    await new Promise(r => setTimeout(r, 1200));
+    await new Promise((r) => setTimeout(r, 1200));
     setDownloadingId(null);
     window.print();
   };
+
+  const statsConfig = [
+    { label: "Total Traffic", value: overallStats.totalTraffic.toLocaleString(), icon: Activity },
+    { label: "Total Leads", value: overallStats.totalLeads.toLocaleString(), icon: Users },
+    { label: "Conversions", value: overallStats.totalConversions.toLocaleString(), icon: Target },
+    { label: "Total Revenue", value: formatCurrency(overallStats.totalRevenue), icon: DollarSign },
+    { label: "Avg. ROAS", value: overallStats.avgROAS > 0 ? `${overallStats.avgROAS}x` : "—", icon: BarChart3 },
+    { label: "Active Projects", value: overallStats.activeProjects, icon: TrendingUp },
+  ];
 
   const panelClass = "bg-white/60 backdrop-blur-xl border border-white/80 rounded-2xl shadow-sm overflow-hidden";
 
@@ -140,11 +142,7 @@ export default function ClientReportsPage() {
       <div className="space-y-8 relative z-10 max-w-[1700px] mx-auto pb-12">
 
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={panelClass}
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className={panelClass}>
           <div className="p-8 lg:p-10">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
               <div className="flex items-center gap-5">
@@ -152,23 +150,15 @@ export default function ClientReportsPage() {
                   <BarChart3 className="h-8 w-8 text-[#0a9396]" />
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
-                    Reports & Analytics
-                  </h1>
-                  <p className="text-gray-500 text-sm mt-0.5 max-w-xl">
-                    Performance data across all your active and completed campaigns.
-                  </p>
+                  <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Reports & Analytics</h1>
+                  <p className="text-gray-500 text-sm mt-0.5 max-w-xl">Performance data across all your active and completed campaigns.</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 <AnimatePresence>
                   {exportSuccess && (
-                    <motion.div
-                      initial={{ opacity: 0, x: 10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 10 }}
-                      className="flex items-center gap-2 text-sm text-[#5ab830] font-medium"
-                    >
+                    <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }}
+                      className="flex items-center gap-2 text-sm text-[#5ab830] font-medium">
                       <CheckCircle2 className="h-4 w-4" />
                       Exported successfully
                     </motion.div>
@@ -176,7 +166,7 @@ export default function ClientReportsPage() {
                 </AnimatePresence>
                 <button
                   onClick={handleExport}
-                  disabled={isExporting}
+                  disabled={isExporting || isLoading}
                   className="px-6 py-3 rounded-xl bg-[#0a9396] hover:bg-[#087579] text-white font-semibold text-sm shadow-sm transition-all cursor-pointer flex items-center gap-2 disabled:opacity-60 h-fit"
                 >
                   {isExporting ? (
@@ -205,56 +195,47 @@ export default function ClientReportsPage() {
                 <stat.icon className="h-4 w-4 text-[#0a9396]" />
               </div>
               <p className="text-xs text-gray-400 mb-1">{stat.label}</p>
-              <p className="text-xl font-bold text-gray-900">{stat.value}</p>
+              <p className="text-xl font-bold text-gray-900">{isLoading ? "—" : stat.value}</p>
             </motion.div>
           ))}
         </div>
 
         {/* Chart */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className={panelClass}
-        >
-          <div className="p-6 lg:p-8">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-linear-to-br from-[#0a9396]/10 to-[#6ece39]/10">
-                  <BarChart3 className="h-5 w-5 text-[#0a9396]" />
+        {chartData.length > 0 && (
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className={panelClass}>
+            <div className="p-6 lg:p-8">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-linear-to-br from-[#0a9396]/10 to-[#6ece39]/10">
+                    <BarChart3 className="h-5 w-5 text-[#0a9396]" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-semibold text-gray-900">Performance Overview</h3>
+                    <p className="text-xs text-gray-400">Across all projects</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-base font-semibold text-gray-900">Performance Overview</h3>
-                  <p className="text-xs text-gray-400">Across all projects</p>
-                </div>
-              </div>
-              <div className="flex gap-4">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 rounded-full bg-[#0a9396]" />
-                  <span className="text-xs text-gray-400">Traffic</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 rounded-full bg-[#6ece39]" />
-                  <span className="text-xs text-gray-400">Leads</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 rounded-full bg-[#087579]" />
-                  <span className="text-xs text-gray-400">Conversions</span>
+                <div className="flex gap-4">
+                  {[["#0a9396", "Traffic"], ["#6ece39", "Leads"], ["#087579", "Conversions"]].map(([color, label]) => (
+                    <div key={label} className="flex items-center gap-1.5">
+                      <div className="w-2 h-2 rounded-full" style={{ background: color }} />
+                      <span className="text-xs text-gray-400">{label}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
+              <div className="h-80">
+                <Chart
+                  data={chartData}
+                  type="area"
+                  dataKey="month"
+                  dataKeys={["traffic", "leads", "conversions"]}
+                  className="border-none bg-transparent shadow-none"
+                  colors={["#0a9396", "#6ece39", "#087579"]}
+                />
+              </div>
             </div>
-            <div className="h-80">
-              <Chart
-                data={chartData}
-                type="area"
-                dataKey="month"
-                dataKeys={["traffic", "leads", "conversions"]}
-                className="border-none bg-transparent shadow-none"
-                colors={["#0a9396", "#6ece39", "#087579"]}
-              />
-            </div>
-          </div>
-        </motion.div>
+          </motion.div>
+        )}
 
         {/* Search & Filter */}
         <div className={panelClass}>
@@ -289,118 +270,125 @@ export default function ClientReportsPage() {
         </div>
 
         {/* Report cards */}
-        <AnimatePresence mode="popLayout">
-          {filteredReports.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className={`${panelClass} p-16 text-center flex flex-col items-center`}
-            >
-              <div className="h-14 w-14 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center mb-4">
-                <FileText className="h-7 w-7 text-gray-300" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-1">No reports found</h3>
-              <p className="text-gray-500 text-sm">No reports match your current search or filter.</p>
-            </motion.div>
-          ) : (
-            <div className="flex flex-col gap-5">
-              {filteredReports.map((report, index) => (
-                <motion.div
-                  key={report.id}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.08 }}
-                  layout
-                  className={`${panelClass} hover:shadow-md hover:border-[#0a9396]/20 transition-all duration-300 group`}
-                >
-                  <div className="p-6 lg:p-8 flex flex-col lg:flex-row gap-8 items-start lg:items-center">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="h-10 w-10 rounded-full border-4 border-[#0a9396]/20 border-t-[#0a9396] animate-spin" />
+          </div>
+        ) : (
+          <AnimatePresence mode="popLayout">
+            {filteredReports.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className={`${panelClass} p-16 text-center flex flex-col items-center`}
+              >
+                <div className="h-14 w-14 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center mb-4">
+                  <FileText className="h-7 w-7 text-gray-300" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">No reports found</h3>
+                <p className="text-gray-500 text-sm">
+                  {searchQuery || statusFilter !== "all"
+                    ? "No reports match your current search or filter."
+                    : "Reports will appear here once your projects have campaign data."}
+                </p>
+              </motion.div>
+            ) : (
+              <div className="flex flex-col gap-5">
+                {filteredReports.map((report, index) => (
+                  <motion.div
+                    key={report.id}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.08 }}
+                    layout
+                    className={`${panelClass} hover:shadow-md hover:border-[#0a9396]/20 transition-all duration-300 group`}
+                  >
+                    <div className="p-6 lg:p-8 flex flex-col lg:flex-row gap-8 items-start lg:items-center">
 
-                    {/* Report info */}
-                    <div className="flex-1 space-y-5 min-w-0">
-                      <div>
-                        <div className="flex flex-wrap items-center gap-2.5 mb-2">
-                          <h3 className="text-lg font-semibold text-gray-900 group-hover:text-[#0a9396] transition-colors">{report.projectName}</h3>
-                          <div className={`px-2.5 py-0.5 rounded-full text-[10px] font-medium border ${
-                            report.status === "active"
-                              ? "bg-[#6ece39]/10 text-[#5ab830] border-[#6ece39]/20"
-                              : "bg-[#0a9396]/10 text-[#0a9396] border-[#0a9396]/20"
-                          }`}>
-                            {report.status}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-4 text-sm text-gray-500">
-                          <div className="flex items-center gap-1.5">
-                            <Users className="h-3.5 w-3.5 text-[#0a9396]" />
-                            {report.pro}
-                          </div>
-                          <div className="w-1 h-1 rounded-full bg-gray-200" />
-                          <div className="flex items-center gap-1.5">
-                            <Calendar className="h-3.5 w-3.5 text-gray-400" />
-                            {report.period}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Metrics */}
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-                        {[
-                          { label: "Traffic", value: report.metrics.traffic.toLocaleString(), icon: Activity },
-                          { label: "Leads", value: report.metrics.leads.toLocaleString(), icon: Target },
-                          { label: "Conversions", value: report.metrics.conversions.toLocaleString(), icon: Zap },
-                          { label: "Revenue", value: formatCurrency(report.metrics.revenue), icon: DollarSign },
-                          { label: "ROAS", value: `${report.metrics.roas}x`, icon: TrendingUp },
-                        ].map((m) => (
-                          <div key={m.label} className="p-3.5 rounded-xl bg-gray-50/80 border border-gray-100 space-y-1">
-                            <div className="flex items-center justify-between">
-                              <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">{m.label}</p>
-                              <m.icon className="h-3 w-3 text-gray-300" />
+                      <div className="flex-1 space-y-5 min-w-0">
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2.5 mb-2">
+                            <h3 className="text-lg font-semibold text-gray-900 group-hover:text-[#0a9396] transition-colors">{report.projectName}</h3>
+                            <div className={`px-2.5 py-0.5 rounded-full text-[10px] font-medium border ${
+                              report.status === "active"
+                                ? "bg-[#6ece39]/10 text-[#5ab830] border-[#6ece39]/20"
+                                : "bg-[#0a9396]/10 text-[#0a9396] border-[#0a9396]/20"
+                            }`}>
+                              {report.status.replace("_", " ")}
                             </div>
-                            <p className="text-base font-semibold text-gray-900">{m.value}</p>
                           </div>
-                        ))}
+                          <div className="flex items-center gap-4 text-sm text-gray-500">
+                            <div className="flex items-center gap-1.5">
+                              <Users className="h-3.5 w-3.5 text-[#0a9396]" />
+                              {report.pro}
+                            </div>
+                            <div className="w-1 h-1 rounded-full bg-gray-200" />
+                            <div className="flex items-center gap-1.5">
+                              <Calendar className="h-3.5 w-3.5 text-gray-400" />
+                              {new Date(report.createdAt).toLocaleDateString("en-GB", { month: "short", year: "numeric" })}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                          {[
+                            { label: "Traffic", value: report.metrics.traffic.toLocaleString(), icon: Activity },
+                            { label: "Leads", value: report.metrics.leads.toLocaleString(), icon: Target },
+                            { label: "Conversions", value: report.metrics.conversions.toLocaleString(), icon: Zap },
+                            { label: "Revenue", value: formatCurrency(report.metrics.revenue), icon: DollarSign },
+                            { label: "ROAS", value: report.metrics.roas > 0 ? `${report.metrics.roas}x` : "—", icon: TrendingUp },
+                          ].map((m) => (
+                            <div key={m.label} className="p-3.5 rounded-xl bg-gray-50/80 border border-gray-100 space-y-1">
+                              <div className="flex items-center justify-between">
+                                <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">{m.label}</p>
+                                <m.icon className="h-3 w-3 text-gray-300" />
+                              </div>
+                              <p className="text-base font-semibold text-gray-900">{m.value}</p>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
 
-                    {/* Actions */}
-                    <div className="lg:w-48 w-full flex-shrink-0 flex flex-col gap-2.5">
-                      <Link href={`/client/reports/${report.projectId}`}>
-                        <button className="w-full h-11 rounded-xl bg-white border border-gray-200 hover:border-[#0a9396]/30 text-gray-700 hover:text-gray-900 font-medium text-sm shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer">
-                          <Eye className="h-4 w-4" />
-                          View Report
+                      <div className="lg:w-48 w-full shrink-0 flex flex-col gap-2.5">
+                        <Link href={`/client/reports/${report.projectId}`}>
+                          <button className="w-full h-11 rounded-xl bg-white border border-gray-200 hover:border-[#0a9396]/30 text-gray-700 hover:text-gray-900 font-medium text-sm shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer">
+                            <Eye className="h-4 w-4" />
+                            View Report
+                          </button>
+                        </Link>
+                        <button
+                          onClick={() => handleDownloadPDF(report.id)}
+                          disabled={downloadingId !== null}
+                          className="w-full h-11 rounded-xl bg-[#0a9396] hover:bg-[#087579] text-white font-semibold text-sm shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                        >
+                          {downloadingId === report.id ? (
+                            <>
+                              <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                              Preparing...
+                            </>
+                          ) : (
+                            <>
+                              <Download className="h-4 w-4" />
+                              Download PDF
+                            </>
+                          )}
                         </button>
-                      </Link>
-                      <button
-                        onClick={() => handleDownloadPDF(report.id)}
-                        disabled={downloadingId !== null}
-                        className="w-full h-11 rounded-xl bg-[#0a9396] hover:bg-[#087579] text-white font-semibold text-sm shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
-                      >
-                        {downloadingId === report.id ? (
-                          <>
-                            <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                            Preparing...
-                          </>
-                        ) : (
-                          <>
-                            <Download className="h-4 w-4" />
-                            Download PDF
-                          </>
-                        )}
-                      </button>
-                      <Link href="/client/projects" className="text-center">
-                        <span className="text-xs text-gray-400 hover:text-[#0a9396] cursor-pointer transition-colors flex items-center justify-center gap-1.5 group/prj">
-                          View Project
-                          <ArrowRight className="h-3 w-3 group-hover/prj:translate-x-0.5 transition-transform" />
-                        </span>
-                      </Link>
-                    </div>
+                        <Link href="/client/projects" className="text-center">
+                          <span className="text-xs text-gray-400 hover:text-[#0a9396] cursor-pointer transition-colors flex items-center justify-center gap-1.5 group/prj">
+                            View Project
+                            <ArrowRight className="h-3 w-3 group-hover/prj:translate-x-0.5 transition-transform" />
+                          </span>
+                        </Link>
+                      </div>
 
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          )}
-        </AnimatePresence>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </AnimatePresence>
+        )}
 
       </div>
     </div>

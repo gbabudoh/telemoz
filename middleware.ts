@@ -4,13 +4,27 @@ import { NextResponse } from "next/server";
 export default withAuth(
   function middleware(req) {
     const { pathname } = req.nextUrl;
-    const user = req.nextauth.token;
+    const token = req.nextauth.token;
+    const userType = token?.userType as string | undefined;
 
-    // If user is authenticated and attempts to access landing, login, or register
-    if (user && (pathname === "/" || pathname === "/login" || pathname === "/register")) {
-      const userType = user.userType as string;
+    // Redirect authenticated users away from public auth pages
+    if (token && (pathname === "/" || pathname === "/login" || pathname === "/register")) {
       const dashboard = userType === "admin" ? "/admin" : userType === "client" ? "/client" : "/pro";
       return NextResponse.redirect(new URL(dashboard, req.url));
+    }
+
+    // ── Role-based access control ──────────────────────────────────────────
+    // Admin-only paths
+    if (pathname.startsWith("/admin") && userType !== "admin") {
+      return NextResponse.redirect(new URL("/login", req.url));
+    }
+    // Pro-only paths
+    if (pathname.startsWith("/pro") && userType !== "pro") {
+      return NextResponse.redirect(new URL("/login", req.url));
+    }
+    // Client-only paths
+    if (pathname.startsWith("/client") && userType !== "client") {
+      return NextResponse.redirect(new URL("/login", req.url));
     }
 
     return NextResponse.next();
@@ -19,18 +33,29 @@ export default withAuth(
     callbacks: {
       authorized: ({ token, req }) => {
         const { pathname } = req.nextUrl;
-        
-        // Define public routes that don't need authentication
-        const isPublicRoute = 
-          pathname === "/" || 
-          pathname === "/login" || 
-          pathname === "/register" || 
+
+        // Public routes — no token required
+        const isPublicRoute =
+          pathname === "/" ||
+          pathname === "/login" ||
+          pathname === "/register" ||
           pathname === "/marketplace" ||
-          pathname.startsWith("/api/auth");
+          pathname.startsWith("/marketplace/") ||
+          pathname.startsWith("/api/auth") ||
+          pathname === "/privacy" ||
+          pathname === "/terms" ||
+          pathname === "/cookie-policy" ||
+          pathname === "/refund-policy" ||
+          pathname === "/acceptable-use" ||
+          pathname === "/about" ||
+          pathname === "/how-it-works" ||
+          pathname === "/blog" ||
+          pathname === "/support" ||
+          pathname.startsWith("/documentation");
 
         if (isPublicRoute) return true;
 
-        // Require token for everything else (protected routes)
+        // Everything else requires authentication
         return !!token;
       },
     },
@@ -45,6 +70,7 @@ export const config = {
     "/client/:path*",
     "/pro/:path*",
     "/admin/:path*",
-    "/marketplace",
+    "/marketplace/:path*",
+    "/messaging/:path*",
   ],
 };

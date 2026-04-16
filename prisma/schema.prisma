@@ -247,7 +247,7 @@ model User {
 model ProProfile {
   id             String          @id @default(cuid())
   userId         String          @unique
-  user           User            @relation(fields: [userId], references: [id])
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   bio            String
   specialties    String[]
   location       String
@@ -294,9 +294,9 @@ model Project {
   category     String?
   timeline     String?
   proId        String?
-  pro          User?         @relation("ProProjects", fields: [proId], references: [id])
+  pro          User?         @relation("ProProjects", fields: [proId], references: [id], onDelete: SetNull)
   clientId     String
-  client       User          @relation("ClientProjects", fields: [clientId], references: [id])
+  client       User          @relation("ClientProjects", fields: [clientId], references: [id], onDelete: Cascade)
   status       ProjectStatus @default(under_review)
   startDate    DateTime?     @default(now())
   endDate      DateTime?
@@ -353,7 +353,7 @@ model DeliverableApproval {
   deliverableId  String
   deliverable    Deliverable    @relation(fields: [deliverableId], references: [id])
   reviewerId     String
-  reviewer       User           @relation(fields: [reviewerId], references: [id])
+  reviewer       User           @relation(fields: [reviewerId], references: [id], onDelete: Cascade)
   status         ApprovalStatus
   note           String?
   createdAt      DateTime       @default(now())
@@ -363,9 +363,9 @@ model Invoice {
   id            String        @id @default(cuid())
   invoiceNumber String        @unique
   proId         String
-  pro           User          @relation("ProInvoices", fields: [proId], references: [id])
+  pro           User          @relation("ProInvoices", fields: [proId], references: [id], onDelete: Cascade)
   clientId      String
-  client        User          @relation("ClientInvoices", fields: [clientId], references: [id])
+  client        User          @relation("ClientInvoices", fields: [clientId], references: [id], onDelete: Cascade)
   projectId     String?
   project       Project?      @relation(fields: [projectId], references: [id])
   retainerId    String?
@@ -400,7 +400,7 @@ model InvoiceItem {
 model ScheduledCall {
   id          String              @id @default(cuid())
   proId       String
-  pro         User                @relation("ProScheduledCalls", fields: [proId], references: [id])
+  pro         User                @relation("ProScheduledCalls", fields: [proId], references: [id], onDelete: Cascade)
   contactName String
   contactId   String?
   scheduledAt DateTime
@@ -417,9 +417,9 @@ model ScheduledCall {
 model Proposal {
   id          String         @id @default(cuid())
   proId       String
-  pro         User           @relation("ProProposals", fields: [proId], references: [id])
+  pro         User           @relation("ProProposals", fields: [proId], references: [id], onDelete: Cascade)
   clientId    String
-  client      User           @relation("ClientProposals", fields: [clientId], references: [id])
+  client      User           @relation("ClientProposals", fields: [clientId], references: [id], onDelete: Cascade)
   projectId   String?
   project     Project?       @relation(fields: [projectId], references: [id])
 
@@ -449,9 +449,9 @@ model Proposal {
 model Contract {
   id           String         @id @default(cuid())
   proId        String
-  pro          User           @relation("ProContracts", fields: [proId], references: [id])
+  pro          User           @relation("ProContracts", fields: [proId], references: [id], onDelete: Cascade)
   clientId     String
-  client       User           @relation("ClientContracts", fields: [clientId], references: [id])
+  client       User           @relation("ClientContracts", fields: [clientId], references: [id], onDelete: Cascade)
   projectId    String?
   project      Project?       @relation(fields: [projectId], references: [id])
   proposalId   String?        @unique
@@ -476,9 +476,9 @@ model Contract {
 model RetainerAgreement {
   id             String        @id @default(cuid())
   proId          String
-  pro            User          @relation("ProRetainers", fields: [proId], references: [id])
+  pro          User          @relation("ProRetainers", fields: [proId], references: [id], onDelete: Cascade)
   clientId       String
-  client         User          @relation("ClientRetainers", fields: [clientId], references: [id])
+  client         User          @relation("ClientRetainers", fields: [clientId], references: [id], onDelete: Cascade)
 
   title          String
   description    String?
@@ -504,7 +504,7 @@ model RetainerAgreement {
 model TimeEntry {
   id          String             @id @default(cuid())
   proId       String
-  pro         User               @relation(fields: [proId], references: [id])
+  pro         User               @relation(fields: [proId], references: [id], onDelete: Cascade)
   projectId   String?
   project     Project?           @relation(fields: [projectId], references: [id])
   retainerId  String?
@@ -525,7 +525,7 @@ model TimeEntry {
 model Campaign {
   id          String           @id @default(cuid())
   proId       String
-  pro         User             @relation("ProCampaigns", fields: [proId], references: [id])
+  pro         User             @relation("ProCampaigns", fields: [proId], references: [id], onDelete: Cascade)
   projectId   String?
   project     Project?         @relation(fields: [projectId], references: [id])
 
@@ -570,7 +570,7 @@ model CampaignMetric {
 model ContentItem {
   id             String        @id @default(cuid())
   proId          String
-  pro            User          @relation(fields: [proId], references: [id])
+  pro            User          @relation(fields: [proId], references: [id], onDelete: Cascade)
   projectId      String?
   project        Project?      @relation(fields: [projectId], references: [id])
 
@@ -598,7 +598,7 @@ model ContentItem {
 model BrandAsset {
   id         String     @id @default(cuid())
   proId      String
-  pro        User       @relation(fields: [proId], references: [id])
+  pro       User       @relation(fields: [proId], references: [id], onDelete: Cascade)
   projectId  String?
   project    Project?   @relation(fields: [projectId], references: [id])
   clientName String?    // for reference without a project
@@ -619,7 +619,7 @@ model BrandAsset {
 model ProjectBrief {
   id              String    @id @default(cuid())
   clientId        String
-  client          User      @relation(fields: [clientId], references: [id])
+  client          User      @relation(fields: [clientId], references: [id], onDelete: Cascade)
   projectId       String?   @unique
   project         Project?  @relation(fields: [projectId], references: [id])
 
@@ -642,9 +642,9 @@ model ProjectBrief {
 model TeamMember {
   id        String    @id @default(cuid())
   agencyId  String
-  agency    User      @relation("AgencyTeam", fields: [agencyId], references: [id])
+  agency    User      @relation("AgencyTeam", fields: [agencyId], references: [id], onDelete: Cascade)
   memberId  String
-  member    User      @relation("MemberOf", fields: [memberId], references: [id])
+  member    User      @relation("MemberOf", fields: [memberId], references: [id], onDelete: Cascade)
   role      TeamRole  @default(contributor)
   createdAt DateTime  @default(now())
 
@@ -656,7 +656,7 @@ model TeamMember {
 model ScheduledReport {
   id          String        @id @default(cuid())
   proId       String
-  pro         User          @relation(fields: [proId], references: [id])
+  pro         User          @relation(fields: [proId], references: [id], onDelete: Cascade)
   projectId   String?
   project     Project?      @relation(fields: [projectId], references: [id])
 

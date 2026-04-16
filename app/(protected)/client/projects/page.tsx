@@ -15,83 +15,56 @@ import {
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 
-const projects = [
-  {
-    id: 1,
-    name: "Q4 Social Media Campaign",
-    pro: "Digital Marketing Pro",
-    proId: "pro-1",
-    status: "active",
-    progress: 80,
-    budget: 5000,
-    spent: 4000,
-    deadline: "2024-12-15",
-    startDate: "2024-10-01",
-    tasks: 12,
-    completedTasks: 10,
-    nextMilestone: "Milestone 3 Due Friday",
-    description: "Comprehensive social media strategy and content creation for Q4 holiday season",
-  },
-  {
-    id: 2,
-    name: "SEO Optimization",
-    pro: "SEO Experts Ltd",
-    proId: "pro-2",
-    status: "active",
-    progress: 45,
-    budget: 3500,
-    spent: 1575,
-    deadline: "2024-12-20",
-    startDate: "2024-11-01",
-    tasks: 15,
-    completedTasks: 7,
-    nextMilestone: "Content Audit Complete",
-    description: "Technical SEO improvements and content optimization for better search rankings",
-  },
-  {
-    id: 3,
-    name: "Email Marketing Campaign",
-    pro: "Digital Marketing Pro",
-    proId: "pro-1",
-    status: "completed",
-    progress: 100,
-    budget: 2500,
-    spent: 2500,
-    deadline: "2024-11-30",
-    startDate: "2024-09-01",
-    tasks: 10,
-    completedTasks: 10,
-    nextMilestone: "Project Completed",
-    description: "Automated email sequences and newsletter campaigns",
-  },
-  {
-    id: 4,
-    name: "PPC Campaign Setup",
-    pro: "Digital Marketing Pro",
-    proId: "pro-1",
-    status: "planning",
-    progress: 15,
-    budget: 4000,
-    spent: 600,
-    deadline: "2025-01-15",
-    startDate: "2024-12-01",
-    tasks: 8,
-    completedTasks: 1,
-    nextMilestone: "Campaign Strategy Review",
-    description: "Google Ads and Facebook Ads campaign setup and optimisation",
-  },
-];
+interface Project {
+  id: string;
+  name: string;
+  pro: string;
+  proId: string | null;
+  status: string;
+  progress: number;
+  budget: number;
+  currency: string;
+  deadline: string | null;
+  startDate: string | null;
+  description: string;
+  nextMilestone: string;
+}
+
+function statusToProgress(status: string): number {
+  switch (status) {
+    case "completed": return 100;
+    case "active": return 60;
+    case "planning": return 20;
+    case "under_review": return 5;
+    default: return 0;
+  }
+}
+
+function statusToMilestone(status: string): string {
+  switch (status) {
+    case "under_review": return "Initial Review in Progress";
+    case "planning": return "Project Kick-off";
+    case "active": return "In Progress";
+    case "completed": return "Project Completed";
+    case "on_hold": return "On Hold";
+    default: return status;
+  }
+}
 
 export default function ClientProjectsPage() {
+  const { data: session } = useSession();
 
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showProjectDetails, setShowProjectDetails] = useState(false);
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
-  const [selectedProject, setSelectedProject] = useState<typeof projects[0] | null>(null);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
   const [formSuccess, setFormSuccess] = useState(false);
@@ -103,6 +76,43 @@ export default function ClientProjectsPage() {
     category: "",
     requirements: "",
   });
+
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    setIsLoading(true);
+    fetch("/api/projects?userType=client")
+      .then((r) => r.json())
+      .then((d) => {
+        interface BackendProject {
+          id: string;
+          title: string;
+          status: string;
+          budget?: number;
+          currency: string;
+          endDate?: string | null;
+          startDate?: string | null;
+          description: string;
+          pro?: { id: string; name: string } | null;
+        }
+        const mapped: Project[] = (d.projects ?? []).map((p: BackendProject) => ({
+          id: p.id,
+          name: p.title,
+          pro: p.pro?.name ?? "Assigning Pro...",
+          proId: p.pro?.id ?? null,
+          status: p.status,
+          progress: statusToProgress(p.status),
+          budget: p.budget ?? 0,
+          currency: p.currency ?? "GBP",
+          deadline: p.endDate ?? null,
+          startDate: p.startDate ?? null,
+          description: p.description,
+          nextMilestone: statusToMilestone(p.status),
+        }));
+        setProjects(mapped);
+      })
+      .catch(console.error)
+      .finally(() => setIsLoading(false));
+  }, [session]);
 
   const filteredProjects = projects.filter((project) => {
     const matchesSearch =
@@ -116,34 +126,89 @@ export default function ClientProjectsPage() {
     { title: "Total Projects", value: projects.length, icon: FolderKanban, gradient: "from-[#0a9396]/10 to-[#6ece39]/10", iconColor: "text-[#0a9396]" },
     { title: "Active", value: projects.filter((p) => p.status === "active").length, icon: TrendingUp, gradient: "from-[#0a9396]/10 to-[#6ece39]/10", iconColor: "text-[#0a9396]" },
     { title: "Completed", value: projects.filter((p) => p.status === "completed").length, icon: CheckCircle2, gradient: "from-[#6ece39]/10 to-[#0a9396]/10", iconColor: "text-[#6ece39]" },
-    { title: "Total Spent", value: formatCurrency(projects.reduce((sum, p) => sum + p.spent, 0)), icon: DollarSign, gradient: "from-[#0a9396]/10 to-[#6ece39]/10", iconColor: "text-[#0a9396]" },
+    { title: "Total Budget", value: formatCurrency(projects.reduce((sum, p) => sum + p.budget, 0)), icon: DollarSign, gradient: "from-[#0a9396]/10 to-[#6ece39]/10", iconColor: "text-[#0a9396]" },
   ];
 
-  const handleViewDetails = (project: typeof projects[0]) => {
+  const handleViewDetails = (project: Project) => {
     setSelectedProject(project);
     setShowProjectDetails(true);
   };
 
   const getStatusBadge = (status: string) => {
-    const configs: Record<string, { bg: string, text: string, border: string }> = {
+    const configs: Record<string, { bg: string; text: string; border: string }> = {
       active: { bg: "bg-[#6ece39]/10", text: "text-[#5ab830]", border: "border-[#6ece39]/20" },
       completed: { bg: "bg-[#0a9396]/10", text: "text-[#0a9396]", border: "border-[#0a9396]/20" },
       planning: { bg: "bg-amber-500/10", text: "text-amber-600", border: "border-amber-500/20" },
-      "on-hold": { bg: "bg-red-500/10", text: "text-red-600", border: "border-red-500/20" },
+      on_hold: { bg: "bg-red-500/10", text: "text-red-600", border: "border-red-500/20" },
+      under_review: { bg: "bg-gray-100", text: "text-gray-600", border: "border-gray-200" },
     };
-    const config = configs[status] || configs.active;
+    const config = configs[status] ?? configs.under_review;
     return (
       <div className={`px-3 py-1 rounded-full ${config.bg} ${config.text} ${config.border} border text-[10px] font-bold uppercase tracking-widest`}>
-        {status}
+        {status.replace("_", " ")}
       </div>
     );
   };
 
-  const getDaysUntilDeadline = (deadline: string) => {
+  const getDaysUntilDeadline = (deadline: string | null) => {
+    if (!deadline) return null;
     const today = new Date();
     const deadlineDate = new Date(deadline);
     const diffTime = deadlineDate.getTime() - today.getTime();
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  };
+
+  const handleCreateProject = async () => {
+    setFormError("");
+    if (!newProject.name || !newProject.description || !newProject.budget || !newProject.category) {
+      setFormError("Please fill in all required fields.");
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const response = await fetch("/api/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: newProject.name,
+          description: newProject.description,
+          budget: newProject.budget,
+          category: newProject.category,
+          endDate: newProject.deadline || undefined,
+        }),
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        setFormError(data.error ?? "Failed to create project.");
+        return;
+      }
+      const { project: p } = await response.json();
+      const mapped: Project = {
+        id: p.id,
+        name: p.title,
+        pro: "Assigning Pro...",
+        proId: null,
+        status: p.status,
+        progress: statusToProgress(p.status),
+        budget: p.budget ?? 0,
+        currency: p.currency ?? "GBP",
+        deadline: p.endDate ?? null,
+        startDate: p.startDate ?? null,
+        description: p.description,
+        nextMilestone: statusToMilestone(p.status),
+      };
+      setProjects((prev) => [mapped, ...prev]);
+      setFormSuccess(true);
+      setTimeout(() => {
+        setShowNewProjectModal(false);
+        setFormSuccess(false);
+        setNewProject({ name: "", description: "", budget: "", deadline: "", category: "", requirements: "" });
+      }, 1500);
+    } catch {
+      setFormError("Network error. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const panelClass = "bg-white/60 backdrop-blur-xl border border-white/80 rounded-2xl shadow-sm overflow-hidden";
@@ -170,11 +235,9 @@ export default function ClientProjectsPage() {
                   <FolderKanban className="h-8 w-8 text-[#0a9396]" />
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
-                    My Projects
-                  </h1>
+                  <h1 className="text-3xl font-bold text-gray-900 tracking-tight">My Projects</h1>
                   <p className="text-gray-500 text-sm mt-0.5">
-                    {projects.length} project{projects.length !== 1 ? "s" : ""} in your workspace
+                    {isLoading ? "Loading..." : `${projects.length} project${projects.length !== 1 ? "s" : ""} in your workspace`}
                   </p>
                 </div>
               </div>
@@ -232,7 +295,7 @@ export default function ClientProjectsPage() {
                 />
               </div>
               <div className="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0">
-                {["all", "active", "planning", "completed", "on-hold"].map((status) => (
+                {["all", "active", "planning", "completed", "on_hold"].map((status) => (
                   <button
                     key={status}
                     onClick={() => setStatusFilter(status)}
@@ -242,7 +305,7 @@ export default function ClientProjectsPage() {
                         : "bg-white/60 text-gray-500 hover:text-gray-700 border border-gray-100"
                     }`}
                   >
-                    {status === "all" ? "All" : status.charAt(0).toUpperCase() + status.slice(1)}
+                    {status === "all" ? "All" : status.replace("_", " ").charAt(0).toUpperCase() + status.replace("_", " ").slice(1)}
                   </button>
                 ))}
               </div>
@@ -251,156 +314,179 @@ export default function ClientProjectsPage() {
         </motion.div>
 
         {/* Project List */}
-        <AnimatePresence mode="popLayout">
-          {filteredProjects.length === 0 ? (
-            <motion.div
-              layout
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className={`${panelClass} p-16 text-center flex flex-col items-center justify-center`}
-            >
-              <div className="h-16 w-16 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center mb-5">
-                <FolderKanban className="h-8 w-8 text-gray-300" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No projects found</h3>
-              <p className="text-gray-500 text-sm max-w-sm mx-auto mb-6">No projects match your current search or filter.</p>
-              <button
-                onClick={() => { setSearchQuery(""); setStatusFilter("all"); }}
-                className="px-5 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 text-sm font-medium text-gray-700 transition-all cursor-pointer"
+        {isLoading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="h-10 w-10 rounded-full border-4 border-[#0a9396]/20 border-t-[#0a9396] animate-spin" />
+          </div>
+        ) : (
+          <AnimatePresence mode="popLayout">
+            {filteredProjects.length === 0 ? (
+              <motion.div
+                layout
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className={`${panelClass} p-16 text-center flex flex-col items-center justify-center`}
               >
-                Clear Filters
-              </button>
-            </motion.div>
-          ) : (
-            <motion.div layout className="flex flex-col gap-5">
-              {filteredProjects.map((project, idx) => {
-                const daysLeft = getDaysUntilDeadline(project.deadline);
-                const isOverdue = daysLeft < 0 && project.status !== "completed";
-
-                return (
-                  <motion.div
-                    key={project.id}
-                    layout
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.08 }}
-                    className={`${panelClass} hover:shadow-md hover:border-[#0a9396]/20 transition-all duration-300`}
+                <div className="h-16 w-16 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center mb-5">
+                  <FolderKanban className="h-8 w-8 text-gray-300" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  {searchQuery || statusFilter !== "all" ? "No projects found" : "No projects yet"}
+                </h3>
+                <p className="text-gray-500 text-sm max-w-sm mx-auto mb-6">
+                  {searchQuery || statusFilter !== "all"
+                    ? "No projects match your current search or filter."
+                    : "Post your first project to start working with verified marketing professionals."}
+                </p>
+                {searchQuery || statusFilter !== "all" ? (
+                  <button
+                    onClick={() => { setSearchQuery(""); setStatusFilter("all"); }}
+                    className="px-5 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 text-sm font-medium text-gray-700 transition-all cursor-pointer"
                   >
-                    <div className="p-6 lg:p-8 flex flex-col lg:flex-row gap-8">
+                    Clear Filters
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setShowNewProjectModal(true)}
+                    className="px-5 py-2.5 rounded-xl bg-[#0a9396] hover:bg-[#087579] text-white font-semibold text-sm shadow-sm transition-all"
+                  >
+                    New Project
+                  </button>
+                )}
+              </motion.div>
+            ) : (
+              <motion.div layout className="flex flex-col gap-5">
+                {filteredProjects.map((project, idx) => {
+                  const daysLeft = getDaysUntilDeadline(project.deadline);
+                  const isOverdue = daysLeft !== null && daysLeft < 0 && project.status !== "completed";
 
-                      {/* Progress ring + status */}
-                      <div className="flex lg:flex-col items-center lg:items-center justify-between lg:justify-center lg:w-40 lg:border-r border-gray-100 pr-0 lg:pr-8 shrink-0">
-                        <div className="relative mb-0 lg:mb-5 h-20 w-20">
-                          <svg viewBox="0 0 80 80" className="w-full h-full -rotate-90">
-                            <circle
-                              cx="40" cy="40" r="32"
-                              fill="none"
-                              stroke="#e5e7eb"
-                              strokeWidth="5"
-                            />
-                            <motion.circle
-                              cx="40" cy="40" r="32"
-                              fill="none"
-                              stroke="#0a9396"
-                              strokeWidth="5"
-                              strokeLinecap="round"
-                              strokeDasharray="201.06"
-                              initial={{ strokeDashoffset: 201.06 }}
-                              animate={{ strokeDashoffset: 201.06 - (201.06 * project.progress) / 100 }}
-                              transition={{ duration: 1.2, ease: "circOut" }}
-                            />
-                          </svg>
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <span className="text-base font-bold text-gray-900">{project.progress}%</span>
+                  return (
+                    <motion.div
+                      key={project.id}
+                      layout
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.08 }}
+                      className={`${panelClass} hover:shadow-md hover:border-[#0a9396]/20 transition-all duration-300`}
+                    >
+                      <div className="p-6 lg:p-8 flex flex-col lg:flex-row gap-8">
+
+                        {/* Progress ring + status */}
+                        <div className="flex lg:flex-col items-center lg:items-center justify-between lg:justify-center lg:w-40 lg:border-r border-gray-100 pr-0 lg:pr-8 shrink-0">
+                          <div className="relative mb-0 lg:mb-5 h-20 w-20">
+                            <svg viewBox="0 0 80 80" className="w-full h-full -rotate-90">
+                              <circle cx="40" cy="40" r="32" fill="none" stroke="#f3f4f6" strokeWidth="5" />
+                              <motion.circle
+                                cx="40" cy="40" r="32"
+                                fill="none"
+                                stroke="#0a9396"
+                                strokeWidth="5"
+                                strokeLinecap="round"
+                                strokeDasharray="201.06"
+                                initial={{ strokeDashoffset: 201.06 }}
+                                animate={{ strokeDashoffset: 201.06 - (201.06 * project.progress) / 100 }}
+                                transition={{ duration: 1.2, ease: "circOut" }}
+                              />
+                            </svg>
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <span className="text-base font-bold text-gray-900">{project.progress}%</span>
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-center gap-1.5">
+                            {getStatusBadge(project.status)}
                           </div>
                         </div>
-                        <div className="flex flex-col items-center gap-1.5">
-                          {getStatusBadge(project.status)}
-                          <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">{project.completedTasks}/{project.tasks} tasks</p>
-                        </div>
-                      </div>
 
-                      {/* Project info */}
-                      <div className="flex-1 flex flex-col justify-center min-w-0">
-                        <h3 className="text-xl font-bold text-gray-900 mb-1.5 group-hover:text-[#0a9396] transition-colors">{project.name}</h3>
-                        <p className="text-gray-500 text-sm leading-relaxed mb-5 line-clamp-2">{project.description}</p>
+                        {/* Project info */}
+                        <div className="flex-1 flex flex-col justify-center min-w-0">
+                          <h3 className="text-xl font-bold text-gray-900 mb-1.5 group-hover:text-[#0a9396] transition-colors">{project.name}</h3>
+                          <p className="text-gray-500 text-sm leading-relaxed mb-5 line-clamp-2">{project.description}</p>
 
-                        <div className="flex flex-wrap items-center gap-6 mb-5">
-                          <div className="space-y-0.5">
-                            <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Assigned Pro</p>
-                            <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                              <div className="h-5 w-5 rounded-md bg-[#0a9396]/10 border border-[#0a9396]/20 flex items-center justify-center text-[9px] text-[#0a9396] font-bold">
-                                {project.pro.charAt(0)}
+                          <div className="flex flex-wrap items-center gap-6 mb-5">
+                            <div className="space-y-0.5">
+                              <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Assigned Pro</p>
+                              <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                                <div className="h-5 w-5 rounded-md bg-[#0a9396]/10 border border-[#0a9396]/20 flex items-center justify-center text-[9px] text-[#0a9396] font-bold">
+                                  {project.pro.charAt(0)}
+                                </div>
+                                {project.pro}
                               </div>
-                              {project.pro}
                             </div>
+                            <div className="h-6 w-px bg-gray-100 hidden sm:block" />
+                            <div className="space-y-0.5">
+                              <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Budget</p>
+                              <div className="flex items-center gap-1.5 text-sm font-semibold text-gray-900">
+                                <DollarSign className="h-3.5 w-3.5 text-gray-400" />
+                                {formatCurrency(project.budget, project.currency)}
+                              </div>
+                            </div>
+                            {daysLeft !== null && (
+                              <>
+                                <div className="h-6 w-px bg-gray-100 hidden sm:block" />
+                                <div className="space-y-0.5">
+                                  <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Deadline</p>
+                                  <div className={`flex items-center gap-1.5 text-sm font-medium ${isOverdue ? "text-red-500" : "text-gray-700"}`}>
+                                    <Calendar className="h-3.5 w-3.5 opacity-60" />
+                                    {isOverdue
+                                      ? `Overdue by ${Math.abs(daysLeft)} day${Math.abs(daysLeft) !== 1 ? "s" : ""}`
+                                      : `${daysLeft} day${daysLeft !== 1 ? "s" : ""} left`}
+                                  </div>
+                                </div>
+                              </>
+                            )}
                           </div>
-                          <div className="h-6 w-px bg-gray-100 hidden sm:block" />
-                          <div className="space-y-0.5">
-                            <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Budget</p>
-                            <div className="flex items-center gap-1.5 text-sm font-semibold text-gray-900">
-                              <DollarSign className="h-3.5 w-3.5 text-gray-400" />
-                              {formatCurrency(project.budget)}
+
+                          {/* Progress bar */}
+                          <div className="space-y-2">
+                            <div className="h-2 rounded-full bg-gray-100 relative overflow-hidden">
+                              <motion.div
+                                className="absolute h-full bg-linear-to-r from-[#0a9396] to-[#6ece39] rounded-full"
+                                initial={{ width: 0 }}
+                                animate={{ width: `${project.progress}%` }}
+                                transition={{ duration: 1, ease: "circOut" }}
+                              />
                             </div>
-                          </div>
-                          <div className="h-6 w-px bg-gray-100 hidden sm:block" />
-                          <div className="space-y-0.5">
-                            <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Deadline</p>
-                            <div className={`flex items-center gap-1.5 text-sm font-medium ${isOverdue ? "text-red-500" : "text-gray-700"}`}>
-                              <Calendar className="h-3.5 w-3.5 opacity-60" />
-                              {isOverdue ? `Overdue by ${Math.abs(daysLeft)} day${Math.abs(daysLeft) !== 1 ? "s" : ""}` : `${daysLeft} day${daysLeft !== 1 ? "s" : ""} left`}
-                            </div>
+                            <p className="text-xs text-[#0a9396] font-medium flex items-center gap-1.5">
+                              <TrendingUp className="h-3 w-3" />
+                              Next: {project.nextMilestone}
+                            </p>
                           </div>
                         </div>
 
-                        {/* Progress bar */}
-                        <div className="space-y-2">
-                          <div className="h-2 rounded-full bg-gray-100 relative overflow-hidden">
-                            <motion.div
-                              className="absolute h-full bg-linear-to-r from-[#0a9396] to-[#6ece39] rounded-full"
-                              initial={{ width: 0 }}
-                              animate={{ width: `${project.progress}%` }}
-                              transition={{ duration: 1, ease: "circOut" }}
-                            />
-                          </div>
-                          <p className="text-xs text-[#0a9396] font-medium flex items-center gap-1.5">
-                            <TrendingUp className="h-3 w-3" />
-                            Next: {project.nextMilestone}
-                          </p>
+                        {/* Actions */}
+                        <div className="lg:w-44 flex flex-row lg:flex-col gap-2.5 shrink-0 justify-center">
+                          <button
+                            onClick={() => handleViewDetails(project)}
+                            className="h-10 flex-1 lg:flex-none rounded-xl bg-white border border-gray-200 hover:border-[#0a9396]/30 text-gray-600 hover:text-gray-900 text-xs font-medium transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                          >
+                            View Details
+                            <ArrowRight className="h-3.5 w-3.5" />
+                          </button>
+                          {project.proId && (
+                            <Link href={`/messaging?proId=${project.proId}&projectId=${project.id}`} className="flex-1 lg:flex-none">
+                              <button className="h-10 w-full rounded-xl bg-[#0a9396] hover:bg-[#087579] text-white text-xs font-semibold shadow-sm transition-all cursor-pointer flex items-center justify-center gap-1.5">
+                                <MessageSquare className="h-3.5 w-3.5" />
+                                Message
+                              </button>
+                            </Link>
+                          )}
+                          <Link href={`/client/reports/${project.id}`} className="flex-1 lg:flex-none">
+                            <button className="h-9 w-full rounded-xl hover:bg-gray-50 text-gray-400 hover:text-gray-700 text-xs font-medium transition-all cursor-pointer flex items-center justify-center gap-1.5">
+                              <TrendingUp className="h-3.5 w-3.5" />
+                              Analytics
+                            </button>
+                          </Link>
                         </div>
-                      </div>
 
-                      {/* Actions */}
-                      <div className="lg:w-44 flex flex-row lg:flex-col gap-2.5 shrink-0 justify-center">
-                        <button
-                          onClick={() => handleViewDetails(project)}
-                          className="h-10 flex-1 lg:flex-none rounded-xl bg-white border border-gray-200 hover:border-[#0a9396]/30 text-gray-600 hover:text-gray-900 text-xs font-medium transition-all cursor-pointer flex items-center justify-center gap-1.5"
-                        >
-                          View Details
-                          <ArrowRight className="h-3.5 w-3.5" />
-                        </button>
-                        <Link href={`/messaging?proId=${project.proId}&projectId=${project.id}`} className="flex-1 lg:flex-none">
-                          <button className="h-10 w-full rounded-xl bg-[#0a9396] hover:bg-[#087579] text-white text-xs font-semibold shadow-sm transition-all cursor-pointer flex items-center justify-center gap-1.5">
-                            <MessageSquare className="h-3.5 w-3.5" />
-                            Message
-                          </button>
-                        </Link>
-                        <Link href={`/client/reports/${project.id}`} className="flex-1 lg:flex-none">
-                          <button className="h-9 w-full rounded-xl hover:bg-gray-50 text-gray-400 hover:text-gray-700 text-xs font-medium transition-all cursor-pointer flex items-center justify-center gap-1.5">
-                            <TrendingUp className="h-3.5 w-3.5" />
-                            Analytics
-                          </button>
-                        </Link>
                       </div>
-
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </motion.div>
-          )}
-        </AnimatePresence>
+                    </motion.div>
+                  );
+                })}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        )}
 
         {/* Project Details Modal */}
         <AnimatePresence>
@@ -418,7 +504,6 @@ export default function ClientProjectsPage() {
                 exit={{ scale: 0.95, y: 20, opacity: 0 }}
                 className="bg-white/95 backdrop-blur-2xl border border-white/80 rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden shadow-xl relative z-10 flex flex-col"
               >
-                {/* Modal Header */}
                 <div className="p-6 lg:p-8 border-b border-gray-100 flex items-start justify-between">
                   <div>
                     <div className="flex items-center gap-2.5 mb-3">
@@ -435,34 +520,33 @@ export default function ClientProjectsPage() {
                   </button>
                 </div>
 
-                {/* Modal Content */}
                 <div className="flex-1 overflow-y-auto p-6 lg:p-8 space-y-8">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="p-5 rounded-xl bg-gray-50 border border-gray-100 space-y-1">
                       <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Assigned Pro</p>
                       <p className="text-base font-semibold text-gray-900">{selectedProject.pro}</p>
-                      <p className="text-xs text-[#0a9396]">Verified Specialist</p>
                     </div>
                     <div className="p-5 rounded-xl bg-gray-50 border border-gray-100 space-y-1">
                       <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Budget</p>
-                      <p className="text-base font-semibold text-gray-900">{formatCurrency(selectedProject.budget)}</p>
-                      <p className="text-xs text-gray-400">Total Budget</p>
+                      <p className="text-base font-semibold text-gray-900">{formatCurrency(selectedProject.budget, selectedProject.currency)}</p>
                     </div>
                     <div className="p-5 rounded-xl bg-gray-50 border border-gray-100 space-y-1">
                       <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Deadline</p>
-                      <p className="text-base font-semibold text-gray-900">{new Date(selectedProject.deadline).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</p>
-                      <p className="text-xs text-gray-400">Project Deadline</p>
+                      <p className="text-base font-semibold text-gray-900">
+                        {selectedProject.deadline
+                          ? new Date(selectedProject.deadline).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+                          : "Not set"}
+                      </p>
                     </div>
                   </div>
 
-                  {/* Progress */}
                   <div className="space-y-4">
                     <div className="flex items-end justify-between">
                       <div>
                         <p className="text-xs text-gray-400 font-medium uppercase tracking-wider mb-1">Overall Progress</p>
                         <p className="text-3xl font-bold text-gray-900">{selectedProject.progress}%</p>
                       </div>
-                      <p className="text-sm font-medium text-[#0a9396]">{selectedProject.completedTasks} / {selectedProject.tasks} tasks completed</p>
+                      <p className="text-sm font-medium text-[#0a9396]">{selectedProject.nextMilestone}</p>
                     </div>
                     <div className="h-3 rounded-full bg-gray-100 relative overflow-hidden">
                       <motion.div
@@ -475,14 +559,15 @@ export default function ClientProjectsPage() {
                   </div>
                 </div>
 
-                {/* Modal Footer */}
                 <div className="p-6 lg:p-8 bg-gray-50/60 border-t border-gray-100 flex flex-col sm:flex-row gap-3">
-                  <Link href={`/messaging?proId=${selectedProject.proId}&projectId=${selectedProject.id}`} className="flex-1">
-                    <button className="h-12 w-full rounded-xl bg-[#0a9396] hover:bg-[#087579] text-white font-semibold text-sm shadow-sm transition-all cursor-pointer flex items-center justify-center gap-2">
-                      <MessageSquare className="h-4 w-4" />
-                      Message Pro
-                    </button>
-                  </Link>
+                  {selectedProject.proId && (
+                    <Link href={`/messaging?proId=${selectedProject.proId}&projectId=${selectedProject.id}`} className="flex-1">
+                      <button className="h-12 w-full rounded-xl bg-[#0a9396] hover:bg-[#087579] text-white font-semibold text-sm shadow-sm transition-all cursor-pointer flex items-center justify-center gap-2">
+                        <MessageSquare className="h-4 w-4" />
+                        Message Pro
+                      </button>
+                    </Link>
+                  )}
                   <Link href={`/client/reports/${selectedProject.id}`} className="flex-1">
                     <button className="h-12 w-full rounded-xl bg-white border border-gray-200 hover:border-[#0a9396]/30 text-gray-600 hover:text-gray-900 font-medium text-sm transition-all cursor-pointer flex items-center justify-center gap-2">
                       <TrendingUp className="h-4 w-4" />
@@ -569,11 +654,11 @@ export default function ClientProjectsPage() {
                         onChange={(e) => setNewProject({ ...newProject, category: e.target.value })}
                       >
                         <option value="">Select a category</option>
-                        <option value="seo">SEO</option>
-                        <option value="ppc">Paid Ads / PPC</option>
-                        <option value="social">Social Media</option>
-                        <option value="content">Content Marketing</option>
-                        <option value="email">Email Marketing</option>
+                        <option value="SEO">SEO</option>
+                        <option value="PPC">Paid Ads / PPC</option>
+                        <option value="Social Media">Social Media</option>
+                        <option value="Content Marketing">Content Marketing</option>
+                        <option value="Email Marketing">Email Marketing</option>
                       </select>
                     </div>
                   </div>
@@ -601,7 +686,7 @@ export default function ClientProjectsPage() {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-gray-600">Deadline <span className="text-red-400">*</span></label>
+                      <label className="text-xs font-medium text-gray-600">Deadline</label>
                       <input
                         type="date"
                         className="w-full bg-white border border-gray-200 p-3 rounded-xl text-sm text-gray-700 outline-none focus:ring-2 focus:ring-[#0a9396]/20 focus:border-[#0a9396]/40 transition-all"
@@ -633,22 +718,7 @@ export default function ClientProjectsPage() {
                     Cancel
                   </button>
                   <button
-                    onClick={async () => {
-                      setFormError("");
-                      if (!newProject.name || !newProject.description || !newProject.budget || !newProject.deadline || !newProject.category) {
-                        setFormError("Please fill in all required fields.");
-                        return;
-                      }
-                      setIsSubmitting(true);
-                      await new Promise(r => setTimeout(r, 1200));
-                      setIsSubmitting(false);
-                      setFormSuccess(true);
-                      setTimeout(() => {
-                        setShowNewProjectModal(false);
-                        setFormSuccess(false);
-                        setNewProject({ name: "", description: "", budget: "", deadline: "", category: "", requirements: "" });
-                      }, 1500);
-                    }}
+                    onClick={handleCreateProject}
                     disabled={isSubmitting}
                     className="h-11 flex-[2] rounded-xl bg-[#0a9396] hover:bg-[#087579] text-white font-semibold text-sm shadow-sm transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60"
                   >

@@ -13,6 +13,9 @@ import {
   List,
   CheckCircle2,
   X,
+  Trash2,
+  Archive,
+  AlertTriangle,
 } from "lucide-react";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -23,16 +26,12 @@ import Link from "next/link";
 interface Project {
   id: string;
   name: string;
-  category: string;
-  pro: string;
-  progress: number;
   status: string;
-  timeline: string;
-  budget: string;
+  timeline: string | null;
+  budget: number | null;
   currency: string;
-  country: string;
+  pro: string | null;
   description: string;
-  nextMilestone: string;
 }
 
 interface Message {
@@ -55,15 +54,20 @@ export default function ClientDashboard() {
   const userName = session?.user?.name || "there";
 
   const [projects, setProjects] = useState<Project[]>([]);
-  const [messages] = useState<Message[]>([
-    { id: 1, from: "Michael Chen", subject: "Q3 Campaign Structure", preview: "I've drafted the initial PPC funnels for review. The ROAS projections look excellent.", time: "2h ago", unread: true },
-    { id: 2, from: "Sarah Marketing", subject: "SEO Technical Audit", preview: "The crawler finished the sitemap scan. We have 4 high priority fixes.", time: "1d ago", unread: false },
-  ]);
+  const [messages] = useState<Message[]>([]);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [isLoadingProjects, setIsLoadingProjects] = useState(true);
   const [isSavingProject, setIsSavingProject] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [isDeletingProject, setIsDeletingProject] = useState(false);
+  const [isArchivingId, setIsArchivingId] = useState<string | null>(null);
+  const [dashStats, setDashStats] = useState<{
+    pendingInvoicesAmount: number;
+    pendingInvoicesCount: number;
+    portfolioROAS: number | null;
+  }>({ pendingInvoicesAmount: 0, pendingInvoicesCount: 0, portfolioROAS: null });
 
   const [newProjectData, setNewProjectData] = useState({
     name: "",
@@ -97,16 +101,12 @@ export default function ClientDashboard() {
           const mappedProjects: Project[] = data.projects.map((p: BackendProject) => ({
             id: p.id,
             name: p.title,
-            category: p.category || "Marketing",
-            pro: p.pro?.name || "Assigning Pro...",
-            progress: p.status === "completed" ? 100 : p.status === "active" ? 50 : 0,
             status: p.status,
-            timeline: p.timeline || "N/A",
-            budget: p.budget?.toString() || "0",
-            currency: p.currency || "GBP",
-            country: p.country || "United Kingdom",
+            timeline: p.timeline ?? null,
+            budget: p.budget ?? null,
+            currency: p.currency,
+            pro: p.pro?.name ?? null,
             description: p.description,
-            nextMilestone: p.status === "under_review" ? "Initial Review in Progress" : "Status: " + p.status,
           }));
           setProjects(mappedProjects);
         }
@@ -117,7 +117,15 @@ export default function ClientDashboard() {
       }
     };
 
-    if (session?.user?.id) fetchProjects();
+    if (session?.user?.id) {
+      fetchProjects();
+      fetch("/api/client/dashboard-stats")
+        .then((r) => r.json())
+        .then((d) => {
+          if (!d.error) setDashStats(d);
+        })
+        .catch(console.error);
+    }
   }, [session]);
 
   const handlePostProject = async () => {
@@ -145,12 +153,10 @@ export default function ClientDashboard() {
               ? {
                   ...proj,
                   name: p.title,
-                  category: p.category,
-                  budget: p.budget?.toString(),
-                  timeline: p.timeline,
+                  timeline: p.timeline ?? null,
+                  budget: p.budget ?? null,
                   description: p.description,
-                  currency: p.currency || "GBP",
-                  country: p.country || "United Kingdom",
+                  currency: p.currency,
                 }
               : proj
           ));
@@ -172,21 +178,16 @@ export default function ClientDashboard() {
         });
         if (response.ok) {
           const { project: p } = await response.json();
-          const newProject: Project = {
+          setProjects([{
             id: p.id,
             name: p.title,
-            category: p.category || "Marketing",
-            pro: "Assigning Pro...",
-            progress: 0,
             status: p.status,
-            timeline: p.timeline || "N/A",
-            budget: p.budget?.toString() || "0",
-            currency: p.currency || "GBP",
-            country: p.country || "United Kingdom",
+            timeline: p.timeline ?? null,
+            budget: p.budget ?? null,
+            currency: p.currency,
+            pro: null,
             description: p.description,
-            nextMilestone: "Initial Review in Progress",
-          };
-          setProjects([newProject, ...projects]);
+          }, ...projects]);
           setIsProjectModalOpen(false);
         }
       }
@@ -211,14 +212,48 @@ export default function ClientDashboard() {
     setEditingProjectId(project.id);
     setNewProjectData({
       name: project.name,
-      category: project.category,
-      budget: project.budget,
-      timeline: project.timeline,
+      category: "",
+      budget: project.budget?.toString() ?? "",
+      timeline: project.timeline ?? "",
       description: project.description,
       currency: project.currency,
-      country: project.country,
+      country: "",
     });
     setIsProjectModalOpen(true);
+  };
+
+  const handleDeleteProject = async () => {
+    if (!confirmDeleteId) return;
+    setIsDeletingProject(true);
+    try {
+      const res = await fetch(`/api/projects/${confirmDeleteId}`, { method: "DELETE" });
+      if (res.ok) {
+        setProjects((prev) => prev.filter((p) => p.id !== confirmDeleteId));
+        setConfirmDeleteId(null);
+      }
+    } catch (error) {
+      console.error("Error deleting project:", error);
+    } finally {
+      setIsDeletingProject(false);
+    }
+  };
+
+  const handleArchiveProject = async (id: string) => {
+    setIsArchivingId(id);
+    try {
+      const res = await fetch(`/api/projects/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "cancelled" }),
+      });
+      if (res.ok) {
+        setProjects((prev) => prev.filter((p) => p.id !== id));
+      }
+    } catch (error) {
+      console.error("Error archiving project:", error);
+    } finally {
+      setIsArchivingId(null);
+    }
   };
 
   const openCreateModal = () => {
@@ -236,10 +271,22 @@ export default function ClientDashboard() {
   };
 
   const stats = [
-    { title: "Total Spend", value: formatCurrency(12450), trend: "+12.5%", isUp: true, icon: Wallet },
-    { title: "Active Projects", value: formatNumber(projects.length), trend: "+1", isUp: true, icon: LayoutDashboard },
-    { title: "Portfolio ROAS", value: "3.2x", trend: "+0.4x", isUp: true, icon: TrendingUp },
-    { title: "Pending Invoices", value: formatCurrency(0), trend: "None", isUp: true, icon: FileText },
+    { title: "Total Projects", value: formatNumber(projects.length), trend: "", isUp: true, icon: LayoutDashboard },
+    { title: "Active Projects", value: formatNumber(projects.filter((p) => p.status === "active").length), trend: "", isUp: true, icon: Wallet },
+    {
+      title: "Portfolio ROAS",
+      value: dashStats.portfolioROAS !== null ? `${dashStats.portfolioROAS}x` : "—",
+      trend: "",
+      isUp: true,
+      icon: TrendingUp,
+    },
+    {
+      title: "Pending Invoices",
+      value: formatCurrency(dashStats.pendingInvoicesAmount),
+      trend: dashStats.pendingInvoicesCount > 0 ? `${dashStats.pendingInvoicesCount} pending` : "—",
+      isUp: dashStats.pendingInvoicesCount === 0,
+      icon: FileText,
+    },
   ];
 
   return (
@@ -374,56 +421,68 @@ export default function ClientDashboard() {
                             <div className="flex items-start justify-between gap-3">
                               <div className="flex-1">
                                 <h4 className="font-bold text-gray-900 leading-snug mb-1.5 group-hover:text-[#0a9396] transition-colors text-sm">{project.name}</h4>
-                                <div className="flex items-center gap-1.5">
-                                  <div className="h-5 w-5 rounded-lg bg-[#0a9396]/10 flex items-center justify-center shrink-0">
-                                    <span className="text-[9px] font-bold text-[#0a9396]">{project.pro.charAt(0)}</span>
+                                {project.pro && (
+                                  <div className="flex items-center gap-1.5">
+                                    <div className="h-5 w-5 rounded-lg bg-[#0a9396]/10 flex items-center justify-center shrink-0">
+                                      <span className="text-[9px] font-bold text-[#0a9396]">{project.pro.charAt(0)}</span>
+                                    </div>
+                                    <span className="text-xs text-gray-500 truncate">{project.pro}</span>
                                   </div>
-                                  <span className="text-xs text-gray-500 truncate">{project.pro}</span>
-                                </div>
+                                )}
                               </div>
-                              <button
-                                onClick={() => handleEditProject(project)}
-                                className="h-7 w-7 rounded-lg bg-gray-50 hover:bg-[#0a9396]/10 text-gray-400 hover:text-[#0a9396] border border-gray-100 hover:border-[#0a9396]/20 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 shrink-0"
-                              >
-                                <Pencil className="h-3 w-3" />
-                              </button>
+                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all shrink-0">
+                                <button
+                                  onClick={() => handleEditProject(project)}
+                                  className="h-7 w-7 rounded-lg bg-gray-50 hover:bg-[#0a9396]/10 text-gray-400 hover:text-[#0a9396] border border-gray-100 hover:border-[#0a9396]/20 flex items-center justify-center transition-all"
+                                  title="Edit project"
+                                >
+                                  <Pencil className="h-3 w-3" />
+                                </button>
+                                <button
+                                  onClick={() => handleArchiveProject(project.id)}
+                                  disabled={isArchivingId === project.id}
+                                  className="h-7 w-7 rounded-lg bg-gray-50 hover:bg-amber-50 text-gray-400 hover:text-amber-500 border border-gray-100 hover:border-amber-200 flex items-center justify-center transition-all disabled:opacity-50"
+                                  title="Archive project"
+                                >
+                                  {isArchivingId === project.id
+                                    ? <div className="h-3 w-3 border border-amber-400 border-t-transparent rounded-full animate-spin" />
+                                    : <Archive className="h-3 w-3" />
+                                  }
+                                </button>
+                                <button
+                                  onClick={() => setConfirmDeleteId(project.id)}
+                                  className="h-7 w-7 rounded-lg bg-gray-50 hover:bg-red-50 text-gray-400 hover:text-red-500 border border-gray-100 hover:border-red-200 flex items-center justify-center transition-all"
+                                  title="Delete project"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </button>
+                              </div>
                             </div>
                           </div>
 
                           {/* Metrics */}
                           <div className={`${viewMode === "list" ? "p-5 flex-1 flex flex-col justify-center" : ""}`}>
-                            <div className={`grid ${viewMode === "list" ? "grid-cols-4 gap-4 items-center" : "grid-cols-2 gap-3"} mb-4`}>
+                            <div className={`grid ${viewMode === "list" ? "grid-cols-3 gap-4 items-center" : "grid-cols-2 gap-3"}`}>
                               <div>
                                 <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Status</p>
                                 <span className="inline-flex px-2 py-0.5 rounded-lg border text-[11px] font-semibold bg-gray-50 text-gray-600 border-gray-200">
                                   {project.status.replace("_", " ")}
                                 </span>
                               </div>
-                              <div className={viewMode === "list" ? "pl-3 border-l border-gray-100" : ""}>
-                                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Timeline</p>
-                                <p className="text-xs font-bold text-gray-900">{project.timeline}</p>
-                              </div>
-                              <div className={viewMode === "list" ? "col-span-2 text-right" : "col-span-2"}>
-                                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Budget</p>
-                                <p className="text-sm font-black text-[#0a9396]">
-                                  {formatCurrency(Number(project.budget) || 0, project.currency)}
-                                </p>
-                              </div>
-                            </div>
-
-                            <div className="space-y-1.5">
-                              <div className="flex justify-between text-[10px] font-semibold text-gray-500">
-                                <span>Progress</span>
-                                <span className="text-[#0a9396]">{project.progress}%</span>
-                              </div>
-                              <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
-                                <motion.div
-                                  initial={{ width: 0 }}
-                                  animate={{ width: `${project.progress}%` }}
-                                  transition={{ duration: 0.8, ease: "easeOut" }}
-                                  className="h-full bg-linear-to-r from-[#0a9396] to-[#6ece39] rounded-full"
-                                />
-                              </div>
+                              {project.timeline && (
+                                <div className={viewMode === "list" ? "pl-3 border-l border-gray-100" : ""}>
+                                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Timeline</p>
+                                  <p className="text-xs font-bold text-gray-900">{project.timeline}</p>
+                                </div>
+                              )}
+                              {project.budget !== null && (
+                                <div className={viewMode === "list" ? "text-right" : "col-span-2"}>
+                                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Budget</p>
+                                  <p className="text-sm font-black text-[#0a9396]">
+                                    {formatCurrency(project.budget, project.currency)}
+                                  </p>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </motion.div>
@@ -492,6 +551,63 @@ export default function ClientDashboard() {
 
         </div>
       </div>
+
+      {/* Confirm Delete Modal */}
+      <AnimatePresence>
+        {confirmDeleteId && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm"
+              onClick={() => setConfirmDeleteId(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 8 }}
+              className="relative z-10 w-full max-w-sm bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden"
+            >
+              <div className="p-6">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="h-11 w-11 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center shrink-0">
+                    <AlertTriangle className="h-5 w-5 text-red-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-gray-900">Delete project?</h3>
+                    <p className="text-sm text-gray-500 mt-0.5">
+                      {projects.find((p) => p.id === confirmDeleteId)?.name}
+                    </p>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-500 leading-relaxed">
+                  This action cannot be undone. All data associated with this project will be permanently removed.
+                </p>
+              </div>
+              <div className="px-6 pb-6 flex items-center gap-3">
+                <button
+                  onClick={() => setConfirmDeleteId(null)}
+                  className="flex-1 h-10 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteProject}
+                  disabled={isDeletingProject}
+                  className="flex-1 h-10 rounded-xl bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white text-sm font-semibold flex items-center justify-center gap-2 transition-all"
+                >
+                  {isDeletingProject
+                    ? <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    : <Trash2 className="h-4 w-4" />
+                  }
+                  Delete
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Project Modal */}
       <AnimatePresence>

@@ -1,15 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { createHash } from "crypto";
+import bcrypt from "bcryptjs";
+import { rateLimit } from "@/lib/rate-limit";
 
 type UserTypeLocal = "pro" | "client" | "admin";
 
-// Hash password using SHA-256 (for production, use bcryptjs)
-function hashPassword(password: string): string {
-  return createHash("sha256").update(password).digest("hex");
-}
-
 export async function POST(request: NextRequest) {
+  // Rate limiting (5 attempts per 15 minutes)
+  const forwarded = request.headers.get("x-forwarded-for");
+  const ip = forwarded ? forwarded.split(",")[0] : "anonymous";
+  const limitResult = await rateLimit(`register_${ip}`, {
+    limit: 5,
+    windowMs: 15 * 60 * 1000,
+  });
+
+  if (!limitResult.success) {
+    return NextResponse.json(
+      { error: "Too many registration attempts. Please try again later." },
+      { 
+        status: 429,
+        headers: {
+          "X-RateLimit-Limit": limitResult.limit.toString(),
+          "X-RateLimit-Remaining": limitResult.remaining.toString(),
+          "X-RateLimit-Reset": limitResult.reset.toString(),
+        }
+      }
+    );
+  }
+
   try {
     const body = await request.json();
     const { name, email, password, userType, country, city, timezone } = body;
@@ -60,7 +78,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create new user
-    const hashedPassword = hashPassword(password);
+    const hashedPassword = await bcrypt.hash(password, 12);
     const newUser = await prisma.user.create({
       data: {
         name,

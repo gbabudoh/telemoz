@@ -2,11 +2,19 @@ import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import prisma from "@/lib/prisma";
+import bcrypt from "bcryptjs";
 import { createHash } from "crypto";
 
-// Hash password using SHA-256 (same as registration)
-function hashPassword(password: string): string {
-  return createHash("sha256").update(password).digest("hex");
+/**
+ * Live migration helper.
+ * Old accounts have a 64-char lowercase hex SHA-256 hash.
+ * On first successful login we transparently re-hash with bcrypt and save.
+ */
+function isLegacySha256(hash: string): boolean {
+  return /^[a-f0-9]{64}$/.test(hash);
+}
+function sha256(plain: string): string {
+  return createHash("sha256").update(plain).digest("hex");
 }
 
 export const authOptions: NextAuthOptions = {
@@ -23,22 +31,32 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
-          // Find user by email
           const user = await prisma.user.findUnique({
             where: { email: credentials.email.toLowerCase() },
           });
 
-          if (!user || !user.password) {
-            return null;
+          if (!user || !user.password) return null;
+
+          let passwordValid = false;
+
+          if (isLegacySha256(user.password)) {
+            // Legacy account — verify with SHA-256
+            if (sha256(credentials.password) === user.password) {
+              passwordValid = true;
+              // Silently migrate to bcrypt
+              const bcryptHash = await bcrypt.hash(credentials.password, 12);
+              await prisma.user.update({
+                where: { id: user.id },
+                data: { password: bcryptHash },
+              });
+            }
+          } else {
+            // Modern bcrypt hash
+            passwordValid = await bcrypt.compare(credentials.password, user.password);
           }
 
-          // Verify password
-          const hashedPassword = hashPassword(credentials.password);
-          if (user.password !== hashedPassword) {
-            return null;
-          }
+          if (!passwordValid) return null;
 
-          // Return user object for NextAuth
           return {
             id: user.id,
             email: user.email,
@@ -63,7 +81,7 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: "jwt",
-    maxAge: 10 * 365 * 24 * 60 * 60, // 10 years in seconds
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   callbacks: {
     async jwt({ token, user }) {

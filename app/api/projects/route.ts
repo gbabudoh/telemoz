@@ -41,8 +41,9 @@ export async function GET(request: NextRequest) {
     const projects = await prisma.project.findMany({
       where,
       include: {
-        pro: { select: { name: true, email: true, image: true } },
-        client: { select: { name: true, email: true, image: true } },
+        pro: { select: { id: true, name: true, email: true, image: true } },
+        client: { select: { id: true, name: true, email: true, image: true } },
+        _count: { select: { proposals: true } },
       },
       orderBy: { createdAt: "desc" },
     });

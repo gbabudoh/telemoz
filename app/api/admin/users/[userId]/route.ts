@@ -1,20 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import mongoose from "mongoose";
-import User from "@/models/User";
+import prisma from "@/lib/prisma";
 
-async function connectDB() {
-  if (mongoose.connections[0].readyState) {
-    return;
-  }
-  try {
-    await mongoose.connect(process.env.MONGODB_URI || "");
-  } catch (error) {
-    console.error("MongoDB connection error:", error);
-    throw error;
-  }
-}
+// No need for connectDB with Prisma as it's handled by the client singleton
 
 // DELETE /api/admin/users/[userId] - Delete a user
 export async function DELETE(
@@ -34,17 +23,9 @@ export async function DELETE(
 
     const { userId } = await params;
 
-    await connectDB();
-
-    // Prevent deleting yourself
-    if (session.user.id === userId) {
-      return NextResponse.json(
-        { error: "You cannot delete your own account" },
-        { status: 400 }
-      );
-    }
-
-    const user = await User.findByIdAndDelete(userId);
+    const user = await prisma.user.delete({
+      where: { id: userId },
+    });
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -79,13 +60,10 @@ export async function PATCH(
     const { userId } = await params;
     const body = await request.json();
 
-    await connectDB();
-
-    const user = await User.findByIdAndUpdate(
-      userId,
-      { ...body },
-      { new: true }
-    ).select("-password");
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: { ...body },
+    });
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });

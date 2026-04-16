@@ -1,0 +1,84 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "telemoz/payment-completed",
+        "options": {}
+      },
+      "id": "payment-completed-webhook",
+      "name": "Webhook: Payment Completed",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "channelId": {
+          "__rl": true,
+          "value": "finance",
+          "mode": "list"
+        },
+        "text": "=💰 *Payment Received!*\n\n*Amount:* {{$json[\"body\"][\"amount\"]}} {{$json[\"body\"][\"currency\"]}}\n*Transaction ID:* {{$json[\"body\"][\"transactionId\"]}}\n*Project ID:* {{$json[\"body\"][\"projectId\"]}}\n\n*Client:* {{$json[\"body\"][\"clientId\"]}}\n*Professional:* {{$json[\"body\"][\"proId\"]}}",
+        "otherOptions": {}
+      },
+      "id": "slack-payment-notify",
+      "name": "Slack: Finance Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [
+        500,
+        200
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "placeholder-slack",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toEmail": "admin@telemoz.com",
+        "subject": "=Payment Notification: {{$json[\"body\"][\"transactionId\"]}}",
+        "text": "=A payment of {{$json[\"body\"][\"amount\"]}} {{$json[\"body\"][\"currency\"]}} has been processed for project {{$json[\"body\"][\"projectId\"]}}.",
+        "options": {}
+      },
+      "id": "email-payment-notify",
+      "name": "Email: Finance Team",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        500,
+        400
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "placeholder-smtp",
+          "name": "SMTP account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook: Payment Completed": {
+      "main": [
+        [
+          {
+            "node": "Slack: Finance Alert",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Email: Finance Team",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

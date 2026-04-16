@@ -20,8 +20,9 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
 import { countriesByRegion, regions } from "@/lib/countries";
+import { DeleteAccountModal } from "@/components/settings/DeleteAccountModal";
+import { useSession, signOut } from "next-auth/react";
 
 // Custom Frosted Glass Input matching digitalbox suite
 const GlassInput = (props: React.InputHTMLAttributes<HTMLInputElement> & { label?: string; error?: string }) => {
@@ -97,6 +98,8 @@ export default function SettingsPage() {
     newPassword: "",
     confirmPassword: "",
   });
+
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   const [notifications, setNotifications] = useState({
     emailNotifications: true,
@@ -248,6 +251,24 @@ export default function SettingsPage() {
       setTimeout(() => setSaveError(""), 5000);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    try {
+      const response = await fetch("/api/user/delete", {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        await signOut({ callbackUrl: "/" });
+      } else {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to delete account");
+      }
+    } catch (error) {
+      console.error("Error deleting account:", error);
+      throw error;
     }
   };
 
@@ -665,13 +686,23 @@ export default function SettingsPage() {
                          <h4 className="font-bold text-red-900 text-[15px]">Delete Account</h4>
                          <p className="text-sm font-semibold text-red-800/70 mt-1">Permanently delete your account and all associated data. This action cannot be undone.</p>
                        </div>
-                       <Button variant="outline" className="shrink-0 group/del border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 rounded-xl px-6 h-11 w-full md:w-auto font-bold tracking-wide">
+                       <Button 
+                         variant="outline" 
+                         onClick={() => setIsDeleteModalOpen(true)}
+                         className="shrink-0 group/del border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 rounded-xl px-6 h-11 w-full md:w-auto font-bold tracking-wide"
+                       >
                          <Trash2 className="mr-2 h-4 w-4 group-hover/del:scale-110 transition-transform" />
                          Delete Account
                        </Button>
                      </div>
                    </div>
                  </motion.div>
+
+                 <DeleteAccountModal 
+                   isOpen={isDeleteModalOpen} 
+                   onClose={() => setIsDeleteModalOpen(false)} 
+                   onConfirm={handleDeleteAccount} 
+                 />
 
                </motion.div>
             )}
