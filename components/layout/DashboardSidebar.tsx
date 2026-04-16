@@ -253,24 +253,12 @@ export function DashboardSidebar({ userType = "pro" }: DashboardSidebarProps) {
 
   return (
     <>
-      {/* Mobile Menu Button */}
-      <div className="lg:hidden fixed top-4 left-4 z-50">
-        <button
-          onClick={() => setIsMobileOpen(!isMobileOpen)}
-          className="p-2 rounded-lg bg-white border border-gray-200 text-gray-900 shadow-sm cursor-pointer"
-        >
-          {isMobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </button>
-      </div>
-
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed left-0 top-0 z-40 h-screen w-64 backdrop-blur-lg border-r shadow-sm transition-transform duration-300",
+          "h-screen w-64 backdrop-blur-lg border-r shadow-sm transition-transform duration-300",
           "bg-linear-to-br from-gray-50 via-white to-gray-50/50 border-gray-200",
-          "lg:translate-x-0 lg:static lg:z-auto lg:block",
-          isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
-          !isMobileOpen && "hidden lg:block"
+          "hidden lg:block shrink-0",
         )}
       >
         <div className="flex h-full flex-col">

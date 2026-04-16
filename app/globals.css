@@ -7,4 +7,33 @@
   [role="button"] {
     cursor: pointer;
   }
+
+  /* Mobile First & Native Feel Enhancements */
+  :root {
+    --sat: env(safe-area-inset-top);
+    --sar: env(safe-area-inset-right);
+    --sab: env(safe-area-inset-bottom);
+    --sal: env(safe-area-inset-left);
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+    user-select: none;
+    touch-action: manipulation;
+  }
+
+  body {
+    padding-top: var(--sat);
+    padding-right: var(--sar);
+    padding-bottom: var(--sab);
+    padding-left: var(--sal);
+    overscroll-behavior-y: none; /* Prevents pull-to-refresh bounce on some mobile browsers */
+  }
+
+  /* Custom scrollbar for a cleaner mobile look */
+  ::-webkit-scrollbar {
+    width: 0px;
+    background: transparent;
+  }
 }

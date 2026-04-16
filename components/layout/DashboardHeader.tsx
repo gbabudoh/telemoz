@@ -12,9 +12,9 @@ export function DashboardHeader() {
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-gray-200 bg-white/95 backdrop-blur-lg px-6 shadow-sm">
-      {/* Search */}
-      <div className="flex-1 max-w-md">
-        <div className="relative">
+      {/* Search - Hidden on mobile, shown on desktop */}
+      <div className="hidden lg:flex flex-1 max-w-md">
+        <div className="relative w-full">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             type="search"

@@ -31,11 +31,11 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     ref,
   ) => {
     const baseStyles =
-      "inline-flex items-center justify-center rounded-lg font-medium transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none cursor-pointer";
+      "inline-flex items-center justify-center rounded-xl font-bold transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none cursor-pointer whitespace-nowrap tracking-tight";
 
     const variants = {
       primary:
-        "bg-[#0a9396] text-white hover:bg-[#087579] shadow-sm hover:shadow-md transition-all",
+        "bg-[#0a9396] text-white hover:bg-[#087579] shadow-[0_4px_12px_rgba(10,147,150,0.25)] hover:shadow-[0_6px_20px_rgba(10,147,150,0.35)] active:scale-95 transition-all rounded-full",
       secondary:
         "bg-gray-900 text-white hover:bg-gray-800 border border-gray-800",
       outline:
