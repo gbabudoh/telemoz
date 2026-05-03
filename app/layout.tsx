@@ -22,9 +22,19 @@ export const metadata: Metadata = {
   title: "Telemoz - Professional Digital Marketing Platform",
   description: "The All-in-One Professional Hub for Digital Marketing Success and Seamless Client-Agency Collaboration",
   keywords: "digital marketing, SEO, PPC, social media marketing, marketing automation",
+  manifest: "/manifest.json",
   icons: {
     icon: "/favicon.png",
+    apple: "/logos/telemoz.png",
   },
+};
+
+export const viewport = {
+  themeColor: "#0a9396",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({

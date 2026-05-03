@@ -1,0 +1,18 @@
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import prisma from "@/lib/prisma";
+
+export async function GET() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (session.user.userType !== "client") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const contracts = await prisma.contract.findMany({
+    where: { clientId: session.user.id, status: { not: "draft" } },
+    include: { pro: { select: { name: true, email: true } } },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return NextResponse.json({ contracts });
+}

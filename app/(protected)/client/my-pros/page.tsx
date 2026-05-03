@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  MessageSquare,
   Star,
   Search,
   MapPin,
@@ -350,12 +349,6 @@ export default function MyProsPage() {
                           <Link href={`/marketplace/${pro.id}`} className="flex-1 sm:flex-none">
                             <button className="h-10 w-full sm:px-5 rounded-xl bg-white border border-gray-200 hover:border-[#0a9396]/30 text-gray-600 hover:text-[#0a9396] text-sm font-medium shadow-sm transition-all flex items-center justify-center gap-2">
                               View Profile
-                            </button>
-                          </Link>
-                          <Link href={`/messaging?proId=${pro.id}`} className="flex-1 sm:flex-none">
-                            <button className="h-10 w-full sm:px-5 rounded-xl bg-[#0a9396] hover:bg-[#087579] text-white text-sm font-semibold shadow-sm shadow-[#0a9396]/20 transition-all flex items-center justify-center gap-2">
-                              <MessageSquare className="h-4 w-4" />
-                              Message
                             </button>
                           </Link>
                         </div>

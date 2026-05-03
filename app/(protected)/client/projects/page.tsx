@@ -3,21 +3,21 @@
 import {
   FolderKanban,
   DollarSign,
-  MessageSquare,
   TrendingUp,
   Search,
   CheckCircle2,
   Calendar,
+  Clock,
   X,
   Plus,
   ArrowRight,
-  AlertCircle,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
+import { NewProjectModal, ProjectData } from "@/components/projects/NewProjectModal";
 
 interface Project {
   id: string;
@@ -65,21 +65,9 @@ export default function ClientProjectsPage() {
   const [showProjectDetails, setShowProjectDetails] = useState(false);
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formError, setFormError] = useState("");
-  const [formSuccess, setFormSuccess] = useState(false);
-  const [newProject, setNewProject] = useState({
-    name: "",
-    description: "",
-    budget: "",
-    deadline: "",
-    category: "",
-    requirements: "",
-  });
 
   useEffect(() => {
     if (!session?.user?.id) return;
-    setIsLoading(true);
     fetch("/api/projects?userType=client")
       .then((r) => r.json())
       .then((d) => {
@@ -123,8 +111,8 @@ export default function ClientProjectsPage() {
   });
 
   const statsConfig = [
-    { title: "Total Projects", value: projects.length, icon: FolderKanban, gradient: "from-[#0a9396]/10 to-[#6ece39]/10", iconColor: "text-[#0a9396]" },
     { title: "Active", value: projects.filter((p) => p.status === "active").length, icon: TrendingUp, gradient: "from-[#0a9396]/10 to-[#6ece39]/10", iconColor: "text-[#0a9396]" },
+    { title: "Planning", value: projects.filter((p) => p.status === "planning").length, icon: Clock, gradient: "from-amber-500/10 to-orange-500/10", iconColor: "text-amber-600" },
     { title: "Completed", value: projects.filter((p) => p.status === "completed").length, icon: CheckCircle2, gradient: "from-[#6ece39]/10 to-[#0a9396]/10", iconColor: "text-[#6ece39]" },
     { title: "Total Budget", value: formatCurrency(projects.reduce((sum, p) => sum + p.budget, 0)), icon: DollarSign, gradient: "from-[#0a9396]/10 to-[#6ece39]/10", iconColor: "text-[#0a9396]" },
   ];
@@ -158,57 +146,23 @@ export default function ClientProjectsPage() {
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
-  const handleCreateProject = async () => {
-    setFormError("");
-    if (!newProject.name || !newProject.description || !newProject.budget || !newProject.category) {
-      setFormError("Please fill in all required fields.");
-      return;
-    }
-    setIsSubmitting(true);
-    try {
-      const response = await fetch("/api/projects", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: newProject.name,
-          description: newProject.description,
-          budget: newProject.budget,
-          category: newProject.category,
-          endDate: newProject.deadline || undefined,
-        }),
-      });
-      if (!response.ok) {
-        const data = await response.json();
-        setFormError(data.error ?? "Failed to create project.");
-        return;
-      }
-      const { project: p } = await response.json();
-      const mapped: Project = {
-        id: p.id,
-        name: p.title,
-        pro: "Assigning Pro...",
-        proId: null,
-        status: p.status,
-        progress: statusToProgress(p.status),
-        budget: p.budget ?? 0,
-        currency: p.currency ?? "GBP",
-        deadline: p.endDate ?? null,
-        startDate: p.startDate ?? null,
-        description: p.description,
-        nextMilestone: statusToMilestone(p.status),
-      };
-      setProjects((prev) => [mapped, ...prev]);
-      setFormSuccess(true);
-      setTimeout(() => {
-        setShowNewProjectModal(false);
-        setFormSuccess(false);
-        setNewProject({ name: "", description: "", budget: "", deadline: "", category: "", requirements: "" });
-      }, 1500);
-    } catch {
-      setFormError("Network error. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handleOnSuccess = (p: ProjectData) => {
+    const status = p.status || "under_review";
+    const mapped: Project = {
+      id: p.id || "",
+      name: p.title || p.name || "Untitled Product",
+      pro: p.pro?.name ?? "Assigning Pro...",
+      proId: p.pro?.id ?? null,
+      status: status,
+      progress: statusToProgress(status),
+      budget: typeof p.budget === "string" ? parseFloat(p.budget) : (p.budget || 0),
+      currency: p.currency ?? "GBP",
+      deadline: p.endDate || p.deadline || null,
+      startDate: p.startDate ?? null,
+      description: p.description || "",
+      nextMilestone: statusToMilestone(status),
+    };
+    setProjects((prev) => [mapped, ...prev]);
   };
 
   const panelClass = "bg-white/60 backdrop-blur-xl border border-white/80 rounded-2xl shadow-sm overflow-hidden";
@@ -246,7 +200,7 @@ export default function ClientProjectsPage() {
                 className="px-6 py-3 rounded-xl bg-[#0a9396] hover:bg-[#087579] text-white font-semibold text-sm shadow-sm transition-all cursor-pointer flex items-center justify-center gap-2"
               >
                 <Plus className="h-4 w-4" />
-                New Project
+                New Product
               </button>
             </div>
           </div>
@@ -463,14 +417,6 @@ export default function ClientProjectsPage() {
                             View Details
                             <ArrowRight className="h-3.5 w-3.5" />
                           </button>
-                          {project.proId && (
-                            <Link href={`/messaging?proId=${project.proId}&projectId=${project.id}`} className="flex-1 lg:flex-none">
-                              <button className="h-10 w-full rounded-xl bg-[#0a9396] hover:bg-[#087579] text-white text-xs font-semibold shadow-sm transition-all cursor-pointer flex items-center justify-center gap-1.5">
-                                <MessageSquare className="h-3.5 w-3.5" />
-                                Message
-                              </button>
-                            </Link>
-                          )}
                           <Link href={`/client/reports/${project.id}`} className="flex-1 lg:flex-none">
                             <button className="h-9 w-full rounded-xl hover:bg-gray-50 text-gray-400 hover:text-gray-700 text-xs font-medium transition-all cursor-pointer flex items-center justify-center gap-1.5">
                               <TrendingUp className="h-3.5 w-3.5" />
@@ -560,14 +506,6 @@ export default function ClientProjectsPage() {
                 </div>
 
                 <div className="p-6 lg:p-8 bg-gray-50/60 border-t border-gray-100 flex flex-col sm:flex-row gap-3">
-                  {selectedProject.proId && (
-                    <Link href={`/messaging?proId=${selectedProject.proId}&projectId=${selectedProject.id}`} className="flex-1">
-                      <button className="h-12 w-full rounded-xl bg-[#0a9396] hover:bg-[#087579] text-white font-semibold text-sm shadow-sm transition-all cursor-pointer flex items-center justify-center gap-2">
-                        <MessageSquare className="h-4 w-4" />
-                        Message Pro
-                      </button>
-                    </Link>
-                  )}
                   <Link href={`/client/reports/${selectedProject.id}`} className="flex-1">
                     <button className="h-12 w-full rounded-xl bg-white border border-gray-200 hover:border-[#0a9396]/30 text-gray-600 hover:text-gray-900 font-medium text-sm transition-all cursor-pointer flex items-center justify-center gap-2">
                       <TrendingUp className="h-4 w-4" />
@@ -580,165 +518,11 @@ export default function ClientProjectsPage() {
           )}
         </AnimatePresence>
 
-        {/* New Project Modal */}
-        <AnimatePresence>
-          {showNewProjectModal && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[100] flex items-center justify-center p-4 lg:p-8"
-            >
-              <div className="absolute inset-0 bg-gray-950/40 backdrop-blur-sm" onClick={() => !isSubmitting && setShowNewProjectModal(false)} />
-              <motion.div
-                initial={{ scale: 0.95, y: 20, opacity: 0 }}
-                animate={{ scale: 1, y: 0, opacity: 1 }}
-                exit={{ scale: 0.95, y: 20, opacity: 0 }}
-                className="bg-white/95 backdrop-blur-2xl border border-white/80 rounded-2xl w-full max-w-xl max-h-[90vh] overflow-hidden shadow-xl relative z-10 flex flex-col"
-              >
-                <div className="p-6 lg:p-8 border-b border-gray-100 flex items-center justify-between shrink-0">
-                  <div>
-                    <h2 className="text-xl font-bold text-gray-900">New Project</h2>
-                    <p className="text-sm text-gray-500 mt-0.5">Fill in the details below to get started</p>
-                  </div>
-                  <button
-                    onClick={() => !isSubmitting && setShowNewProjectModal(false)}
-                    className="h-9 w-9 rounded-xl hover:bg-gray-100 text-gray-400 transition-all flex items-center justify-center cursor-pointer"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-
-                <div className="flex-1 overflow-y-auto p-6 lg:p-8 space-y-5">
-                  <AnimatePresence>
-                    {formError && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -8 }}
-                        className="flex items-center gap-2.5 p-3.5 rounded-xl bg-red-50 border border-red-100 text-red-600 text-sm"
-                      >
-                        <AlertCircle className="h-4 w-4 shrink-0" />
-                        {formError}
-                      </motion.div>
-                    )}
-                    {formSuccess && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -8 }}
-                        className="flex items-center gap-2.5 p-3.5 rounded-xl bg-[#6ece39]/10 border border-[#6ece39]/20 text-[#5ab830] text-sm"
-                      >
-                        <CheckCircle2 className="h-4 w-4 shrink-0" />
-                        Project created successfully!
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-gray-600">Project Name <span className="text-red-400">*</span></label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Q4 Social Media Campaign"
-                        className="w-full bg-white border border-gray-200 p-3 rounded-xl text-sm text-gray-900 outline-none focus:ring-2 focus:ring-[#0a9396]/20 focus:border-[#0a9396]/40 transition-all placeholder:text-gray-300"
-                        value={newProject.name}
-                        onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-gray-600">Category <span className="text-red-400">*</span></label>
-                      <select
-                        className="w-full bg-white border border-gray-200 p-3 rounded-xl text-sm text-gray-700 outline-none focus:ring-2 focus:ring-[#0a9396]/20 focus:border-[#0a9396]/40 transition-all appearance-none cursor-pointer"
-                        value={newProject.category}
-                        onChange={(e) => setNewProject({ ...newProject, category: e.target.value })}
-                      >
-                        <option value="">Select a category</option>
-                        <option value="SEO">SEO</option>
-                        <option value="PPC">Paid Ads / PPC</option>
-                        <option value="Social Media">Social Media</option>
-                        <option value="Content Marketing">Content Marketing</option>
-                        <option value="Email Marketing">Email Marketing</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-gray-600">Description <span className="text-red-400">*</span></label>
-                    <textarea
-                      rows={4}
-                      placeholder="Describe the project goals and expected outcomes..."
-                      className="w-full bg-white border border-gray-200 p-3 rounded-xl text-sm text-gray-900 outline-none focus:ring-2 focus:ring-[#0a9396]/20 focus:border-[#0a9396]/40 transition-all placeholder:text-gray-300 resize-none"
-                      value={newProject.description}
-                      onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-gray-600">Budget (£) <span className="text-red-400">*</span></label>
-                      <input
-                        type="number"
-                        placeholder="e.g. 5000"
-                        className="w-full bg-white border border-gray-200 p-3 rounded-xl text-sm text-gray-900 outline-none focus:ring-2 focus:ring-[#0a9396]/20 focus:border-[#0a9396]/40 transition-all placeholder:text-gray-300"
-                        value={newProject.budget}
-                        onChange={(e) => setNewProject({ ...newProject, budget: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-gray-600">Deadline</label>
-                      <input
-                        type="date"
-                        className="w-full bg-white border border-gray-200 p-3 rounded-xl text-sm text-gray-700 outline-none focus:ring-2 focus:ring-[#0a9396]/20 focus:border-[#0a9396]/40 transition-all"
-                        value={newProject.deadline}
-                        min={new Date().toISOString().split("T")[0]}
-                        onChange={(e) => setNewProject({ ...newProject, deadline: e.target.value })}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-gray-600">Additional Requirements <span className="text-gray-400">(optional)</span></label>
-                    <textarea
-                      rows={3}
-                      placeholder="Any specific requirements or details for the pro..."
-                      className="w-full bg-white border border-gray-200 p-3 rounded-xl text-sm text-gray-900 outline-none focus:ring-2 focus:ring-[#0a9396]/20 focus:border-[#0a9396]/40 transition-all placeholder:text-gray-300 resize-none"
-                      value={newProject.requirements}
-                      onChange={(e) => setNewProject({ ...newProject, requirements: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className="p-6 lg:p-8 bg-gray-50/60 border-t border-gray-100 flex gap-3 shrink-0">
-                  <button
-                    onClick={() => !isSubmitting && setShowNewProjectModal(false)}
-                    className="h-11 flex-1 rounded-xl bg-white border border-gray-200 text-gray-500 text-sm font-medium hover:text-gray-700 transition-all cursor-pointer"
-                    disabled={isSubmitting}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleCreateProject}
-                    disabled={isSubmitting}
-                    className="h-11 flex-[2] rounded-xl bg-[#0a9396] hover:bg-[#087579] text-white font-semibold text-sm shadow-sm transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        Creating...
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle2 className="h-4 w-4" />
-                        Create Project
-                      </>
-                    )}
-                  </button>
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <NewProjectModal 
+            isOpen={showNewProjectModal}
+            onClose={() => setShowNewProjectModal(false)}
+            onSuccess={handleOnSuccess}
+        />
 
       </div>
     </div>

@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils";
 interface ChartProps {
   title?: string;
   description?: string;
-  data: any[];
+  data: Record<string, unknown>[];
   type?: "line" | "area" | "bar" | "pie";
   dataKey: string;
   dataKeys?: string[];

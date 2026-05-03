@@ -49,6 +49,20 @@ export async function GET() {
       where: { status: { in: ["sent", "overdue"] } } 
     });
 
+    // Recent Activity (Top 5 users and Top 5 projects)
+    const [recentUsers, recentProjects] = await Promise.all([
+      prisma.user.findMany({
+        take: 5,
+        orderBy: { createdAt: "desc" },
+        select: { id: true, name: true, userType: true, createdAt: true },
+      }),
+      prisma.project.findMany({
+        take: 5,
+        orderBy: { createdAt: "desc" },
+        select: { id: true, title: true, status: true, createdAt: true },
+      }),
+    ]);
+
     return NextResponse.json({
       totalUsers,
       totalPros,
@@ -61,6 +75,8 @@ export async function GET() {
       pendingInvoices,
       activeUsers,
       inactiveUsers,
+      recentUsers,
+      recentProjects,
     });
   } catch (error: unknown) {
     console.error("Error fetching admin stats:", error);

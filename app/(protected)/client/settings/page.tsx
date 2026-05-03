@@ -8,7 +8,6 @@ import {
   Shield,
   CreditCard,
   Mail,
-  Lock,
   Eye,
   EyeOff,
   Save,
@@ -78,6 +77,13 @@ export default function ClientSettingsPage() {
             currentPassword: "",
             newPassword: "",
             confirmPassword: "",
+          });
+          setNotifications({
+            emailNotifications: data.user.emailNotifications ?? true,
+            projectUpdates: data.user.projectUpdates ?? true,
+            reportReady: data.user.reportReady ?? true,
+            proMessages: data.user.proMessages ?? true,
+            marketingEmails: data.user.marketingEmails ?? false,
           });
         }
       } catch (error) {
@@ -153,8 +159,20 @@ export default function ClientSettingsPage() {
     setSaveError("");
     setSaveSuccess(false);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      showFeedback(true);
+      const response = await fetch("/api/user/update", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...notifications
+        }),
+      });
+
+      if (response.ok) {
+        showFeedback(true);
+      } else {
+        const data = await response.json();
+        showFeedback(false, data.error || "Failed to save notification preferences.");
+      }
     } catch {
       showFeedback(false, "Failed to save notification preferences.");
     } finally {

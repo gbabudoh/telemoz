@@ -17,6 +17,7 @@ import {
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { exportToPDF, exportToExcel } from "@/lib/export";
 
 interface ReportingStats {
   totalRevenue: number;
@@ -54,6 +55,34 @@ export default function ReportingPage() {
     projectStatusData: [],
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [showExportDropdown, setShowExportDropdown] = useState(false);
+
+  const handleExportPDF = async () => {
+    setShowExportDropdown(false);
+    await exportToPDF("reporting-content", `Reporting_Analytics_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
+  const handleExportExcel = () => {
+    setShowExportDropdown(false);
+    
+    // Prepare data for Excel
+    const summaryData = [
+      { Metric: "Total Revenue", Value: stats.totalRevenue, Change: `${stats.revenueChange}%` },
+      { Metric: "Active Clients", Value: stats.activeClients, Change: `${stats.clientsChange}%` },
+      { Metric: "Completed Projects", Value: stats.completedProjects, Change: `${stats.projectsChange}%` },
+      { Metric: "Avg. Project Value", Value: stats.avgProjectValue, Change: `${stats.avgProjectValueChange}%` },
+    ];
+
+    const chartExportData = chartData.revenueData.map(item => ({
+      Month: item.month,
+      Revenue: item.revenue,
+      Profit: item.profit
+    }));
+
+    // For simplicity, we'll just export the summary and revenue data
+    // In a real app, we might create multiple sheets
+    exportToExcel([...summaryData, { Metric: "---", Value: "---", Change: "---" }, ...chartExportData], `Reporting_Analytics_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -144,7 +173,7 @@ export default function ReportingPage() {
   };
 
   return (
-    <div className="relative min-h-[calc(100vh-4rem)] bg-gray-50 overflow-hidden pb-32">
+    <div id="reporting-content" className="relative min-h-[calc(100vh-4rem)] bg-gray-50 overflow-hidden pb-32">
        {/* Ambient Global Lighting Elements */}
        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-emerald-400/10 blur-[120px] pointer-events-none mix-blend-multiply animate-pulse-slow" />
        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-[#0a9396]/10 blur-[120px] pointer-events-none mix-blend-multiply animate-pulse-slower" />
@@ -178,10 +207,44 @@ export default function ReportingPage() {
                <Calendar className="mr-2 h-5 w-5" />
                Date Range
              </Button>
-             <Button className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white shadow-xl shadow-gray-900/20 hover:shadow-2xl hover:shadow-gray-900/40 transition-all rounded-2xl h-full px-8 shrink-0 flex-1 sm:flex-none font-bold tracking-wide bg-[length:200%_auto] hover:animate-gradient active:scale-95 relative overflow-hidden group">
-               <div className="absolute inset-[1px] rounded-[15px] bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
-               <span className="relative z-10 flex items-center"><Download className="mr-2 h-5 w-5" /> Export Report</span>
-             </Button>
+             <div className="relative">
+                <Button 
+                  onClick={() => setShowExportDropdown(!showExportDropdown)}
+                  className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white shadow-xl shadow-gray-900/20 hover:shadow-2xl hover:shadow-gray-900/40 transition-all rounded-2xl h-full px-8 shrink-0 w-full sm:w-auto font-bold tracking-wide bg-[length:200%_auto] hover:animate-gradient active:scale-95 relative overflow-hidden group"
+                >
+                  <div className="absolute inset-[1px] rounded-[15px] bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
+                  <span className="relative z-10 flex items-center"><Download className="mr-2 h-5 w-5" /> Export Report</span>
+                </Button>
+
+                {showExportDropdown && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    className="absolute right-0 mt-3 w-56 bg-white/90 backdrop-blur-xl border border-white/60 rounded-2xl shadow-2xl z-50 overflow-hidden"
+                  >
+                    <div className="p-2">
+                       <button 
+                         onClick={handleExportPDF}
+                         className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 text-gray-700 font-bold transition-all group/item"
+                       >
+                         <div className="p-2 bg-red-50 text-red-500 rounded-lg group-hover/item:bg-red-500 group-hover/item:text-white transition-colors">
+                           <FileText className="h-4 w-4" />
+                         </div>
+                         <span>Export as PDF</span>
+                       </button>
+                       <button 
+                         onClick={handleExportExcel}
+                         className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 text-gray-700 font-bold transition-all group/item"
+                       >
+                         <div className="p-2 bg-emerald-50 text-emerald-500 rounded-lg group-hover/item:bg-emerald-500 group-hover/item:text-white transition-colors">
+                           <TrendingUp className="h-4 w-4" />
+                         </div>
+                         <span>Export as Excel</span>
+                       </button>
+                    </div>
+                  </motion.div>
+                )}
+             </div>
           </div>
         </div>
 

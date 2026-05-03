@@ -24,7 +24,7 @@ A high-level, interactive, and enterprise-grade digital marketing platform built
 - **UI Components**: Custom component library with Framer Motion animations
 - **Charts**: Recharts for data visualization
 - **Icons**: Lucide React
-- **Database**: MongoDB (ready for integration)
+- **Database**: PostgreSQL (Prisma ORM)
 - **Payments**: Stripe (ready for integration)
 - **Storage**: MinIO (ready for integration)
 
@@ -95,7 +95,7 @@ Authentication is ready for integration with NextAuth.js. Protected routes are s
 
 ## 🚧 Next Steps
 
-1. Integrate MongoDB for data persistence
+1. Optimize PostgreSQL database schema for enterprise scale
 2. Set up Stripe for payment processing
 3. Implement NextAuth.js for authentication
 4. Connect external APIs (Google Analytics, Google Ads, Meta Ads)

@@ -1,25 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import Anthropic from "@anthropic-ai/sdk";
-
-const client = new Anthropic();
+import { generateText } from "@/lib/ai";
+import { checkAndIncrementAiUsage, AI_DAILY_CAP } from "@/lib/ai-rate-limit";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const usage = await checkAndIncrementAiUsage(session.user.id);
+  if (!usage.allowed) {
+    return NextResponse.json(
+      { error: `Daily limit of ${AI_DAILY_CAP} AI requests reached. Resets at midnight.` },
+      { status: 429 }
+    );
+  }
 
   const { rawBrief } = await req.json();
-  if (!rawBrief) return NextResponse.json({ error: "rawBrief is required" }, { status: 400 });
+  if (!rawBrief) {
+    return NextResponse.json({ error: "rawBrief is required" }, { status: 400 });
+  }
 
   try {
-    const message = await client.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 1500,
-      messages: [
-        {
-          role: "user",
-          content: `You are a senior digital marketing strategist. Extract and structure the following client brief into a clear, organised summary.
+    const prompt = `You are a senior digital marketing strategist. Extract and structure the following client brief into a clear, organised summary.
 
 Return your response in this exact format:
 
@@ -49,13 +54,10 @@ Return your response in this exact format:
 
 ---
 CLIENT BRIEF:
-${rawBrief}`,
-        },
-      ],
-    });
+${rawBrief}`;
 
-    const summary = message.content[0].type === "text" ? message.content[0].text : "";
-    return NextResponse.json({ summary });
+    const summary = await generateText(prompt);
+    return NextResponse.json({ summary, remaining: usage.remaining });
   } catch (error) {
     console.error("Brief summarise error:", error);
     return NextResponse.json({ error: "Failed to summarise brief" }, { status: 500 });

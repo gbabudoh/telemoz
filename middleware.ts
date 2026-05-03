@@ -72,5 +72,6 @@ export const config = {
     "/admin/:path*",
     "/marketplace/:path*",
     "/messaging/:path*",
+    "/notifications/:path*",
   ],
 };

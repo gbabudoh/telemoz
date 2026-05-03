@@ -71,7 +71,10 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, category, timeline, clientId, proId, startDate, endDate, budget, currency, country } = body;
+    const { 
+      title, description, category, timeline, clientId, proId, startDate, endDate, budget, currency, country,
+      objective, targetAudience, platforms, deliverables, additionalNotes
+    } = body;
 
     if (!title || !description) {
       return NextResponse.json(
@@ -94,28 +97,49 @@ export async function POST(request: NextRequest) {
       }
     } else if (session.user.userType === "client") {
       finalClientId = session.user.id;
-      // For clients, proId is optional (starts as unassigned)
     }
 
-    const project = await prisma.project.create({
-      data: {
-        title,
-        description,
-        category,
-        timeline,
-        proId: finalProId || null,
-        clientId: finalClientId,
-        startDate: startDate ? new Date(startDate) : new Date(),
-        endDate: endDate ? new Date(endDate) : undefined,
-        budget: budget ? parseFloat(budget) : 0,
-        currency: currency || "GBP",
-        country: country || null,
-        status: "under_review",
-      } as Parameters<typeof prisma.project.create>[0]["data"],
-      include: {
-        pro: { select: { name: true, email: true, image: true } },
-        client: { select: { name: true, email: true, image: true } },
-      },
+    // Use transaction to create both Project and ProjectBrief
+    const project = await prisma.$transaction(async (tx) => {
+      const p = await tx.project.create({
+        data: {
+          title,
+          description,
+          category,
+          timeline,
+          proId: finalProId || null,
+          clientId: finalClientId,
+          startDate: startDate ? new Date(startDate) : new Date(),
+          endDate: endDate ? new Date(endDate) : undefined,
+          budget: budget ? parseFloat(budget) : 0,
+          currency: currency || "GBP",
+          country: country || null,
+          status: "under_review",
+        },
+        include: {
+          pro: { select: { name: true, email: true, image: true } },
+          client: { select: { name: true, email: true, image: true } },
+        },
+      });
+
+      // Create the brief automatically
+      await tx.projectBrief.create({
+        data: {
+          clientId: finalClientId,
+          projectId: p.id,
+          title: p.title,
+          objective: objective || description, // fallback to description if objective is missing
+          targetAudience: targetAudience || null,
+          platforms: platforms || [],
+          deliverables: deliverables || [],
+          timeline: timeline || p.timeline || null,
+          budget: p.budget,
+          currency: p.currency,
+          additionalNotes: additionalNotes || null,
+        }
+      });
+
+      return p;
     });
 
     return NextResponse.json(

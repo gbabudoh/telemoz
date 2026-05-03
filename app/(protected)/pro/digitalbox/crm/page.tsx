@@ -27,7 +27,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 interface Client {
-  id: number;
+  id: string;
   clientId: string;
   name: string;
   email: string;
@@ -64,7 +64,7 @@ export default function CRMPage() {
   const [clientsList, setClientsList] = useState<Client[]>([]);
   const [formError, setFormError] = useState("");
   const [formSuccess, setFormSuccess] = useState(false);
-  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const [newClient, setNewClient] = useState({
     name: "",
@@ -79,8 +79,23 @@ export default function CRMPage() {
     setShowClientDetailsModal(true);
   };
 
-  // Close context menu when clicking outside
   useEffect(() => {
+    const fetchClients = async () => {
+      setIsLoading(true);
+      try {
+        const res = await fetch("/api/pro/crm");
+        if (res.ok) {
+          const data = await res.json();
+          setClientsList(data.clients || []);
+        }
+      } catch (err) {
+        console.error("Error fetching clients:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchClients();
+
     const handler = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setOpenMenuId(null);
@@ -90,14 +105,14 @@ export default function CRMPage() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const handleDeleteClient = (clientId: number) => {
-    setClientsList((prev) => prev.filter((c) => c.id !== clientId));
+  const handleDeleteClient = (clientId: string) => {
+    setClientsList((prev) => prev.filter((c) => c.clientId !== clientId));
     setOpenMenuId(null);
   };
 
-  const handleMarkActive = (clientId: number) => {
+  const handleMarkActive = (clientId: string) => {
     setClientsList((prev) =>
-      prev.map((c) => (c.id === clientId ? { ...c, status: "active" } : c))
+      prev.map((c) => (c.clientId === clientId ? { ...c, status: "active" } : c))
     );
     setOpenMenuId(null);
   };
@@ -117,22 +132,20 @@ export default function CRMPage() {
     setFormError("");
     setIsLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      const newId = clientsList.length > 0 ? Math.max(...clientsList.map((c) => c.id)) + 1 : 1;
-      const added: Client = {
-        id: newId,
-        clientId: `client-${newId}`,
-        name: newClient.name,
-        email: newClient.email,
-        phone: newClient.phone,
-        company: newClient.company || newClient.name,
-        status: newClient.status,
-        value: 0,
-        projects: 0,
-        lastContact: "Just now",
-        nextFollowUp: "",
-      };
-      setClientsList((prev) => [added, ...prev]);
+      const res = await fetch("/api/pro/crm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newClient),
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        setFormError(data.error || "Failed to add client.");
+        return;
+      }
+
+      setClientsList((prev) => [data.client, ...prev]);
       setNewClient({ name: "", email: "", phone: "", company: "", status: "lead" });
       setFormSuccess(true);
       setTimeout(() => {
@@ -288,7 +301,14 @@ export default function CRMPage() {
           className="grid grid-cols-1 lg:grid-cols-2 gap-8"
         >
           <AnimatePresence>
-            {filteredClients.map((client) => (
+            {isLoading ? (
+              <div className="col-span-full py-24 text-center">
+                <div className="inline-flex flex-col items-center gap-5">
+                  <div className="w-14 h-14 border-4 border-[#0a9396]/20 border-t-[#0a9396] rounded-full animate-spin" />
+                  <p className="text-[#0a9396] font-bold tracking-widest uppercase text-xs">Authenticating relationships...</p>
+                </div>
+              </div>
+            ) : filteredClients.map((client) => (
                 <motion.div
                   layout
                   key={client.id}
@@ -319,13 +339,6 @@ export default function CRMPage() {
                             >
                               <Eye className="h-4 w-4 text-gray-400 shrink-0" />
                               View Details
-                            </button>
-                            <button
-                              onClick={() => { router.push(`/pro/messaging?clientId=${client.clientId}`); setOpenMenuId(null); }}
-                              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors text-left"
-                            >
-                              <Mail className="h-4 w-4 text-gray-400 shrink-0" />
-                              Send Message
                             </button>
                             <button
                               onClick={() => { setOpenMenuId(null); }}
@@ -439,13 +452,6 @@ export default function CRMPage() {
                           View Details
                         </button>
 
-                        <button
-                          onClick={() => router.push(`/pro/messaging?clientId=${client.clientId || client.id}`)}
-                          className="w-full h-10 shrink-0 flex items-center justify-center gap-2 rounded-xl bg-white border border-gray-200 text-gray-600 text-[13px] font-semibold hover:border-[#0a9396] hover:text-[#0a9396] active:scale-[0.97] transition-all"
-                        >
-                          <Mail className="h-4 w-4 shrink-0" />
-                          Message
-                        </button>
 
                         <div className="w-full h-10 shrink-0 flex items-center gap-2 rounded-xl border border-gray-100 bg-white px-3">
                           <Calendar className="h-4 w-4 text-gray-400 shrink-0" />
@@ -696,15 +702,9 @@ export default function CRMPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">Registered Email</p>
-                        <button
-                          onClick={() => {
-                            router.push(`/pro/messaging?clientId=${selectedClient.clientId || selectedClient.id}`);
-                            setShowClientDetailsModal(false);
-                          }}
-                          className="text-[17px] font-black text-[#0a9396] hover:text-[#087579] truncate w-full text-left"
-                        >
+                        <p className="text-[17px] font-black text-[#0a9396] truncate w-full">
                           {selectedClient.email}
-                        </button>
+                        </p>
                       </div>
                     </div>
 
@@ -767,20 +767,6 @@ export default function CRMPage() {
 
                 {/* Actions */}
                 <div className="flex gap-4 pt-6 border-t border-gray-100/50">
-                  <button
-                    onClick={() => {
-                      router.push(`/pro/messaging?clientId=${selectedClient.clientId || selectedClient.id}`);
-                      setShowClientDetailsModal(false);
-                    }}
-                    className="flex-1 relative group h-14 rounded-2xl overflow-hidden font-bold tracking-wide shadow-xl shadow-gray-900/10 transition-all hover:-translate-y-1 active:scale-[0.98]"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 bg-[length:200%_auto] group-hover:animate-gradient" />
-                    <div className="absolute inset-[1px] rounded-[15px] bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
-                    <span className="relative z-10 flex items-center justify-center text-white text-[16px]">
-                      <Mail className="mr-2 h-5 w-5" />
-                      Draft Communications
-                    </span>
-                  </button>
 
                   <button 
                     className="flex-1 bg-white border-2 border-[#0a9396] text-[#0a9396] hover:bg-[#0a9396] hover:text-white rounded-2xl h-14 shadow-sm hover:shadow-xl hover:shadow-[#0a9396]/20 transition-all text-[16px] font-bold flex items-center justify-center"

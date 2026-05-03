@@ -11,8 +11,6 @@ import {
   Pencil,
   LayoutGrid,
   List,
-  CheckCircle2,
-  X,
   Trash2,
   Archive,
   AlertTriangle,
@@ -21,7 +19,7 @@ import { formatCurrency, formatNumber } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import Link from "next/link";
+import { NewProjectModal, ProjectData } from "@/components/projects/NewProjectModal";
 
 interface Project {
   id: string;
@@ -34,6 +32,19 @@ interface Project {
   description: string;
 }
 
+interface BackendProject {
+  id: string;
+  title: string;
+  category?: string;
+  timeline?: string;
+  status: string;
+  budget?: number;
+  currency: string;
+  country?: string;
+  description: string;
+  pro?: { name: string };
+}
+
 interface Message {
   id: number;
   from: string;
@@ -43,11 +54,7 @@ interface Message {
   unread: boolean;
 }
 
-const currencySymbols: Record<string, string> = {
-  GBP: "£",
-  USD: "$",
-  EUR: "€",
-};
+
 
 export default function ClientDashboard() {
   const { data: session } = useSession();
@@ -57,46 +64,22 @@ export default function ClientDashboard() {
   const [messages] = useState<Message[]>([]);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [isLoadingProjects, setIsLoadingProjects] = useState(true);
-  const [isSavingProject, setIsSavingProject] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
-  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [isDeletingProject, setIsDeletingProject] = useState(false);
   const [isArchivingId, setIsArchivingId] = useState<string | null>(null);
+  const [editingProject, setEditingProject] = useState<ProjectData | null>(null);
   const [dashStats, setDashStats] = useState<{
     pendingInvoicesAmount: number;
     pendingInvoicesCount: number;
     portfolioROAS: number | null;
   }>({ pendingInvoicesAmount: 0, pendingInvoicesCount: 0, portfolioROAS: null });
 
-  const [newProjectData, setNewProjectData] = useState({
-    name: "",
-    category: "SEO (search engine optimisation)",
-    budget: "",
-    currency: "GBP",
-    country: "United Kingdom",
-    timeline: "1 Month",
-    description: "",
-  });
-
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        setIsLoadingProjects(true);
         const response = await fetch("/api/projects?userType=client");
         if (response.ok) {
-          interface BackendProject {
-            id: string;
-            title: string;
-            category?: string;
-            timeline?: string;
-            status: string;
-            budget?: number;
-            currency: string;
-            country?: string;
-            description: string;
-            pro?: { name: string };
-          }
           const data = (await response.json()) as { projects: BackendProject[] };
           const mappedProjects: Project[] = data.projects.map((p: BackendProject) => ({
             id: p.id,
@@ -128,96 +111,33 @@ export default function ClientDashboard() {
     }
   }, [session]);
 
-  const handlePostProject = async () => {
-    if (!newProjectData.name || !newProjectData.description) return;
-    setIsSavingProject(true);
-    try {
-      if (editingProjectId !== null) {
-        const response = await fetch(`/api/projects/${editingProjectId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title: newProjectData.name,
-            category: newProjectData.category,
-            budget: newProjectData.budget,
-            timeline: newProjectData.timeline,
-            description: newProjectData.description,
-            currency: newProjectData.currency,
-            country: newProjectData.country,
-          }),
-        });
-        if (response.ok) {
-          const { project: p } = await response.json();
-          setProjects(projects.map((proj) =>
-            proj.id === editingProjectId
-              ? {
-                  ...proj,
-                  name: p.title,
-                  timeline: p.timeline ?? null,
-                  budget: p.budget ?? null,
-                  description: p.description,
-                  currency: p.currency,
-                }
-              : proj
-          ));
-          setIsProjectModalOpen(false);
-        }
-      } else {
-        const response = await fetch("/api/projects", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title: newProjectData.name,
-            description: newProjectData.description,
-            category: newProjectData.category,
-            timeline: newProjectData.timeline,
-            budget: newProjectData.budget,
-            currency: newProjectData.currency,
-            country: newProjectData.country,
-          }),
-        });
-        if (response.ok) {
-          const { project: p } = await response.json();
-          setProjects([{
-            id: p.id,
-            name: p.title,
-            status: p.status,
-            timeline: p.timeline ?? null,
-            budget: p.budget ?? null,
-            currency: p.currency,
-            pro: null,
-            description: p.description,
-          }, ...projects]);
-          setIsProjectModalOpen(false);
-        }
-      }
-      setEditingProjectId(null);
-      setNewProjectData({
-        name: "",
-        category: "Marketing",
-        budget: "",
-        currency: "GBP",
-        country: "United Kingdom",
-        timeline: "1 Month",
-        description: "",
-      });
-    } catch (error) {
-      console.error("Error saving project:", error);
-    } finally {
-      setIsSavingProject(false);
+  const handleOnSuccess = (p: ProjectData) => {
+    const mapped: Project = {
+      id: p.id || "",
+      name: p.title || p.name || "Untitled Product",
+      status: p.status || "under_review",
+      timeline: p.timeline || p.deadline || null,
+      budget: typeof p.budget === "string" ? parseFloat(p.budget) : (p.budget || null),
+      currency: p.currency || "GBP",
+      pro: p.pro?.name ?? null,
+      description: p.description || "",
+    };
+    
+    if (editingProject?.id) {
+        setProjects(projects.map(proj => proj.id === p.id ? mapped : proj));
+    } else {
+        setProjects([mapped, ...projects]);
     }
   };
 
   const handleEditProject = (project: Project) => {
-    setEditingProjectId(project.id);
-    setNewProjectData({
+    setEditingProject({
+      id: project.id,
       name: project.name,
-      category: "",
-      budget: project.budget?.toString() ?? "",
-      timeline: project.timeline ?? "",
       description: project.description,
+      budget: project.budget,
       currency: project.currency,
-      country: "",
+      // and other fields if available in the mapped project
     });
     setIsProjectModalOpen(true);
   };
@@ -257,16 +177,7 @@ export default function ClientDashboard() {
   };
 
   const openCreateModal = () => {
-    setEditingProjectId(null);
-    setNewProjectData({
-      name: "",
-      category: "Marketing",
-      budget: "",
-      currency: "GBP",
-      country: "United Kingdom",
-      timeline: "1 Month",
-      description: "",
-    });
+    setEditingProject(null);
     setIsProjectModalOpen(true);
   };
 
@@ -319,7 +230,7 @@ export default function ClientDashboard() {
               onClick={openCreateModal}
               className="h-11 px-6 rounded-xl bg-[#0a9396] hover:bg-[#087579] text-white font-semibold text-sm shadow-sm shadow-[#0a9396]/20 transition-all hover:-translate-y-0.5 flex items-center gap-2"
             >
-              Post a Project
+              New Product
               <ArrowRight className="h-4 w-4" />
             </button>
           </div>
@@ -401,7 +312,7 @@ export default function ClientDashboard() {
                       onClick={openCreateModal}
                       className="h-11 px-6 rounded-xl bg-[#0a9396] hover:bg-[#087579] text-white font-semibold text-sm shadow-sm transition-all"
                     >
-                      Post a Project
+                      New Product
                     </button>
                   </div>
                 ) : (
@@ -499,11 +410,9 @@ export default function ClientDashboard() {
             <div className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-2xl shadow-sm overflow-hidden flex-1 flex flex-col h-[480px]">
               <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between sticky top-0 z-20 bg-white/80 backdrop-blur-xl">
                 <h2 className="font-bold text-gray-900">Messages</h2>
-                <Link href="/messaging">
-                  <div className="h-8 w-8 rounded-full bg-gray-50 hover:bg-[#0a9396]/10 border border-gray-200 flex items-center justify-center text-gray-400 hover:text-[#0a9396] transition-colors cursor-pointer">
-                    <ArrowRight className="h-4 w-4 -rotate-45" />
-                  </div>
-                </Link>
+                <div className="h-8 w-8 rounded-full bg-gray-50 border border-gray-200 flex items-center justify-center text-gray-200">
+                  <ArrowRight className="h-4 w-4 -rotate-45" />
+                </div>
               </div>
 
               <div className="flex-1 overflow-y-auto p-4 space-y-2">
@@ -609,152 +518,12 @@ export default function ClientDashboard() {
         )}
       </AnimatePresence>
 
-      {/* Project Modal */}
-      <AnimatePresence>
-        {isProjectModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm"
-              onClick={() => setIsProjectModalOpen(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.96, y: 16 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.96, y: -16 }}
-              className="w-full max-w-xl bg-white/95 backdrop-blur-2xl border border-white/80 rounded-2xl shadow-2xl overflow-hidden relative z-10"
-            >
-              {/* Modal header */}
-              <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900">
-                    {editingProjectId ? "Edit Project" : "Post a Project"}
-                  </h3>
-                  <p className="text-sm text-gray-500 mt-0.5">
-                    {editingProjectId ? "Update your project details." : "Describe your project to attract the right professional."}
-                  </p>
-                </div>
-                <button
-                  onClick={() => setIsProjectModalOpen(false)}
-                  className="h-9 w-9 rounded-xl hover:bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-500 hover:text-gray-900 transition-all"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-
-              {/* Modal body */}
-              <div className="p-6 space-y-5">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Project Name</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Q4 SEO Campaign"
-                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:border-[#0a9396] focus:ring-2 focus:ring-[#0a9396]/10 outline-none transition-all placeholder-gray-300"
-                    value={newProjectData.name}
-                    onChange={(e) => setNewProjectData({ ...newProjectData, name: e.target.value })}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Category</label>
-                    <select
-                      className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:border-[#0a9396] focus:ring-2 focus:ring-[#0a9396]/10 outline-none transition-all"
-                      value={newProjectData.category}
-                      onChange={(e) => setNewProjectData({ ...newProjectData, category: e.target.value })}
-                    >
-                      <option value="SEO (search engine optimisation)">SEO</option>
-                      <option value="PPC">PPC & Ads</option>
-                      <option value="Social Media">Social Media</option>
-                      <option value="Content Marketing">Content Marketing</option>
-                      <option value="Email Marketing">Email Marketing</option>
-                      <option value="Other">Other</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Timeline</label>
-                    <select
-                      className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:border-[#0a9396] focus:ring-2 focus:ring-[#0a9396]/10 outline-none transition-all"
-                      value={newProjectData.timeline}
-                      onChange={(e) => setNewProjectData({ ...newProjectData, timeline: e.target.value })}
-                    >
-                      <option>1 Week</option>
-                      <option>1 Month</option>
-                      <option>3 Months</option>
-                      <option>6 Months</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-[1fr_2fr] gap-3">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Currency</label>
-                    <select
-                      className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:border-[#0a9396] focus:ring-2 focus:ring-[#0a9396]/10 outline-none transition-all"
-                      value={newProjectData.currency}
-                      onChange={(e) => setNewProjectData({ ...newProjectData, currency: e.target.value })}
-                    >
-                      <option value="GBP">GBP</option>
-                      <option value="USD">USD</option>
-                      <option value="EUR">EUR</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Budget</label>
-                    <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none">
-                        {currencySymbols[newProjectData.currency] ?? newProjectData.currency}
-                      </span>
-                      <input
-                        type="number"
-                        placeholder="5000"
-                        className="w-full bg-white border border-gray-200 rounded-xl pl-8 pr-4 py-3 text-sm text-gray-900 focus:border-[#0a9396] focus:ring-2 focus:ring-[#0a9396]/10 outline-none transition-all placeholder-gray-300"
-                        value={newProjectData.budget}
-                        onChange={(e) => setNewProjectData({ ...newProjectData, budget: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Description</label>
-                  <textarea
-                    rows={4}
-                    placeholder="Describe your goals, target audience, and any relevant context..."
-                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 focus:border-[#0a9396] focus:ring-2 focus:ring-[#0a9396]/10 outline-none transition-all placeholder-gray-300 resize-none"
-                    value={newProjectData.description}
-                    onChange={(e) => setNewProjectData({ ...newProjectData, description: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              {/* Modal footer */}
-              <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex items-center justify-end gap-3">
-                <button
-                  onClick={() => setIsProjectModalOpen(false)}
-                  className="px-5 py-2.5 rounded-xl text-sm font-semibold text-gray-600 hover:bg-white hover:shadow-sm border border-transparent hover:border-gray-200 transition-all"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handlePostProject}
-                  disabled={isSavingProject || !newProjectData.name.trim() || !newProjectData.description.trim()}
-                  className="px-6 py-2.5 rounded-xl bg-[#0a9396] hover:bg-[#087579] disabled:opacity-50 text-white font-semibold text-sm shadow-sm shadow-[#0a9396]/20 transition-all flex items-center gap-2"
-                >
-                  {isSavingProject ? (
-                    <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    <CheckCircle2 className="h-4 w-4" />
-                  )}
-                  {editingProjectId ? "Save Changes" : "Post Project"}
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <NewProjectModal 
+        isOpen={isProjectModalOpen}
+        onClose={() => setIsProjectModalOpen(false)}
+        onSuccess={handleOnSuccess}
+        initialData={editingProject}
+      />
     </div>
   );
 }

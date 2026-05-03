@@ -16,7 +16,7 @@ import {
   Award,
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { regions, countriesByRegion } from "@/lib/countries";
 
@@ -30,146 +30,75 @@ const categories = [
   { id: "analytics", name: "Analytics", icon: TrendingUp },
 ];
 
-const pros = [
-  {
-    id: "1",
-    name: "Sarah Johnson",
-    title: "SEO Specialist",
-    location: "London, UK",
-    country: "United Kingdom",
-    city: "London",
-    timezone: "Europe/London",
-    rating: 4.9,
-    reviews: 127,
-    specialties: ["SEO", "Content Marketing", "Analytics"],
-    price: "£500–£2,000/mo",
-    category: "seo",
-    verified: true,
-    availability: "available",
-    certifications: [
-      { name: "Google Ads Certification", issuer: "Google", issueDate: "2023-01-15", expiryDate: "2025-01-15" },
-      { name: "Meta (Facebook) Certified", issuer: "Meta", issueDate: "2023-03-20", expiryDate: "2024-03-20" },
-    ],
-  },
-  {
-    id: "2",
-    name: "Michael Chen",
-    title: "PPC Expert",
-    location: "Manchester, UK",
-    country: "United Kingdom",
-    city: "Manchester",
-    timezone: "Europe/London",
-    rating: 4.8,
-    reviews: 89,
-    specialties: ["Google Ads", "Facebook Ads", "Conversion Optimisation"],
-    price: "£800–£3,000/mo",
-    category: "ppc",
-    verified: true,
-    availability: "available",
-    certifications: [
-      { name: "Google Ads Certification", issuer: "Google", issueDate: "2023-01-15" },
-    ],
-  },
-  {
-    id: "3",
-    name: "Emma Williams",
-    title: "Social Media Strategist",
-    location: "Birmingham, UK",
-    country: "United Kingdom",
-    city: "Birmingham",
-    timezone: "Europe/London",
-    rating: 4.7,
-    reviews: 156,
-    specialties: ["Social Media", "Content Creation", "Community Management"],
-    price: "£400–£1,500/mo",
-    category: "social",
-    verified: true,
-    availability: "available",
-    certifications: [
-      { name: "HubSpot Content Marketing", issuer: "HubSpot", issueDate: "2023-05-10" },
-    ],
-  },
-  {
-    id: "4",
-    name: "David Thompson",
-    title: "Content Marketing Expert",
-    location: "Edinburgh, UK",
-    country: "United Kingdom",
-    city: "Edinburgh",
-    timezone: "Europe/London",
-    rating: 4.9,
-    reviews: 203,
-    specialties: ["Content Strategy", "Blog Writing", "SEO Content"],
-    price: "£600–£2,500/mo",
-    category: "content",
-    verified: true,
-    availability: "busy",
-    certifications: [
-      { name: "Google Analytics Certification", issuer: "Google", issueDate: "2022-11-10" },
-      { name: "SEMrush SEO Toolkit", issuer: "SEMrush", issueDate: "2023-02-15" },
-    ],
-  },
-];
+interface Certification {
+  name: string;
+  issuer: string;
+  issueDate: string;
+  expiryDate?: string;
+  credentialId?: string;
+}
 
-const clientRequests = [
-  {
-    id: "1",
-    client: "TechStart Inc.",
-    company: "TechStart Inc.",
-    project: "SEO Optimisation Campaign",
-    budget: 2500,
-    currency: "£",
-    category: "seo",
-    location: "London, UK",
-    country: "United Kingdom",
-    city: "London",
-    timezone: "Europe/London",
-    posted: "2 hours ago",
-    description: "Looking for an SEO specialist to optimise our website and improve search rankings.",
-    requirements: ["Technical SEO", "Content Strategy", "Analytics"],
-    status: "open",
-  },
-  {
-    id: "2",
-    client: "E-Commerce Pro",
-    company: "E-Commerce Pro Ltd",
-    project: "PPC Campaign Management",
-    budget: 1800,
-    currency: "£",
-    category: "ppc",
-    location: "Manchester, UK",
-    country: "United Kingdom",
-    city: "Manchester",
-    timezone: "Europe/London",
-    posted: "5 hours ago",
-    description: "Need a PPC expert to manage our Google Ads and Facebook Ads campaigns.",
-    requirements: ["Google Ads", "Facebook Ads", "Conversion Optimisation"],
-    status: "open",
-  },
-  {
-    id: "3",
-    client: "Local Business Hub",
-    company: "Local Business Hub",
-    project: "Social Media Strategy",
-    budget: 1200,
-    currency: "£",
-    category: "social",
-    location: "Birmingham, UK",
-    country: "United Kingdom",
-    city: "Birmingham",
-    timezone: "Europe/London",
-    posted: "1 day ago",
-    description: "Seeking a social media strategist to help grow our online presence.",
-    requirements: ["Social Media", "Content Creation", "Community Management"],
-    status: "open",
-  },
-];
+interface Pro {
+  id: string;
+  name: string;
+  title: string;
+  location: string;
+  country: string | null;
+  city: string | null;
+  timezone: string | null;
+  rating: number;
+  reviews: number;
+  specialties: string[];
+  price: string;
+  category: string;
+  verified: boolean;
+  availability: string;
+  certifications: Certification[];
+}
+
+interface ClientRequest {
+  id: string;
+  client: string;
+  company: string;
+  project: string;
+  budget: number;
+  currency: string;
+  category: string;
+  location: string;
+  country: string | null;
+  city: string | null;
+  posted: string;
+  description: string;
+  requirements: string[];
+  status: string;
+}
 
 export default function MarketplacePage() {
   const [activeTab, setActiveTab] = useState<"experts" | "requests">("experts");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedCountry, setSelectedCountry] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [pros, setPros] = useState<Pro[]>([]);
+  const [clientRequests, setClientRequests] = useState<ClientRequest[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch("/api/marketplace");
+        if (response.ok) {
+          const data = await response.json();
+          setPros(data.pros);
+          setClientRequests(data.requests);
+        }
+      } catch (error) {
+        console.error("Error fetching marketplace data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   const filteredPros = pros.filter((pro) => {
     const matchesCategory = selectedCategory === "all" || pro.category === selectedCategory;
@@ -178,7 +107,7 @@ export default function MarketplacePage() {
       searchQuery === "" ||
       pro.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       pro.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      pro.specialties.some((s) => s.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      pro.specialties.some((s: string) => s.toLowerCase().includes(searchQuery.toLowerCase())) ||
       pro.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
       pro.country?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       pro.city?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -193,7 +122,7 @@ export default function MarketplacePage() {
       request.project.toLowerCase().includes(searchQuery.toLowerCase()) ||
       request.client.toLowerCase().includes(searchQuery.toLowerCase()) ||
       request.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      request.requirements.some((r) => r.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      request.requirements.some((r: string) => r.toLowerCase().includes(searchQuery.toLowerCase())) ||
       request.country?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       request.city?.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesCountry && matchesSearch;
@@ -351,8 +280,25 @@ export default function MarketplacePage() {
 
         {/* Content */}
         <AnimatePresence mode="wait">
-
-          {activeTab === "experts" && (
+          {isLoading ? (
+            <motion.div
+              key="loading"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex flex-col items-center justify-center py-24 bg-white/40 backdrop-blur-xl border border-white/80 rounded-2xl"
+            >
+              <div className="relative">
+                <div className="w-16 h-16 border-4 border-[#0a9396]/20 border-t-[#0a9396] rounded-full animate-spin" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-8 h-8 bg-[#0a9396]/10 rounded-full animate-pulse" />
+                </div>
+              </div>
+              <p className="mt-6 text-gray-500 font-bold tracking-widest uppercase text-xs animate-pulse">
+                Fetching latest marketplace data...
+              </p>
+            </motion.div>
+          ) : activeTab === "experts" ? (
             <motion.div
               key="experts"
               initial={{ opacity: 0, y: 16 }}
@@ -377,7 +323,6 @@ export default function MarketplacePage() {
                     >
                       <Link href={`/marketplace/${pro.id}`}>
                         <div className="h-full bg-white/60 backdrop-blur-xl border border-white/80 rounded-2xl p-6 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 group cursor-pointer">
-
                           {/* Name + rating */}
                           <div className="flex items-start justify-between mb-4">
                             <div>
@@ -385,9 +330,7 @@ export default function MarketplacePage() {
                                 <h3 className="text-lg font-bold text-gray-900 group-hover:text-[#0a9396] transition-colors">
                                   {pro.name}
                                 </h3>
-                                {pro.verified && (
-                                  <CheckCircle2 className="h-4 w-4 text-[#6ece39]" />
-                                )}
+                                {pro.verified && <CheckCircle2 className="h-4 w-4 text-[#6ece39]" />}
                               </div>
                               <p className="text-sm text-gray-500">{pro.title}</p>
                             </div>
@@ -419,7 +362,7 @@ export default function MarketplacePage() {
 
                           {/* Specialties */}
                           <div className="flex flex-wrap gap-1.5 mb-5">
-                            {pro.specialties.slice(0, 3).map((specialty) => (
+                            {pro.specialties.slice(0, 3).map((specialty: string) => (
                               <span
                                 key={specialty}
                                 className="px-2.5 py-1 bg-[#0a9396]/8 border border-[#0a9396]/15 rounded-lg text-xs font-medium text-[#0a9396]"
@@ -453,9 +396,7 @@ export default function MarketplacePage() {
                 </div>
               )}
             </motion.div>
-          )}
-
-          {activeTab === "requests" && (
+          ) : (
             <motion.div
               key="requests"
               initial={{ opacity: 0, y: 16 }}
@@ -480,7 +421,6 @@ export default function MarketplacePage() {
                     >
                       <Link href={`/marketplace/requests/${request.id}`}>
                         <div className="h-full bg-white/60 backdrop-blur-xl border border-white/80 rounded-2xl p-6 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 group cursor-pointer flex flex-col">
-
                           {/* Project + status */}
                           <div className="flex items-start justify-between mb-3">
                             <div className="flex-1 pr-3">
@@ -516,7 +456,7 @@ export default function MarketplacePage() {
 
                           {/* Requirements */}
                           <div className="flex flex-wrap gap-1.5 mb-4">
-                            {request.requirements.slice(0, 2).map((req) => (
+                            {request.requirements.slice(0, 2).map((req: string) => (
                               <span
                                 key={req}
                                 className="px-2.5 py-1 bg-gray-50 border border-gray-200 rounded-lg text-xs font-medium text-gray-600"

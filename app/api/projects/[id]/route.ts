@@ -142,7 +142,8 @@ export async function PATCH(
 
     const updatedProject = await prisma.project.update({
       where: { id },
-      data: updateData as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      data: updateData as any,
       include: {
         pro: { select: { name: true, email: true } },
         client: { select: { name: true, email: true } },

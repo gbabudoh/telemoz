@@ -1,0 +1,21 @@
+{
+  "name": "Telemoz",
+  "short_name": "Telemoz",
+  "description": "Premium B2B Marketplace & Agency Management",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0a9396",
+  "icons": [
+    {
+      "src": "/logos/telemoz.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/logos/telemoz.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

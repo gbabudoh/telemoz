@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { rateLimit } from "@/lib/rate-limit";
+import { upsertSubscriber } from "@/lib/novu";
 
 type UserTypeLocal = "pro" | "client" | "admin";
 
@@ -92,6 +93,19 @@ export async function POST(request: NextRequest) {
         subscriptionStatus: "active",
       },
     });
+
+    // Register user in Novu for notifications
+    try {
+      await upsertSubscriber({
+        subscriberId: newUser.id,
+        email: newUser.email,
+        firstName: newUser.name.split(" ")[0],
+        lastName: newUser.name.split(" ").slice(1).join(" "),
+      });
+    } catch (novuError) {
+      console.error("Failed to register Novu subscriber:", novuError);
+      // We don't fail the whole registration if Novu fails
+    }
 
     const userResponse = {
       id: newUser.id,

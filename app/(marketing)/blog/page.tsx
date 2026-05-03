@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card";
+import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -7,13 +7,10 @@ import {
   Calendar,
   User,
   ArrowRight,
-  Tag,
-  TrendingUp,
   Search,
   Filter,
 } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
 
 const blogPosts = [
   {
@@ -31,7 +28,7 @@ const blogPosts = [
     id: 2,
     title: "How to Build a Successful Freelance Digital Marketing Career",
     excerpt: "Learn the secrets to building a thriving freelance career in digital marketing. Tips from successful professionals.",
-    author: "Michael Chen",
+    author: "Telemoz Team",
     date: "2024-01-12",
     readTime: "6 min read",
     category: "Career",

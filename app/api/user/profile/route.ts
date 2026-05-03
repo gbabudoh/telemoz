@@ -2,6 +2,17 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { User } from "@prisma/client";
+
+type ExtendedUser = User & {
+  emailNotifications: boolean;
+  projectUpdates: boolean;
+  newInquiries: boolean;
+  paymentReceived: boolean;
+  reportReady: boolean;
+  proMessages: boolean;
+  marketingEmails: boolean;
+};
 
 export async function GET() {
   try {
@@ -17,6 +28,7 @@ export async function GET() {
     // Find user
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
+      include: { proProfile: true },
     });
 
     if (!user) {
@@ -27,6 +39,11 @@ export async function GET() {
     }
 
     // Return user data
+    const { 
+      emailNotifications, projectUpdates, newInquiries, paymentReceived, 
+      reportReady, proMessages, marketingEmails 
+    } = user as ExtendedUser;
+
     const userData = {
       id: user.id,
       name: user.name,
@@ -36,8 +53,16 @@ export async function GET() {
       timezone: user.timezone || "Europe/London",
       userType: user.userType,
       image: user.image,
+      emailNotifications,
+      projectUpdates,
+      newInquiries,
+      paymentReceived,
+      reportReady,
+      proMessages,
+      marketingEmails,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
+      proProfile: user.proProfile,
     };
 
     return NextResponse.json({ user: userData }, { status: 200 });

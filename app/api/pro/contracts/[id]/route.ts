@@ -20,12 +20,22 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   // Client signs
   if (isClient && !isPro) {
     if (body.action === "sign") {
-      const updated = await prisma.contract.update({
-        where: { id },
-        data: {
-          clientSignedAt: new Date(),
-          status: contract.proSignedAt ? "signed" : "sent",
-        },
+      const updated = await prisma.$transaction(async (tx) => {
+        const updatedContract = await tx.contract.update({
+          where: { id },
+          data: {
+            clientSignedAt: new Date(),
+            status: contract.proSignedAt ? "signed" : "sent",
+          },
+        });
+
+        if (updatedContract.status === "signed" && updatedContract.projectId) {
+          await tx.project.update({
+            where: { id: updatedContract.projectId },
+            data: { status: "active" },
+          });
+        }
+        return updatedContract;
       });
       return NextResponse.json({ contract: updated });
     }
@@ -36,12 +46,22 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { title, content, value, currency, expiresAt, status, action } = body;
 
   if (action === "sign") {
-    const updated = await prisma.contract.update({
-      where: { id },
-      data: {
-        proSignedAt: new Date(),
-        status: contract.clientSignedAt ? "signed" : contract.status,
-      },
+    const updated = await prisma.$transaction(async (tx) => {
+      const updatedContract = await tx.contract.update({
+        where: { id },
+        data: {
+          proSignedAt: new Date(),
+          status: contract.clientSignedAt ? "signed" : contract.status,
+        },
+      });
+
+      if (updatedContract.status === "signed" && updatedContract.projectId) {
+        await tx.project.update({
+          where: { id: updatedContract.projectId },
+          data: { status: "active" },
+        });
+      }
+      return updatedContract;
     });
     return NextResponse.json({ contract: updated });
   }

@@ -2,7 +2,7 @@
 
 import { Badge } from "@/components/ui/Badge";
 import { CheckCircle2, Clock, Calendar, ArrowLeft, FolderKanban } from "lucide-react";
-import { use } from "react";
+import { use, useState, useEffect } from "react";
 import Link from "next/link";
 
 interface Milestone {
@@ -26,9 +26,13 @@ interface Project {
 
 export default function ProjectDetailPage({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = use(params);
+  const [project] = useState<Project | null>(null);
+  const [isLoading] = useState(false);
 
-  // Project data would be fetched from the API using projectId
-  const project: Project | null = null;
+  useEffect(() => {
+    // In a real app, we would fetch project data here using projectId
+    // For now, we'll keep it null and avoid synchronous state updates in the effect
+  }, [projectId]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -37,6 +41,10 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
       default: return "default";
     }
   };
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center min-h-[60vh] text-gray-400">Loading project details...</div>;
+  }
 
   if (!project) {
     return (

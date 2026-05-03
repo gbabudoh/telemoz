@@ -25,6 +25,20 @@ import { useSession } from "next-auth/react";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 
+interface RecentUser {
+  id: string;
+  name: string;
+  userType: string;
+  createdAt: string;
+}
+
+interface RecentProject {
+  id: string;
+  title: string;
+  status: string;
+  createdAt: string;
+}
+
 interface PlatformStats {
   totalUsers: number;
   totalPros: number;
@@ -37,6 +51,8 @@ interface PlatformStats {
   pendingInvoices: number;
   activeUsers: number;
   inactiveUsers: number;
+  recentUsers: RecentUser[];
+  recentProjects: RecentProject[];
 }
 
 const CARD_VARIANTS = {
@@ -47,13 +63,6 @@ const CARD_VARIANTS = {
     transition: { delay: i * 0.07, duration: 0.35, ease: "easeOut" },
   }),
 };
-
-const recentActivities = [
-  { id: 1, action: "New professional registered", detail: "Sarah Johnson", time: "2 hours ago", icon: UserCheck, color: "bg-[#0a9396]/10 text-[#0a9396]" },
-  { id: 2, action: "Project completed", detail: "SEO Optimization Campaign", time: "5 hours ago", icon: CheckCircle2, color: "bg-emerald-100 text-emerald-700" },
-  { id: 3, action: "Payment received", detail: "£2,500 from TechStart Inc.", time: "1 day ago", icon: DollarSign, color: "bg-amber-100 text-amber-700" },
-  { id: 4, action: "New client registered", detail: "TechStart Inc.", time: "1 day ago", icon: Users, color: "bg-blue-100 text-blue-700" },
-];
 
 export default function AdminDashboard() {
   const { data: session } = useSession();
@@ -69,6 +78,8 @@ export default function AdminDashboard() {
     pendingInvoices: 0,
     activeUsers: 0,
     inactiveUsers: 0,
+    recentUsers: [],
+    recentProjects: [],
   });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -91,6 +102,27 @@ export default function AdminDashboard() {
       fetchStats();
     }
   }, [session]);
+
+  const recentActivities = [
+    ...(stats.recentUsers || []).map((u: RecentUser) => ({
+      id: `user-${u.id}`,
+      action: `New ${u.userType} registered`,
+      detail: u.name,
+      time: formatRelativeTime(new Date(u.createdAt)),
+      icon: UserCheck,
+      color: "bg-[#0a9396]/10 text-[#0a9396]",
+      timestamp: new Date(u.createdAt).getTime(),
+    })),
+    ...(stats.recentProjects || []).map((p: RecentProject) => ({
+      id: `project-${p.id}`,
+      action: "New project posted",
+      detail: p.title,
+      time: formatRelativeTime(new Date(p.createdAt)),
+      icon: Briefcase,
+      color: "bg-emerald-100 text-emerald-700",
+      timestamp: new Date(p.createdAt).getTime(),
+    })),
+  ].sort((a, b) => b.timestamp - a.timestamp).slice(0, 5);
 
   const chartData = [
     { month: "Oct", users: 120, projects: 45, revenue: 12500 },
@@ -378,4 +410,14 @@ export default function AdminDashboard() {
       </motion.div>
     </div>
   );
+}
+
+function formatRelativeTime(date: Date) {
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  if (diffInSeconds < 60) return "just now";
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+  if (diffInSeconds < 172800) return "yesterday";
+  return `${Math.floor(diffInSeconds / 86400)}d ago`;
 }

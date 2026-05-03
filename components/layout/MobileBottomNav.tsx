@@ -25,7 +25,7 @@ export function MobileBottomNav({ userType = "pro" }: MobileBottomNavProps) {
     { label: "Home", href: "/pro", icon: LayoutDashboard },
     { label: "Work", href: "/pro/projects", icon: FolderKanban },
     { label: "AI Tools", href: "/pro/digitalbox/ai-tools", icon: Zap },
-    { label: "Inbox", href: "/pro/messaging", icon: MessageSquare },
+    { label: "Inquiries", href: "/pro/inquiries", icon: MessageSquare },
     { label: "Settings", href: "/pro/settings", icon: Settings },
   ];
 
@@ -33,7 +33,7 @@ export function MobileBottomNav({ userType = "pro" }: MobileBottomNavProps) {
     { label: "Home", href: "/client", icon: LayoutDashboard },
     { label: "Projects", href: "/client/projects", icon: Briefcase },
     { label: "Reports", href: "/client/reports", icon: TrendingUp },
-    { label: "Inbox", href: "/messaging", icon: MessageSquare },
+    { label: "Inquiries", href: "/client/inquiries", icon: MessageSquare },
     { label: "Settings", href: "/client/settings", icon: Settings },
   ];
 

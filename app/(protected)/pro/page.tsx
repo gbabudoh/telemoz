@@ -24,7 +24,7 @@ import { useEffect, useState } from "react";
 type RevenuePoint = { month: string; revenue: number; profit: number };
 type StatusPoint = { name: string; value: number; color: string };
 type Inquiry = { id: number; client: string; project: string; budget: number; status: string; time: string; avatar: string };
-type ActionItem = { id: number; type: string; title: string; description: string; icon: React.ComponentType<{ className?: string }>; color: string; bg: string };
+type ActionItem = { id: number; type: string; title: string; description: string; icon: string | React.ComponentType<{ className?: string }>; color: string; bg: string };
 
 interface DashboardStats {
   totalRevenue: number;
@@ -35,7 +35,19 @@ interface DashboardStats {
   profitChange: number;
   clientsChange: number;
   projectsChange: number;
+  rating: number;
+  conversionRate: number;
+  avgResponseTime: string;
 }
+
+const iconMap: Record<string, React.ElementType> = {
+  DollarSign,
+  Users,
+  FolderKanban,
+  CheckCircle2,
+  Clock,
+  Zap
+};
 
 export default function ProDashboard() {
   const { data: session } = useSession();
@@ -49,20 +61,34 @@ export default function ProDashboard() {
     profitChange: 0,
     clientsChange: 0,
     projectsChange: 0,
+    rating: 0,
+    conversionRate: 0,
+    avgResponseTime: "—",
   });
   const [isLoading, setIsLoading] = useState(true);
-  const [revenueData] = useState<RevenuePoint[]>([]);
-  const [projectStatusData] = useState<StatusPoint[]>([]);
-  const [recentInquiries] = useState<Inquiry[]>([]);
-  const [actionItems] = useState<ActionItem[]>([]);
+  const [revenueData, setRevenueData] = useState<RevenuePoint[]>([]);
+  const [projectStatusData, setProjectStatusData] = useState<StatusPoint[]>([]);
+  const [recentInquiries, setRecentInquiries] = useState<Inquiry[]>([]);
+  const [actionItems, setActionItems] = useState<ActionItem[]>([]);
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
         const response = await fetch("/api/pro/dashboard-stats");
         if (response.ok) {
-          const data = await response.json();
+          interface DashboardResponse {
+            stats: DashboardStats;
+            revenueData: RevenuePoint[];
+            projectStatusData: StatusPoint[];
+            recentInquiries: Inquiry[];
+            actionItems: ActionItem[];
+          }
+          const data = (await response.json()) as DashboardResponse;
           setStats(data.stats);
+          setRevenueData(data.revenueData);
+          setProjectStatusData(data.projectStatusData);
+          setRecentInquiries(data.recentInquiries);
+          setActionItems(data.actionItems);
         }
       } catch (error) {
         console.error("Error fetching dashboard stats:", error);
@@ -316,7 +342,7 @@ export default function ProDashboard() {
                 ) : (
                   <AnimatePresence>
                     {actionItems.map((item, index) => {
-                      const Icon = item.icon;
+                      const Icon = typeof item.icon === "string" ? (iconMap[item.icon] || Zap) : item.icon;
                       return (
                         <motion.div
                           key={item.id}
@@ -424,19 +450,19 @@ export default function ProDashboard() {
         >
           {([
             {
-              title: "Marketplace Rating", value: "—", icon: CheckCircle2,
+              title: "Marketplace Rating", value: stats.rating > 0 ? `${stats.rating}/5` : "—", icon: CheckCircle2,
               gradient: "from-emerald-400 to-teal-500",
               iconBg: "bg-emerald-500/10 border-emerald-500/20",
               iconText: "text-emerald-500",
             },
             {
-              title: "Inquiry Conversion", value: "—", icon: TrendingUp,
+              title: "Inquiry Conversion", value: stats.conversionRate > 0 ? `${stats.conversionRate}%` : "—", icon: TrendingUp,
               gradient: "from-blue-400 to-indigo-500",
               iconBg: "bg-blue-500/10 border-blue-500/20",
               iconText: "text-blue-500",
             },
             {
-              title: "Avg. Response Time", value: "—", icon: Clock,
+              title: "Avg. Response Time", value: stats.avgResponseTime, icon: Clock,
               gradient: "from-violet-400 to-purple-500",
               iconBg: "bg-violet-500/10 border-violet-500/20",
               iconText: "text-violet-500",

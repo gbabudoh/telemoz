@@ -1,8 +1,9 @@
 "use client";
 
-import { Bell, Search, User } from "lucide-react";
+import { Search, User } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
+import { NotificationDropdown } from "@/components/notifications/NotificationDropdown";
 
 export function DashboardHeader() {
   const { data: session } = useSession();
@@ -26,11 +27,7 @@ export function DashboardHeader() {
 
       {/* Right Actions */}
       <div className="flex items-center gap-3">
-        {/* Notifications */}
-        <button className="relative rounded-lg p-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors">
-          <Bell className="h-5 w-5" />
-          <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500" />
-        </button>
+        <NotificationDropdown />
 
         {/* Profile */}
         <div className="flex items-center gap-3 rounded-[1.2rem] border border-gray-200 bg-white/60 backdrop-blur-md px-3 py-2 shadow-sm cursor-pointer hover:shadow-md hover:bg-white hover:border-gray-200/80 transition-all group overflow-hidden relative">

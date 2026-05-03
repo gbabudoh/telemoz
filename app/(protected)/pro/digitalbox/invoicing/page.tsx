@@ -23,7 +23,7 @@ import {
   Briefcase,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { formatCurrency } from "@/lib/utils";
 
 
@@ -35,16 +35,16 @@ const statusConfig = {
   cancelled: { label: "Cancelled", color: "default", icon: XCircle, dot: 'bg-gray-500' },
 };
 
+
 const statsConfig = [
   { label: "Total Revenue", icon: DollarSign, color: "from-emerald-400 to-teal-600", glow:"shadow-emerald-500/40 text-emerald-50" },
   { label: "Outstanding", icon: Clock, color: "from-[#F59E0B] to-[#D97706]", glow:"shadow-[#F59E0B]/40 text-amber-50" },
   { label: "Overdue", icon: XCircle, color: "from-[#EF4444] to-[#B91C1C]", glow:"shadow-[#EF4444]/40 text-red-50" },
   { label: "This Month", icon: Calendar, color: "from-[#3B82F6] to-[#1D4ED8]", glow:"shadow-[#3B82F6]/40 text-blue-50" },
 ];
-
 interface InvoiceItem { description: string; quantity: number; unitPrice: number; total: number; }
 interface InvoiceType {
-  id: number; invoiceNumber: string; client: string; clientEmail: string;
+  id: string; invoiceNumber: string; client: string; clientEmail: string;
   project: string; items: InvoiceItem[]; subtotal: number; tax: number;
   total: number; currency: string; status: string; dueDate: string;
   createdAt: string; paidAt?: string;
@@ -63,6 +63,8 @@ export default function InvoicingPage() {
     project: "",
     dueDate: "",
     notes: "",
+    isEscrow: false,
+    milestoneTitle: "",
     sendImmediately: false,
   });
   const [newInvoiceItems, setNewInvoiceItems] = useState([
@@ -80,6 +82,26 @@ export default function InvoicingPage() {
     type: "success",
   });
 
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchInvoices = async () => {
+      setIsLoading(true);
+      try {
+        const res = await fetch("/api/pro/invoices");
+        if (res.ok) {
+          const data = await res.json();
+          setInvoicesList(data.invoices || []);
+        }
+      } catch (err) {
+        console.error("Error fetching invoices:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchInvoices();
+  }, []);
+
   const showNotification = (title: string, message: string, type: "success" | "info" | "error" = "success") => {
     setNotificationModal({ isOpen: true, title, message, type });
   };
@@ -94,19 +116,28 @@ export default function InvoicingPage() {
     setIsViewModalOpen(true);
   };
 
-  const handleSendInvoice = (id: number) => {
+  const handleSendInvoice = (id: string) => {
     setInvoicesList((prev: InvoiceType[]) => prev.map((inv: InvoiceType) => inv.id === id ? { ...inv, status: 'sent' } : inv));
     showNotification("Invoice Sent", "The invoice has been sent to the client via email.", "success");
   };
 
-  const handleSendReminder = (id: number) => {
+  const handleSendReminder = (id: string) => {
     showNotification("Reminder Sent", `A payment reminder has been sent to the client for invoice #${id}.`, "success");
   };
 
 
 
   const handleCreateInvoice = () => {
-    setNewInvoiceData({ client: "", clientEmail: "", project: "", dueDate: "", notes: "", sendImmediately: false });
+    setNewInvoiceData({ 
+      client: "", 
+      clientEmail: "", 
+      project: "", 
+      dueDate: "", 
+      notes: "", 
+      isEscrow: false, 
+      milestoneTitle: "", 
+      sendImmediately: false 
+    });
     setNewInvoiceItems([{ description: "", quantity: 1, unitPrice: 0 }]);
     setIsNewInvoiceOpen(true);
   };
@@ -130,7 +161,7 @@ export default function InvoicingPage() {
     0
   );
 
-  const handleSaveNewInvoice = () => {
+  const handleSaveNewInvoice = async () => {
     if (!newInvoiceData.client.trim() || !newInvoiceData.project.trim() || !newInvoiceData.dueDate) {
       showNotification("Missing Fields", "Please fill in client name, project, and due date.", "error");
       return;
@@ -139,39 +170,59 @@ export default function InvoicingPage() {
       showNotification("Missing Fields", "Please fill in a description for each line item.", "error");
       return;
     }
-    const nextNumber = `INV-${String(invoicesList.length + 1).padStart(6, "0")}`;
-    const today = new Date().toISOString().split("T")[0];
-    const items = newInvoiceItems.map((i) => ({
-      description: i.description,
-      quantity: i.quantity,
-      unitPrice: i.unitPrice,
-      total: i.quantity * i.unitPrice,
-    }));
-    const subtotal = items.reduce((s, i) => s + i.total, 0);
-    const newInv = {
-      id: invoicesList.length + 1,
-      invoiceNumber: nextNumber,
-      client: newInvoiceData.client,
-      clientEmail: newInvoiceData.clientEmail,
-      project: newInvoiceData.project,
-      items,
-      subtotal,
-      tax: 0,
-      total: subtotal,
-      currency: "GBP",
-      status: newInvoiceData.sendImmediately ? "sent" : "draft",
-      dueDate: newInvoiceData.dueDate,
-      createdAt: today,
-    };
-    setInvoicesList((prev: InvoiceType[]) => [newInv, ...prev]);
-    setIsNewInvoiceOpen(false);
-    showNotification(
-      newInvoiceData.sendImmediately ? "Invoice Sent" : "Invoice Saved",
-      newInvoiceData.sendImmediately
-        ? `${nextNumber} has been sent to ${newInvoiceData.clientEmail || newInvoiceData.client}.`
-        : `${nextNumber} saved as a draft.`,
-      "success"
-    );
+    
+    setIsLoading(true);
+    try {
+      const nextNumber = `INV-${String(invoicesList.length + 1).padStart(6, "0")}`;
+      const items = newInvoiceItems.map((i) => ({
+        description: i.description,
+        quantity: i.quantity,
+        unitPrice: i.unitPrice,
+        total: i.quantity * i.unitPrice,
+      }));
+      const subtotal = items.reduce((s, i) => s + i.total, 0);
+      
+      const res = await fetch("/api/pro/invoices", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          invoiceNumber: nextNumber,
+          clientEmail: newInvoiceData.clientEmail,
+          projectTitle: newInvoiceData.project,
+          items,
+          subtotal,
+          tax: 0,
+          total: subtotal,
+          currency: "GBP",
+          status: newInvoiceData.sendImmediately ? "sent" : "draft",
+          dueDate: newInvoiceData.dueDate,
+          isEscrow: newInvoiceData.isEscrow,
+          milestoneTitle: newInvoiceData.milestoneTitle,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        showNotification("Error", data.error || "Failed to save invoice", "error");
+        return;
+      }
+
+      setInvoicesList((prev: InvoiceType[]) => [data.invoice, ...prev]);
+      setIsNewInvoiceOpen(false);
+      showNotification(
+        newInvoiceData.sendImmediately ? "Invoice Sent" : "Invoice Saved",
+        newInvoiceData.sendImmediately
+          ? `${nextNumber} has been sent to ${newInvoiceData.clientEmail || newInvoiceData.client}.`
+          : `${nextNumber} saved as a draft.`,
+        "success"
+      );
+    } catch (err) {
+      console.error("Error saving invoice:", err);
+      showNotification("Error", "Network error. Please try again.", "error");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const filteredInvoices = invoicesList.filter((invoice) => {
@@ -347,7 +398,14 @@ export default function InvoicingPage() {
           className="grid grid-cols-1 xl:grid-cols-2 gap-8"
         >
           <AnimatePresence>
-            {filteredInvoices.map((invoice: InvoiceType) => {
+            {isLoading ? (
+              <div className="col-span-full py-20 text-center">
+                <div className="inline-flex flex-col items-center gap-4">
+                  <div className="w-12 h-12 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
+                  <p className="text-gray-500 font-bold tracking-widest uppercase text-sm">Securely fetching financial data...</p>
+                </div>
+              </div>
+            ) : filteredInvoices.map((invoice: InvoiceType) => {
               const statusInfo = statusConfig[invoice.status as keyof typeof statusConfig];
               const daysUntilDue = getDaysUntilDue(invoice.dueDate);
               const isOverdue = daysUntilDue < 0 && invoice.status !== "paid";
@@ -753,6 +811,34 @@ export default function InvoicingPage() {
                       className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium text-gray-900 placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all"
                     />
                   </div>
+                </div>
+
+                {/* Escrow & Milestone */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <label className="flex items-center gap-3 p-4 bg-gray-50 border border-gray-100 rounded-xl cursor-pointer group">
+                    <input
+                      type="checkbox"
+                      checked={newInvoiceData.isEscrow}
+                      onChange={(e) => setNewInvoiceData({ ...newInvoiceData, isEscrow: e.target.checked })}
+                      className="h-4 w-4 accent-[#0a9396] cursor-pointer"
+                    />
+                    <div>
+                      <p className="text-sm font-bold text-gray-800">Enable Escrow</p>
+                      <p className="text-xs text-gray-500 font-medium mt-0.5">Funds held until milestone release</p>
+                    </div>
+                  </label>
+                  {newInvoiceData.isEscrow && (
+                    <div className="space-y-1.5">
+                      <label className="text-[13px] font-bold text-gray-600">Milestone Title</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Phase 1 Completion"
+                        value={newInvoiceData.milestoneTitle}
+                        onChange={(e) => setNewInvoiceData({ ...newInvoiceData, milestoneTitle: e.target.value })}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium text-gray-900 focus:border-emerald-500 outline-none transition-all"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* Send toggle */}

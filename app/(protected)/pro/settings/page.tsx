@@ -17,6 +17,16 @@ import {
   Loader2,
   Sparkles,
   Lock,
+  Briefcase,
+  Globe,
+  Linkedin,
+  ExternalLink,
+  Code,
+  DollarSign,
+  Clock,
+  MapPin,
+  FileText,
+  LucideIcon,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
@@ -25,11 +35,16 @@ import { DeleteAccountModal } from "@/components/settings/DeleteAccountModal";
 import { useSession, signOut } from "next-auth/react";
 
 // Custom Frosted Glass Input matching digitalbox suite
-const GlassInput = (props: React.InputHTMLAttributes<HTMLInputElement> & { label?: string; error?: string }) => {
-  const { label, error, className, ...rest } = props;
+const GlassInput = (props: React.InputHTMLAttributes<HTMLInputElement> & { label?: string; error?: string; icon?: LucideIcon }) => {
+  const { label, error, icon: Icon, className, ...rest } = props;
   return (
     <div className="space-y-1.5">
-      {label && <label className="text-[13px] font-bold text-gray-700 tracking-wide">{label}</label>}
+      {label && (
+        <label className="text-[13px] font-bold text-gray-700 tracking-wide flex items-center gap-2">
+          {Icon && <Icon className="h-3.5 w-3.5 text-[#0a9396]/70" />}
+          {label}
+        </label>
+      )}
       <input
         {...rest}
         className={`w-full bg-white/40 border border-white/60 focus:bg-white/90 focus:border-[#0a9396] focus:ring-4 focus:ring-[#0a9396]/10 rounded-xl px-4 py-2.5 outline-none transition-all shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] text-gray-900 placeholder-gray-400 font-medium ${className || ""} ${error ? "border-red-400 focus:border-red-500 focus:ring-red-500/10" : ""}`}
@@ -39,11 +54,16 @@ const GlassInput = (props: React.InputHTMLAttributes<HTMLInputElement> & { label
   );
 };
 
-const GlassSelect = (props: React.SelectHTMLAttributes<HTMLSelectElement> & { label?: string; error?: string; children: React.ReactNode }) => {
-  const { label, error, className, children, ...rest } = props;
+const GlassSelect = (props: React.SelectHTMLAttributes<HTMLSelectElement> & { label?: string; error?: string; icon?: LucideIcon; children: React.ReactNode }) => {
+  const { label, error, icon: Icon, className, children, ...rest } = props;
   return (
     <div className="space-y-1.5">
-      {label && <label className="text-[13px] font-bold text-gray-700 tracking-wide">{label}</label>}
+      {label && (
+        <label className="text-[13px] font-bold text-gray-700 tracking-wide flex items-center gap-2">
+          {Icon && <Icon className="h-3.5 w-3.5 text-[#0a9396]/70" />}
+          {label}
+        </label>
+      )}
       <select
         {...rest}
         className={`w-full bg-white/40 border border-white/60 focus:bg-white/90 focus:border-[#0a9396] focus:ring-4 focus:ring-[#0a9396]/10 rounded-xl px-4 py-2.5 outline-none transition-all shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] text-gray-900 placeholder-gray-400 font-medium appearance-none ${className || ""} ${error ? "border-red-400 focus:border-red-500 focus:ring-red-500/10" : ""}`}
@@ -98,6 +118,15 @@ export default function SettingsPage() {
     newPassword: "",
     confirmPassword: "",
   });
+  const [proProfile, setProProfile] = useState({
+    bio: "",
+    website: "",
+    linkedIn: "",
+    portfolio: "",
+    hourlyRate: "",
+    monthlyRate: "",
+    availability: "available",
+  });
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
@@ -115,6 +144,16 @@ export default function SettingsPage() {
     currency: "GBP",
     language: "en",
   });
+
+  const [stripeStatus, setStripeStatus] = useState<{
+    connected: boolean;
+    accountId: string | null;
+    detailsSubmitted?: boolean;
+    chargesEnabled?: boolean;
+    payoutsEnabled?: boolean;
+    configured?: boolean;
+  } | null>(null);
+  const [isConnectingStripe, setIsConnectingStripe] = useState(false);
 
   // Fetch user data on mount
   useEffect(() => {
@@ -137,6 +176,24 @@ export default function SettingsPage() {
             ...prev,
             timezone: data.user.timezone || "Europe/London",
           }));
+          setNotifications({
+            emailNotifications: data.user.emailNotifications ?? true,
+            projectUpdates: data.user.projectUpdates ?? true,
+            newInquiries: data.user.newInquiries ?? true,
+            paymentReceived: data.user.paymentReceived ?? true,
+            marketingEmails: data.user.marketingEmails ?? false,
+          });
+          if (data.user.proProfile) {
+            setProProfile({
+              bio: data.user.proProfile.bio || "",
+              website: data.user.proProfile.website || "",
+              linkedIn: data.user.proProfile.linkedIn || "",
+              portfolio: data.user.proProfile.portfolio || "",
+              hourlyRate: data.user.proProfile.hourlyRate?.toString() || "",
+              monthlyRate: data.user.proProfile.monthlyRate?.toString() || "",
+              availability: data.user.proProfile.availability || "available",
+            });
+          }
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -148,11 +205,53 @@ export default function SettingsPage() {
     fetchUserData();
   }, [session]);
 
+  // Fetch Stripe status
+  useEffect(() => {
+    const fetchStripeStatus = async () => {
+      if (!session?.user?.id || session.user.userType !== "pro") return;
+      try {
+        const response = await fetch("/api/pro/stripe-connect/onboard");
+        if (response.ok) {
+          const data = await response.json();
+          setStripeStatus(data);
+        }
+      } catch (error) {
+        console.error("Error fetching Stripe status:", error);
+      }
+    };
+
+    if (activeTab === "billing") {
+      fetchStripeStatus();
+    }
+  }, [session, activeTab]);
+
+  const handleStripeOnboarding = async () => {
+    setIsConnectingStripe(true);
+    try {
+      const response = await fetch("/api/pro/stripe-connect/onboard", {
+        method: "POST",
+      });
+      const data = await response.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setSaveError(data.error || "Failed to start Stripe onboarding");
+        setTimeout(() => setSaveError(""), 5000);
+      }
+    } catch (error) {
+      console.error("Stripe onboarding error:", error);
+      setSaveError("An unexpected error occurred");
+    } finally {
+      setIsConnectingStripe(false);
+    }
+  };
+
   const tabs = [
-    { id: "account", label: "Profile", icon: User },
+    { id: "account", label: "Account", icon: User },
+    { id: "professional", label: "Professional", icon: Briefcase },
     { id: "notifications", label: "Notifications", icon: Bell },
     { id: "security", label: "Security", icon: Shield },
-    { id: "billing", label: "Billing", icon: CreditCard },
+    { id: "billing", label: "Payouts", icon: CreditCard },
   ];
 
   const handleSaveAccountInfo = async () => {
@@ -170,6 +269,7 @@ export default function SettingsPage() {
           country: formData.country,
           city: formData.city,
           timezone: preferences.timezone,
+          proProfile: activeTab === "professional" ? proProfile : undefined,
         }),
       });
 
@@ -197,9 +297,22 @@ export default function SettingsPage() {
     setSaveError("");
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
+      const response = await fetch("/api/user/update", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...notifications
+        }),
+      });
+
+      if (response.ok) {
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 3000);
+      } else {
+        const data = await response.json();
+        setSaveError(data.error || "Failed to save notification settings");
+        setTimeout(() => setSaveError(""), 5000);
+      }
     } catch (error) {
       console.error("Error saving notification settings:", error);
       setSaveError("Failed to save notification settings");
@@ -370,7 +483,7 @@ export default function SettingsPage() {
               <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-6">
                 <motion.div variants={itemVariants} className="bg-white/40 backdrop-blur-2xl rounded-[2.5rem] border border-white/60 shadow-[inset_0_2px_15px_rgb(255,255,255,0.7),0_10px_30px_rgb(0,0,0,0.03)] overflow-hidden">
                    <div className="p-6 sm:p-8 md:p-10 border-b border-gray-100/50 bg-gradient-to-br from-white/40 to-transparent">
-                     <h2 className="text-2xl font-black text-gray-900 tracking-tight">Profile Information</h2>
+                     <h2 className="text-2xl font-black text-gray-900 tracking-tight">Account Information</h2>
                      <p className="text-gray-500 font-medium text-[14px] mt-1">Update your name, email address, and location.</p>
                    </div>
                    
@@ -412,9 +525,9 @@ export default function SettingsPage() {
                             />
                             <GlassSelect
                                label="Country"
-                               value={formData.country}
-                               onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                               disabled={isLoading}
+                                value={formData.country}
+                                onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                                disabled={isLoading}
                             >
                                 <option value="">Select Country</option>
                                 {regions.map((region) => (
@@ -427,6 +540,7 @@ export default function SettingsPage() {
                             </GlassSelect>
                             <GlassInput
                               label="City"
+                              icon={MapPin}
                               value={formData.city}
                               onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                               placeholder="Your city"
@@ -434,18 +548,11 @@ export default function SettingsPage() {
                             />
                           </div>
 
-                          {/* Success/Error Alerts inside forms */}
                           <AnimatePresence>
                              {saveSuccess && (
                                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200">
                                  <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-                                 <span className="text-sm font-bold text-emerald-900 tracking-wide">Profile updated successfully.</span>
-                               </motion.div>
-                             )}
-                             {saveError && (
-                               <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-red-50 to-rose-50 border border-red-200">
-                                 <AlertCircle className="h-5 w-5 text-red-600" />
-                                 <span className="text-sm font-bold text-red-900 tracking-wide">{saveError}</span>
+                                 <span className="text-sm font-bold text-emerald-900 tracking-wide">Account updated successfully.</span>
                                </motion.div>
                              )}
                           </AnimatePresence>
@@ -454,16 +561,9 @@ export default function SettingsPage() {
                             <Button
                               onClick={handleSaveAccountInfo}
                               disabled={isLoading || isFetching}
-                              className="bg-gray-900 hover:bg-black text-white hover:shadow-lg hover:shadow-gray-900/20 rounded-xl px-6 h-12 border-none transition-all disabled:opacity-50"
+                              className="bg-gray-900 hover:bg-black text-white hover:shadow-lg hover:shadow-gray-900/20 rounded-xl px-6 h-12 border-none transition-all"
                             >
-                              {isLoading ? (
-                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
-                              ) : (
-                                <><Save className="mr-2 h-4 w-4 text-teal-400" /> Save Changes</>
-                              )}
-                            </Button>
-                            <Button variant="ghost" className="rounded-xl px-6 h-12 font-bold tracking-wide hover:bg-white/60" onClick={() => { setSaveSuccess(false); setSaveError(""); }}>
-                              Cancel
+                              {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : <><Save className="mr-2 h-4 w-4 text-teal-400" /> Save Account Info</>}
                             </Button>
                           </div>
                         </div>
@@ -498,24 +598,6 @@ export default function SettingsPage() {
                             <option value="MM/DD/YYYY">MM/DD/YYYY</option>
                             <option value="YYYY-MM-DD">YYYY-MM-DD</option>
                          </GlassSelect>
-                         <GlassSelect
-                           label="Currency"
-                           value={preferences.currency}
-                           onChange={(e) => setPreferences({ ...preferences, currency: e.target.value })}
-                         >
-                            <option value="GBP">GBP (£)</option>
-                            <option value="USD">USD ($)</option>
-                            <option value="EUR">EUR (€)</option>
-                         </GlassSelect>
-                         <GlassSelect
-                           label="Language"
-                           value={preferences.language}
-                           onChange={(e) => setPreferences({ ...preferences, language: e.target.value })}
-                         >
-                            <option value="en">English (US/UK)</option>
-                            <option value="es">Español</option>
-                            <option value="fr">Français</option>
-                         </GlassSelect>
                       </div>
 
                       <div className="flex gap-3 pt-6 border-t border-gray-200/50">
@@ -525,6 +607,126 @@ export default function SettingsPage() {
                           className="bg-gray-900 hover:bg-black text-white hover:shadow-lg hover:shadow-gray-900/20 rounded-xl px-6 h-12 border-none transition-all"
                         >
                           {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : <><Save className="mr-2 h-4 w-4 text-teal-400" /> Save Preferences</>}
+                        </Button>
+                      </div>
+                   </div>
+                </motion.div>
+              </motion.div>
+            )}
+
+            {/* 1.5 Professional Profile */}
+            {activeTab === "professional" && (
+              <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-6">
+                <motion.div variants={itemVariants} className="bg-white/40 backdrop-blur-2xl rounded-[2.5rem] border border-white/60 shadow-[inset_0_2px_15px_rgb(255,255,255,0.7),0_10px_30px_rgb(0,0,0,0.03)] overflow-hidden">
+                   <div className="p-6 sm:p-8 md:p-10 border-b border-gray-100/50 bg-gradient-to-br from-white/40 to-transparent flex items-center gap-4">
+                     <div className="p-3.5 bg-gradient-to-br from-[#0a9396] to-teal-500 rounded-2xl shadow-lg shadow-[#0a9396]/20 text-white shrink-0">
+                       <Briefcase className="h-6 w-6" />
+                     </div>
+                     <div>
+                       <h2 className="text-2xl font-black text-gray-900 tracking-tight">Professional Profile</h2>
+                       <p className="text-gray-500 font-medium text-[14px] mt-1">Showcase your expertise and set your rates.</p>
+                     </div>
+                   </div>
+                   
+                   <div className="p-6 sm:p-8 md:p-10 bg-white/20 space-y-8">
+                      <div className="space-y-1.5">
+                        <label className="text-[13px] font-bold text-gray-700 tracking-wide flex items-center gap-2">
+                          <FileText className="h-4 w-4 text-[#0a9396]" />
+                          Professional Bio / Summary
+                        </label>
+                        <textarea
+                          value={proProfile.bio}
+                          onChange={(e) => setProProfile({ ...proProfile, bio: e.target.value })}
+                          rows={4}
+                          className="w-full bg-white/40 border border-white/60 focus:bg-white/90 focus:border-[#0a9396] focus:ring-4 focus:ring-[#0a9396]/10 rounded-xl px-4 py-3 outline-none transition-all shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] text-gray-900 placeholder-gray-400 font-medium resize-none"
+                          placeholder="Tell potential clients about your experience and skills..."
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <GlassInput
+                          label="Personal/Company Website"
+                          icon={Globe}
+                          value={proProfile.website}
+                          onChange={(e) => setProProfile({ ...proProfile, website: e.target.value })}
+                          placeholder="https://yourwebsite.com"
+                        />
+                        <GlassInput
+                          label="LinkedIn Profile"
+                          icon={Linkedin}
+                          value={proProfile.linkedIn}
+                          onChange={(e) => setProProfile({ ...proProfile, linkedIn: e.target.value })}
+                          placeholder="https://linkedin.com/in/username"
+                        />
+                        <GlassInput
+                          label="Portfolio URL"
+                          icon={Code}
+                          value={proProfile.portfolio}
+                          onChange={(e) => setProProfile({ ...proProfile, portfolio: e.target.value })}
+                          placeholder="https://behance.net/username"
+                        />
+                        <GlassSelect
+                          label="Availability Status"
+                          icon={Clock}
+                          value={proProfile.availability}
+                          onChange={(e) => setProProfile({ ...proProfile, availability: e.target.value })}
+                        >
+                          <option value="available">Available for Hire</option>
+                          <option value="busy">Busy (Limited availability)</option>
+                          <option value="unavailable">Not Available</option>
+                        </GlassSelect>
+                      </div>
+
+                      <div className="p-6 rounded-2xl bg-[#0a9396]/5 border border-[#0a9396]/10">
+                        <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest mb-4 flex items-center gap-2">
+                           <DollarSign className="h-4 w-4" /> Service Rates
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                           <div className="space-y-1.5">
+                             <label className="text-[13px] font-bold text-gray-700 tracking-wide">Hourly Rate ({preferences.currency})</label>
+                             <div className="relative">
+                               <input
+                                 type="number"
+                                 value={proProfile.hourlyRate}
+                                 onChange={(e) => setProProfile({ ...proProfile, hourlyRate: e.target.value })}
+                                 className="w-full bg-white/60 border border-white focus:bg-white focus:border-[#0a9396] focus:ring-4 focus:ring-[#0a9396]/10 rounded-xl pl-10 pr-4 py-2.5 outline-none transition-all font-bold text-gray-900"
+                                 placeholder="0.00"
+                               />
+                               <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-gray-400">{preferences.currency === 'GBP' ? '£' : '$'}</span>
+                             </div>
+                           </div>
+                           <div className="space-y-1.5">
+                             <label className="text-[13px] font-bold text-gray-700 tracking-wide">Monthly Retainer ({preferences.currency})</label>
+                             <div className="relative">
+                               <input
+                                 type="number"
+                                 value={proProfile.monthlyRate}
+                                 onChange={(e) => setProProfile({ ...proProfile, monthlyRate: e.target.value })}
+                                 className="w-full bg-white/60 border border-white focus:bg-white focus:border-[#0a9396] focus:ring-4 focus:ring-[#0a9396]/10 rounded-xl pl-10 pr-4 py-2.5 outline-none transition-all font-bold text-gray-900"
+                                 placeholder="0.00"
+                               />
+                               <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-gray-400">{preferences.currency === 'GBP' ? '£' : '$'}</span>
+                             </div>
+                           </div>
+                        </div>
+                      </div>
+
+                      <AnimatePresence>
+                         {saveSuccess && (
+                           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200">
+                             <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                             <span className="text-sm font-bold text-emerald-900 tracking-wide">Professional profile updated.</span>
+                           </motion.div>
+                         )}
+                      </AnimatePresence>
+
+                      <div className="flex gap-3 pt-6 border-t border-gray-200/50">
+                        <Button
+                          onClick={handleSaveAccountInfo}
+                          disabled={isLoading}
+                          className="bg-gray-900 hover:bg-black text-white hover:shadow-lg hover:shadow-gray-900/20 rounded-xl px-6 h-12 border-none transition-all"
+                        >
+                          {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : <><Save className="mr-2 h-4 w-4 text-teal-400" /> Save Profile</>}
                         </Button>
                       </div>
                    </div>
@@ -707,7 +909,7 @@ export default function SettingsPage() {
                </motion.div>
             )}
 
-            {/* 4. Billing */}
+            {/* 4. Billing / Payouts */}
             {activeTab === "billing" && (
                <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-6">
                  
@@ -717,44 +919,110 @@ export default function SettingsPage() {
                        <CreditCard className="h-6 w-6" />
                      </div>
                      <div>
-                       <h2 className="text-2xl font-black text-gray-900 tracking-tight">Licensing</h2>
-                       <p className="text-gray-500 font-medium text-[14px] mt-1">Current plan and limits.</p>
+                       <h2 className="text-2xl font-black text-gray-900 tracking-tight">Payout Settings</h2>
+                       <p className="text-gray-500 font-medium text-[14px] mt-1">Manage how you receive your earnings.</p>
                      </div>
                    </div>
 
                    <div className="p-6 sm:p-8 md:p-10 bg-white/20">
-                     <div className="p-6 rounded-2xl border border-teal-200 bg-gradient-to-r from-teal-50/50 to-white flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                       <div>
-                          <div className="flex items-center gap-3 mb-1">
-                             <h4 className="font-black text-gray-900 text-xl tracking-tight">DigitalBOX Core</h4>
-                             <Badge variant="primary" className="bg-gradient-to-r from-[#0a9396] to-teal-500 border-none font-bold text-[10px] uppercase tracking-wide px-2 shadow-sm pointer-events-none">Live</Badge>
-                          </div>
-                          <p className="text-[14px] font-semibold text-gray-500">Free starter plan.</p>
-                          <p className="text-xs font-bold text-gray-400 mt-3 pt-3 border-t border-teal-100/50">Upgrade to unlock the full CRM, AI tools, and advanced reporting.</p>
+                     {!stripeStatus ? (
+                       <div className="flex flex-col items-center justify-center py-12 text-center">
+                          <div className="h-12 w-12 border-4 border-[#0a9396]/20 border-t-[#0a9396] rounded-full animate-spin mb-4" />
+                          <p className="text-gray-500 font-bold">Verifying connection status...</p>
                        </div>
-                       <div className="flex gap-3 w-full md:w-auto">
-                          <Button className="flex-1 md:flex-none h-11 px-6 rounded-xl bg-gradient-to-r from-[#0a9396] to-teal-500 hover:from-teal-500 hover:to-[#0a9396] text-white border-none shadow-lg shadow-teal-500/30 font-bold tracking-wide">
-                            Upgrade Plan
+                     ) : !stripeStatus.connected || !stripeStatus.detailsSubmitted ? (
+                       <div className="p-8 rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50/30 via-white to-white shadow-sm flex flex-col md:flex-row justify-between items-center gap-8 relative overflow-hidden group">
+                          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                             <CreditCard className="h-24 w-24 text-amber-500" />
+                          </div>
+                          <div className="relative z-10 text-center md:text-left">
+                             <div className="flex flex-col md:flex-row items-center gap-3 mb-2">
+                                <h4 className="font-black text-gray-900 text-2xl tracking-tight">Connect with Stripe</h4>
+                                <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-200 font-bold text-[10px] uppercase tracking-widest px-3 py-1">Setup Required</Badge>
+                             </div>
+                             <p className="text-[15px] font-bold text-gray-500 max-w-md">Connect your bank account via Stripe Connect to start receiving payments from clients automatically.</p>
+                          </div>
+                          <Button 
+                            onClick={handleStripeOnboarding}
+                            disabled={isConnectingStripe}
+                            className="h-14 px-10 rounded-xl bg-gray-900 hover:bg-black text-white border-none shadow-xl shadow-black/10 font-black tracking-wide transition-all hover:-translate-y-1 relative z-10 shrink-0"
+                          >
+                            {isConnectingStripe ? (
+                              <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Connecting...</>
+                            ) : (
+                              "Connect with Stripe"
+                            )}
                           </Button>
                        </div>
-                     </div>
+                     ) : (
+                       <div className="p-8 rounded-3xl border border-teal-200 bg-gradient-to-br from-teal-50/30 via-white to-white shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-8 relative overflow-hidden group">
+                          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                             <DollarSign className="h-24 w-24 text-[#0a9396]" />
+                          </div>
+                          <div className="relative z-10">
+                             <div className="flex items-center gap-3 mb-2">
+                                <h4 className="font-black text-gray-900 text-2xl tracking-tight">Stripe Connect</h4>
+                                <Badge variant="primary" className="bg-[#0a9396] text-white border-none font-bold text-[10px] uppercase tracking-widest px-3 py-1 shadow-sm">
+                                  {stripeStatus.chargesEnabled && stripeStatus.payoutsEnabled ? "Verified" : "Action Required"}
+                                </Badge>
+                             </div>
+                             <p className="text-[15px] font-bold text-gray-500 max-w-md">
+                               {stripeStatus.chargesEnabled && stripeStatus.payoutsEnabled 
+                                 ? "Your account is connected and ready to receive payouts." 
+                                 : "Your account is connected but needs additional verification steps to enable payouts."}
+                             </p>
+                             <div className="flex items-center gap-6 mt-6">
+                                <div>
+                                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Status</p>
+                                   <p className="font-black text-gray-900 flex items-center gap-2">
+                                      <div className={`h-2 w-2 rounded-full ${stripeStatus.payoutsEnabled ? "bg-green-500" : "bg-amber-500"}`} />
+                                      {stripeStatus.payoutsEnabled ? "Payouts Active" : "Payouts Restricted"}
+                                   </p>
+                                </div>
+                                <div className="w-px h-8 bg-gray-200" />
+                                <div>
+                                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Currency</p>
+                                   <p className="font-black text-emerald-600">{preferences.currency || "GBP"}</p>
+                                </div>
+                             </div>
+                          </div>
+                          <div className="flex flex-col gap-3 w-full md:w-auto relative z-10">
+                             <Button 
+                               onClick={handleStripeOnboarding}
+                               disabled={isConnectingStripe}
+                               className="h-12 px-8 rounded-xl bg-gray-900 hover:bg-black text-white border-none shadow-lg shadow-black/10 font-bold tracking-wide transition-all hover:-translate-y-0.5"
+                             >
+                               {isConnectingStripe ? <Loader2 className="h-5 w-5 animate-spin" /> : "Go to Stripe Dashboard"}
+                               <ExternalLink className="ml-2 h-4 w-4 opacity-60" />
+                             </Button>
+                             {!stripeStatus.payoutsEnabled && (
+                               <Button 
+                                 onClick={handleStripeOnboarding}
+                                 variant="ghost" 
+                                 className="h-12 px-8 rounded-xl font-bold tracking-wide hover:bg-teal-50 text-[#0a9396]"
+                               >
+                                 Complete Setup
+                               </Button>
+                             )}
+                          </div>
+                       </div>
+                     )}
                    </div>
                  </motion.div>
 
-                 <motion.div variants={itemVariants} className="bg-white/40 backdrop-blur-2xl rounded-[2.5rem] border border-white/60 shadow-[inset_0_2px_15px_rgb(255,255,255,0.7),0_10px_30px_rgb(0,0,0,0.03)] overflow-hidden">
+                 <motion.div variants={itemVariants} className="bg-white/40 backdrop-blur-2xl rounded-[2.5rem] border border-white/60 shadow-[inset_0_2px_15px_rgb(255,255,255,0.7),0_10px_30_rgb(0,0,0,0.03)] overflow-hidden">
                    <div className="p-6 sm:p-8 md:p-10 border-b border-gray-100/50 bg-gradient-to-br from-white/40 to-transparent">
-                     <h2 className="text-xl font-black text-gray-900 tracking-tight">Billing History</h2>
-                     <p className="text-gray-500 font-medium text-[14px] mt-1">View your past payments and invoices.</p>
+                     <h2 className="text-xl font-black text-gray-900 tracking-tight">Financial History</h2>
+                     <p className="text-gray-500 font-medium text-[14px] mt-1">View your earnings and tax documents.</p>
                    </div>
-                   <div className="p-12 text-center bg-white/20">
-                      <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-gray-50 border border-gray-100 shadow-inner mb-4">
-                        <CreditCard className="h-6 w-6 text-gray-300" />
-                      </div>
-                      <h3 className="text-lg font-bold text-gray-900 tracking-tight mb-1">No Billing History</h3>
-                      <p className="text-[14px] font-semibold text-gray-500 mb-6">No payments have been made yet.</p>
-                      <Button variant="outline" className="rounded-xl h-11 px-6 font-bold tracking-wide border-gray-200">
-                        Add Payment Method
-                      </Button>
+                   <div className="p-6 sm:p-8 md:p-10 bg-white/20">
+                      <div className="flex flex-col items-center justify-center py-16 text-center">
+                          <div className="h-16 w-16 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center mb-4 text-gray-400">
+                             <FileText className="h-8 w-8" />
+                          </div>
+                          <h3 className="text-lg font-black text-gray-900 tracking-tight">No Transactions Yet</h3>
+                          <p className="text-sm font-semibold text-gray-500 mt-1 max-w-xs">Your financial history will appear here once you start receiving payments through the platform.</p>
+                       </div>
                    </div>
                  </motion.div>
 

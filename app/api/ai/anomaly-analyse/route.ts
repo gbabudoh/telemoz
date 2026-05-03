@@ -1,25 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import Anthropic from "@anthropic-ai/sdk";
-
-const client = new Anthropic();
+import { generateText } from "@/lib/ai";
+import { checkAndIncrementAiUsage, AI_DAILY_CAP } from "@/lib/ai-rate-limit";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const usage = await checkAndIncrementAiUsage(session.user.id);
+  if (!usage.allowed) {
+    return NextResponse.json(
+      { error: `Daily limit of ${AI_DAILY_CAP} AI requests reached. Resets at midnight.` },
+      { status: 429 }
+    );
+  }
 
   const { metric, change, platform, context } = await req.json();
-  if (!metric || !change) return NextResponse.json({ error: "metric and change are required" }, { status: 400 });
+  if (!metric || !change) {
+    return NextResponse.json({ error: "metric and change are required" }, { status: 400 });
+  }
 
   try {
-    const message = await client.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 1200,
-      messages: [
-        {
-          role: "user",
-          content: `You are an expert paid media and digital marketing analyst. Analyse the following campaign performance anomaly and provide a structured diagnosis.
+    const prompt = `You are an expert paid media and digital marketing analyst. Analyse the following campaign performance anomaly and provide a structured diagnosis.
 
 METRIC: ${metric}
 CHANGE: ${change}
@@ -43,13 +48,10 @@ Provide your response in this exact format:
 [Prioritised list of actions to take immediately]
 
 **PREVENTION**
-[How to detect this earlier next time]`,
-        },
-      ],
-    });
+[How to detect this earlier next time]`;
 
-    const analysis = message.content[0].type === "text" ? message.content[0].text : "";
-    return NextResponse.json({ analysis });
+    const analysis = await generateText(prompt);
+    return NextResponse.json({ analysis, remaining: usage.remaining });
   } catch (error) {
     console.error("Anomaly analyse error:", error);
     return NextResponse.json({ error: "Failed to analyse anomaly" }, { status: 500 });

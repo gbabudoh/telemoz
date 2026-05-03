@@ -1,77 +1,51 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { generateText } from "@/lib/ai";
+import { checkAndIncrementAiUsage, AI_DAILY_CAP } from "@/lib/ai-rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-
-    if (!session?.user) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { url, keyword } = await request.json();
-
-    if (!url || !keyword) {
+    const usage = await checkAndIncrementAiUsage(session.user.id);
+    if (!usage.allowed) {
       return NextResponse.json(
-        { error: "URL and keyword are required" },
-        { status: 400 }
+        { error: `Daily limit of ${AI_DAILY_CAP} AI requests reached. Resets at midnight.` },
+        { status: 429 }
       );
     }
 
-    // Mock AI analysis - Replace with actual AI API call
-    const analysis = `# Topic Gap Analysis for "${keyword}"
+    const { url, keyword } = await request.json();
+    if (!url || !keyword) {
+      return NextResponse.json({ error: "URL and keyword are required" }, { status: 400 });
+    }
 
-## Top Ranking Pages Analysis
-Based on analysis of top-ranking pages for "${keyword}", here are the key content gaps:
+    const prompt = `You are a senior SEO strategist and content analyst. Conduct a comprehensive Topic Gap Analysis for the following keyword and URL.
 
-### 1. Missing Content Topics
-- **${keyword} best practices**: Top pages cover this extensively
-- **${keyword} case studies**: High-performing content includes real examples
-- **${keyword} tools and resources**: Frequently mentioned in top results
-- **${keyword} comparison guides**: Competitive analysis content performs well
+    KEYWORD: ${keyword}
+    URL: ${url}
 
-### 2. Content Structure Recommendations
-- Add FAQ section addressing common questions about ${keyword}
-- Include step-by-step guides with actionable insights
-- Add visual elements (infographics, charts) for better engagement
-- Create comparison tables for better readability
+    The analysis should include:
+    1. Analysis of what top-ranking pages cover that this URL might be missing.
+    2. Specific content topics and sub-topics to add.
+    3. Recommendations for content structure (headers, FAQ, etc.).
+    4. A detailed content outline to outrank competitors.
+    5. Recommended content length and depth.
+    6. Internal linking opportunities.
 
-### 3. SEO Optimization Opportunities
-- Target long-tail keywords related to ${keyword}
-- Improve internal linking structure
-- Add schema markup for better rich snippets
-- Optimize meta descriptions with ${keyword} variations
+    Provide actionable, data-driven insights. Use Markdown formatting.`;
 
-### 4. Content Outline
-1. Introduction to ${keyword}
-2. Key Benefits and Features
-3. Best Practices and Strategies
-4. Common Mistakes to Avoid
-5. Tools and Resources
-6. Case Studies and Examples
-7. FAQ Section
-8. Conclusion and Next Steps
-
-### 5. Recommended Content Length
-- Minimum: 2,000 words
-- Optimal: 3,500-4,500 words
-- Include at least 5-7 H2 sections with detailed subsections
-
-### 6. Internal Linking Opportunities
-- Link to related ${keyword} resources
-- Connect to complementary topics
-- Reference case studies and examples
-
-**Note**: This is a mock analysis. Connect to actual AI service (OpenAI/Gemini) for real-time analysis.`;
-
-    return NextResponse.json({ analysis });
+    const analysis = await generateText(prompt);
+    return NextResponse.json({ analysis, remaining: usage.remaining });
   } catch (error) {
     console.error("Error generating topic gap analysis:", error);
     return NextResponse.json(
-      { error: "Failed to generate analysis" },
+      { error: error instanceof Error ? error.message : "Failed to generate analysis" },
       { status: 500 }
     );
   }
 }
-

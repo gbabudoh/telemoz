@@ -5,7 +5,6 @@ import {
   Star,
   MapPin,
   Mail,
-  Calendar,
   CheckCircle2,
   Shield,
   DollarSign,
@@ -16,43 +15,97 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { motion } from "framer-motion";
 
-// Mock data - replace with real data from API
-const proData = {
-  id: "2",
-  name: "Michael Chen",
-  title: "PPC Expert",
-  location: "Manchester, UK",
-  rating: 4.8,
-  reviews: 89,
-  specialties: ["Google Ads", "Facebook Ads", "Conversion Optimisation"],
-  price: "£800–£3,000/mo",
-  bio: "With over 6 years of dedicated experience in performance marketing, I specialise in building high-converting PPC campaigns. My data-driven approach has consistently delivered strong ROAS for clients across e-commerce and B2B sectors.",
-  experience: "6+ years",
-  clients: "35+",
-  availability: "Available",
-  certifications: [
-    {
-      name: "Google Ads Certification",
-      issuer: "Google",
-      issueDate: "2023-01-15",
-      expiryDate: "2025-01-15",
-      credentialId: "GADS-48291A",
-    },
-  ],
-  deliverables: [
-    "Monthly performance reporting",
-    "Keyword research and optimisation",
-    "Ad copy creation and testing",
-    "Conversion rate optimisation",
-    "Campaign budget management",
-  ],
-};
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
+interface Certification {
+  name: string;
+  issuer: string;
+  issueDate: string;
+  expiryDate?: string;
+  credentialId?: string;
+}
 
-const panelClass =
-  "bg-white/60 backdrop-blur-xl border border-white/80 rounded-2xl shadow-sm overflow-hidden";
+interface ProDetails {
+  id: string;
+  name: string;
+  title: string;
+  location: string;
+  rating: number;
+  reviews: number;
+  specialties: string[];
+  price: string;
+  bio: string;
+  experience?: string;
+  clients?: string;
+  availability: string;
+  certifications: Certification[];
+  deliverables: string[];
+}
 
 export default function ProProfilePage() {
   const { data: session } = useSession();
+  const params = useParams();
+  const proId = params.proId as string;
+
+  const [proData, setProData] = useState<ProDetails | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+
+  useEffect(() => {
+    const fetchPro = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch(`/api/marketplace/${proId}`);
+        if (!response.ok) {
+          throw new Error("Professional not found");
+        }
+        const data = await response.json();
+        setProData(data.pro);
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : "Failed to load professional");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (proId) {
+      fetchPro();
+    }
+  }, [proId]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-[#0a9396]/20 border-t-[#0a9396] rounded-full animate-spin" />
+          <p className="text-gray-400 font-medium animate-pulse">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !proData) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-6 text-center">
+        <div className="h-20 w-20 rounded-3xl bg-white border border-gray-100 shadow-sm flex items-center justify-center mb-6">
+          <Shield className="h-10 w-10 text-gray-300" />
+        </div>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Professional Not Found</h1>
+        <p className="text-gray-500 mb-8 max-w-md">
+          The professional profile you are looking for may have been removed or is currently unavailable.
+        </p>
+        <Link href="/marketplace">
+          <Button className="bg-[#0a9396] hover:bg-[#087579] text-white rounded-xl h-12 px-8 font-bold">
+            Back to Marketplace
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
+  const panelClass =
+    "bg-white/60 backdrop-blur-xl border border-white/80 rounded-2xl shadow-sm overflow-hidden";
 
   return (
     <div className="relative min-h-screen bg-gray-50 overflow-hidden py-12">
@@ -131,11 +184,11 @@ export default function ProProfilePage() {
                 <div className="w-full space-y-3 pt-5 border-t border-gray-100">
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-gray-500">Experience</span>
-                    <span className="font-bold text-gray-900">{proData.experience}</span>
+                    <span className="font-bold text-gray-900">{proData.experience || "Not specified"}</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-gray-500">Clients Served</span>
-                    <span className="font-bold text-gray-900">{proData.clients}</span>
+                    <span className="font-bold text-gray-900">{proData.clients || "Not specified"}</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-gray-500">Rate</span>
@@ -148,19 +201,10 @@ export default function ProProfilePage() {
               <div className="space-y-3">
                 {session?.user ? (
                   <>
-                    <Link href={`/messaging?proId=${proData.id}`} className="block">
+                    <Link href="/marketplace" className="block">
                       <Button className="w-full h-12 rounded-xl bg-[#0a9396] hover:bg-[#087579] text-white font-semibold shadow-sm shadow-[#0a9396]/20 transition-all">
                         <Mail className="mr-2 h-4 w-4" />
-                        Send a Message
-                      </Button>
-                    </Link>
-                    <Link href={`/messaging?proId=${proData.id}&action=schedule-call`} className="block">
-                      <Button
-                        variant="outline"
-                        className="w-full h-12 rounded-xl border-2 border-gray-200 text-gray-700 hover:border-[#0a9396] hover:text-[#0a9396] hover:bg-transparent font-semibold transition-all"
-                      >
-                        <Calendar className="mr-2 h-4 w-4" />
-                        Schedule a Call
+                        Express Interest
                       </Button>
                     </Link>
                   </>
@@ -294,6 +338,7 @@ export default function ProProfilePage() {
           </motion.div>
         </div>
       </div>
+
     </div>
   );
 }

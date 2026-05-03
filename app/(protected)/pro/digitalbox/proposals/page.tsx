@@ -2,9 +2,10 @@
 
 import {
   FileText, Plus, Send, CheckCircle2, XCircle, Clock, Trash2,
-  ChevronRight, AlertCircle, X, Eye, DollarSign,
+  ChevronRight, AlertCircle, X, Eye, DollarSign, FilePenLine,
 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface ProposalClient { id: string; name: string; email: string; }
@@ -41,6 +42,7 @@ const emptyForm = {
 };
 
 export default function ProposalsPage() {
+  const router = useRouter();
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -235,6 +237,19 @@ export default function ProposalsPage() {
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   )}
+                  {p.status === "accepted" && (
+                    <button onClick={async () => {
+                      const res = await fetch("/api/pro/contracts/from-proposal", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ proposalId: p.id }),
+                      });
+                      if (res.ok) router.push("/pro/digitalbox/contracts");
+                    }}
+                      className="h-9 px-3 rounded-xl bg-gray-900 text-white border border-gray-900 text-xs font-bold flex items-center gap-1.5 hover:bg-black transition-all cursor-pointer">
+                      <FilePenLine className="h-3.5 w-3.5" /> Convert to Contract
+                    </button>
+                  )}
                   <ChevronRight className="h-4 w-4 text-gray-300" />
                 </div>
               </div>
@@ -277,7 +292,8 @@ export default function ProposalsPage() {
                         {f.label} {f.required && <span className="text-red-400">*</span>}
                       </label>
                       <input type={f.type ?? "text"} placeholder={f.placeholder}
-                        value={(form as Record<string, string>)[f.key]}
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        value={(form as any)[f.key]}
                         onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))}
                         className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium text-gray-900 placeholder-gray-400 outline-none focus:border-[#0a9396] focus:ring-4 focus:ring-[#0a9396]/10 transition-all" />
                     </div>

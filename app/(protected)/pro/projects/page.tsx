@@ -5,7 +5,8 @@ import { FolderKanban, Clock, DollarSign, Users, X, Eye, CheckSquare, Calendar, 
 import { Input } from "@/components/ui/Input";
 import { formatCurrency } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 
 interface Task {
   id: number;
@@ -14,7 +15,7 @@ interface Task {
 }
 
 interface Project {
-  id: number;
+  id: string;
   name: string;
   client: string;
   status: string;
@@ -38,21 +39,43 @@ export default function ProjectsPage() {
   const [showProjectDetails, setShowProjectDetails] = useState(false);
   const [showTaskManagement, setShowTaskManagement] = useState(false);
   const [showAddTaskForm, setShowAddTaskForm] = useState(false);
-  const [showNewProjectModal, setShowNewProjectModal] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [formError, setFormError] = useState("");
-  const [newProject, setNewProject] = useState({
-    name: "",
-    client: "",
-    budget: "",
-    deadline: "",
-    status: "active",
-  });
   const [projectsList, setProjectsList] = useState<Project[]>([]);
-  const [completedTasks, setCompletedTasks] = useState<Record<number, number>>({});
-  const [projectTasks, setProjectTasks] = useState<Record<number, Task[]>>({});
+  const [completedTasks, setCompletedTasks] = useState<Record<string, number>>({});
+  const [projectTasks, setProjectTasks] = useState<Record<string, Task[]>>({});
+  const { data: session } = useSession();
+
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    
+    fetch("/api/projects?userType=pro")
+      .then((r) => r.json())
+      .then((d) => {
+        interface BackendProject {
+          id: string;
+          title: string;
+          status: string;
+          budget: number;
+          endDate: string;
+          client: { name: string };
+        }
+        const mapped: Project[] = (d.projects ?? []).map((p: BackendProject) => ({
+          id: p.id,
+          name: p.title,
+          client: p.client?.name ?? "Unknown Client",
+          status: p.status,
+          progress: 0,
+          budget: p.budget,
+          deadline: p.endDate || "No deadline",
+          tasks: 0,
+          completedTasks: 0,
+        }));
+        setProjectsList(mapped);
+      })
+      .catch(console.error)
+  }, [session]);
 
   const handleViewDetails = (project: Project) => {
     setSelectedProject(project);
@@ -129,40 +152,6 @@ export default function ProjectsPage() {
     setShowAddTaskForm(false);
   };
 
-  const handleAddNewProject = () => {
-    if (!newProject.name || !newProject.client || !newProject.budget || !newProject.deadline) {
-      setFormError("Please fill in all required fields.");
-      return;
-    }
-    setFormError("");
-
-    const newProjectId = projectsList.length > 0 ? Math.max(...projectsList.map((p) => p.id)) + 1 : 1;
-    const addedProject = {
-      id: newProjectId,
-      name: newProject.name,
-      client: newProject.client,
-      status: newProject.status,
-      progress: 0,
-      budget: parseFloat(newProject.budget),
-      deadline: newProject.deadline,
-      tasks: 0,
-      completedTasks: 0,
-    };
-
-    setProjectsList([addedProject, ...projectsList]);
-    setCompletedTasks({ ...completedTasks, [newProjectId]: 0 });
-    setProjectTasks({ ...projectTasks, [newProjectId]: [] });
-
-    setNewProject({
-      name: "",
-      client: "",
-      budget: "",
-      deadline: "",
-      status: "active",
-    });
-    setFormError("");
-    setShowNewProjectModal(false);
-  };
 
   // Animation Variants
   const containerVariants = {
@@ -216,6 +205,9 @@ export default function ProjectsPage() {
                     <Badge variant="primary" size="sm" className="hidden sm:inline-flex bg-[#0a9396]/10 text-[#0a9396] border-[#0a9396]/20 py-1.5 px-3 rounded-xl shadow-inner font-bold tracking-wider text-[11px] uppercase">
                       {projectsList.filter(p => p.status === "active").length} Active
                     </Badge>
+                    <Badge variant="outline" size="sm" className="hidden sm:inline-flex bg-amber-50 text-amber-600 border-amber-200 py-1.5 px-3 rounded-xl shadow-inner font-bold tracking-wider text-[11px] uppercase">
+                      {projectsList.filter(p => p.status === "planning").length} Planning
+                    </Badge>
                   </h1>
                   <p className="text-gray-500 mt-2 font-medium text-lg">
                     Manage, track, and deliver professional digital marketing campaigns.
@@ -240,18 +232,6 @@ export default function ProjectsPage() {
                 <List className="w-5 h-5" />
               </button>
             </div>
-
-            <button
-               onClick={() => setShowNewProjectModal(true)}
-               className="relative group h-14 px-8 rounded-2xl overflow-hidden font-bold tracking-wide shadow-xl shadow-[#0a9396]/20 transition-all hover:scale-[1.03] active:scale-[0.98] w-full sm:w-auto"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-[#0a9396] via-[#057a7d] to-[#0a9396] bg-[length:200%_auto] group-hover:animate-gradient" />
-              <div className="absolute inset-[1px] rounded-[15px] bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
-              <span className="relative z-10 flex items-center justify-center text-white text-[16px]">
-                <Plus className="mr-2 h-5 w-5" />
-                Initialize Project
-              </span>
-            </button>
           </div>
         </div>
 
@@ -301,7 +281,11 @@ export default function ProjectsPage() {
                                </p>
                             </div>
                             <Badge
-                              variant={updatedProject.status === "completed" ? "success" : "info"}
+                              variant={
+                                updatedProject.status === "completed" ? "success" : 
+                                updatedProject.status === "planning" ? "warning" : 
+                                "info"
+                              }
                               size="md"
                               className="uppercase font-black text-[10px] tracking-widest px-3 py-1 shadow-sm shrink-0"
                             >
@@ -710,118 +694,6 @@ export default function ProjectsPage() {
                       );
                     })}
                   </AnimatePresence>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Cinematic New Project Modal Container */}
-      <AnimatePresence>
-        {showNewProjectModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-               initial={{ opacity: 0 }}
-               animate={{ opacity: 1 }}
-               exit={{ opacity: 0 }}
-               className="absolute inset-0 bg-gray-900/40 backdrop-blur-xl"
-               onClick={() => { setShowNewProjectModal(false); setFormError(""); }}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 30 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              transition={{ type: "spring", stiffness: 100, damping: 15 }}
-              className="bg-white/90 backdrop-blur-3xl rounded-[2.5rem] shadow-2xl border border-white max-w-3xl w-full max-h-[90vh] overflow-y-auto relative z-10"
-            >
-              <div className="p-8 pb-0 flex flex-row items-center justify-between border-b border-gray-100/50 bg-white/50 pt-10 px-10">
-                <div className="mb-8">
-                  <h2 className="text-3xl font-black text-gray-900 flex items-center gap-3 tracking-tight">
-                     <div className="p-3 bg-gradient-to-br from-white to-gray-50/50 rounded-2xl shadow-[inset_0_2px_10px_rgb(255,255,255,0.8),0_4px_15px_rgb(0,0,0,0.05)] border border-white/80">
-                         <FolderKanban className="text-[#0a9396] w-6 h-6" />
-                     </div>
-                     Instantiate New Project
-                  </h2>
-                  <p className="text-lg font-medium text-gray-500 mt-2">
-                    Setup a strict project protocol parameter to begin internal tracking.
-                  </p>
-                </div>
-                <button
-                  onClick={() => {
-                    setShowNewProjectModal(false);
-                    setNewProject({ name: "", client: "", budget: "", deadline: "", status: "active" });
-                    setFormError("");
-                  }}
-                  className="p-3 rounded-full bg-white border border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-all shadow-sm mb-6"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              <div className="p-10 space-y-8 bg-gray-50/30">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-                  <div className="space-y-2">
-                    <label className="text-sm font-bold text-gray-700 uppercase tracking-wider">Project Title <span className="text-red-500">*</span></label>
-                    <Input
-                      placeholder="e.g., Q1 Marketing Push"
-                      value={newProject.name}
-                      onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
-                      className="bg-white border-white shadow-[0_4px_15px_rgb(0,0,0,0.03)] h-14 rounded-2xl text-[15px] focus:ring-[#0a9396]/20 font-medium"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-bold text-gray-700 uppercase tracking-wider">Client Corporation <span className="text-red-500">*</span></label>
-                    <Input
-                      placeholder="e.g., Acme Corp."
-                      value={newProject.client}
-                      onChange={(e) => setNewProject({ ...newProject, client: e.target.value })}
-                      className="bg-white border-white shadow-[0_4px_15px_rgb(0,0,0,0.03)] h-14 rounded-2xl text-[15px] focus:ring-[#0a9396]/20 font-medium"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-bold text-gray-700 uppercase tracking-wider">Allocated Funds (£) <span className="text-red-500">*</span></label>
-                    <Input
-                      type="number"
-                      placeholder="5000"
-                      value={newProject.budget}
-                      onChange={(e) => setNewProject({ ...newProject, budget: e.target.value })}
-                      className="bg-white border-white shadow-[0_4px_15px_rgb(0,0,0,0.03)] h-14 rounded-2xl text-[15px] focus:ring-[#0a9396]/20 font-medium"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-bold text-gray-700 uppercase tracking-wider">Target Hand-in <span className="text-red-500">*</span></label>
-                    <input
-                      type="date"
-                      value={newProject.deadline}
-                      onChange={(e) => setNewProject({ ...newProject, deadline: e.target.value })}
-                      className="w-full h-14 px-5 rounded-2xl border border-white shadow-[0_4px_15px_rgb(0,0,0,0.03)] bg-white text-[15px] text-gray-900 focus:border-[#0a9396] focus:outline-none focus:ring-4 focus:ring-[#0a9396]/10 transition-all font-bold appearance-none"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="flex gap-4 pt-10 mt-6 border-t border-gray-200/50 flex-col">
-                  {formError && (
-                    <p className="text-sm font-semibold text-red-500 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
-                      {formError}
-                    </p>
-                  )}
-                  <button
-                    onClick={handleAddNewProject}
-                    disabled={!newProject.name || !newProject.client || !newProject.budget || !newProject.deadline}
-                    className="w-full relative group h-14 rounded-2xl overflow-hidden font-bold tracking-wide shadow-xl shadow-[#0a9396]/20 transition-all hover:-translate-y-1 active:scale-[0.98] disabled:opacity-50 disabled:hover:translate-y-0"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#0a9396] via-[#057a7d] to-[#0a9396] bg-[length:200%_auto] group-hover:animate-gradient" />
-                    <div className="absolute inset-[1px] rounded-[15px] bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
-                    <span className="relative z-10 flex items-center justify-center text-white text-[16px]">
-                      <FolderKanban className="mr-2 h-5 w-5" />
-                      Initialize Project Parameter
-                    </span>
-                  </button>
                 </div>
               </div>
             </motion.div>

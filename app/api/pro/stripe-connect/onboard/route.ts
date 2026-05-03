@@ -23,6 +23,10 @@ export async function POST() {
 
     let accountId = user.stripeAccountId;
 
+    if (!user.email) {
+      return NextResponse.json({ error: "Professional email is required for Stripe onboarding" }, { status: 400 });
+    }
+
     if (!accountId) {
       const account = await stripe.accounts.create({
         type: "express",
@@ -46,9 +50,10 @@ export async function POST() {
     });
 
     return NextResponse.json({ url: accountLink.url });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Stripe Connect error:", error);
-    return NextResponse.json({ error: "Failed to create Stripe onboarding link" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Failed to create Stripe onboarding link";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 

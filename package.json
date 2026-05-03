@@ -6,9 +6,16 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:seed": "dotenv -e .env.local -- npx tsx prisma/seed.ts"
+  },
+  "prisma": {
+    "seed": "dotenv -e .env.local -- npx tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.92.0",
+    "@babel/runtime": "^7.29.2",
+    "@google/generative-ai": "^0.24.1",
     "@prisma/adapter-pg": "^7.4.1",
     "@prisma/client": "^7.4.1",
     "@types/nodemailer": "^8.0.0",
@@ -17,6 +24,10 @@
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
     "framer-motion": "^11.11.17",
+    "groq-sdk": "^1.1.2",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.7",
     "livekit-client": "^2.18.1",
     "livekit-server-sdk": "^2.15.1",
     "lucide-react": "^0.554.0",
@@ -31,7 +42,8 @@
     "react-dom": "19.2.0",
     "recharts": "^2.15.4",
     "stripe": "^20.0.0",
-    "tailwind-merge": "^3.4.0"
+    "tailwind-merge": "^3.4.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

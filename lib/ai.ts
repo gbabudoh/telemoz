@@ -1,131 +1,108 @@
-// AI service for communicating with LLM APIs (OpenAI, Gemini, etc.)
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import Anthropic from "@anthropic-ai/sdk";
+import Groq from "groq-sdk";
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const isPlaceholder = (key: string | undefined) =>
+  !key || key.includes("your-") || key.includes("sk-your-");
 
-export interface AIGenerateOptions {
-  prompt: string;
-  model?: "gpt-4" | "gpt-3.5-turbo" | "gemini-pro";
+const geminiKey = process.env.GEMINI_API_KEY;
+const anthropicKey = process.env.ANTHROPIC_API_KEY;
+const groqKey = process.env.GROQ_API_KEY;
+
+const genAI = !isPlaceholder(geminiKey) ? new GoogleGenerativeAI(geminiKey!) : null;
+const anthropic = !isPlaceholder(anthropicKey) ? new Anthropic({ apiKey: anthropicKey! }) : null;
+const groq = !isPlaceholder(groqKey) ? new Groq({ apiKey: groqKey! }) : null;
+
+export type AIProvider = "gemini" | "claude" | "groq";
+
+export interface GenerateOptions {
+  provider?: AIProvider;
+  model?: string;
   maxTokens?: number;
   temperature?: number;
 }
 
-export async function generateText(options: AIGenerateOptions): Promise<string> {
-  const {
-    prompt,
-    model = "gpt-3.5-turbo",
-    maxTokens = 1000,
-    temperature = 0.7,
-  } = options;
-
-  if (model.startsWith("gpt")) {
-    return generateWithOpenAI(prompt, model, maxTokens, temperature);
-  } else if (model === "gemini-pro") {
-    return generateWithGemini(prompt, maxTokens, temperature);
+// Resolve the best available provider when none is specified or when falling back
+function resolveProvider(exclude: AIProvider[] = []): AIProvider | null {
+  const order: AIProvider[] = ["groq", "claude", "gemini"];
+  for (const p of order) {
+    if (exclude.includes(p)) continue;
+    if (p === "claude" && anthropic) return "claude";
+    if (p === "groq" && groq) return "groq";
+    if (p === "gemini" && genAI) return "gemini";
   }
-
-  throw new Error(`Unsupported model: ${model}`);
+  return null;
 }
 
-async function generateWithOpenAI(
-  prompt: string,
-  model: string,
-  maxTokens: number,
-  temperature: number
-): Promise<string> {
-  if (!OPENAI_API_KEY) {
-    throw new Error("OpenAI API key not configured");
+function isRateLimitError(error: unknown): boolean {
+  if (error instanceof Error) {
+    const msg = error.message.toLowerCase();
+    return msg.includes("429") || msg.includes("rate limit") || msg.includes("quota") || msg.includes("too many requests");
   }
-
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${OPENAI_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model,
-      messages: [{ role: "user", content: prompt }],
-      max_tokens: maxTokens,
-      temperature,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`OpenAI API error: ${response.statusText}`);
-  }
-
-  const data = await response.json();
-  return data.choices[0]?.message?.content || "";
+  return false;
 }
 
-async function generateWithGemini(
-  prompt: string,
-  maxTokens: number,
-  temperature: number
-): Promise<string> {
-  if (!GEMINI_API_KEY) {
-    throw new Error("Gemini API key not configured");
-  }
-
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          maxOutputTokens: maxTokens,
-          temperature,
-        },
-      }),
+async function callProvider(provider: AIProvider, prompt: string, options: GenerateOptions): Promise<string> {
+  switch (provider) {
+    case "gemini": {
+      if (!genAI) throw new Error("Gemini API key not configured");
+      const model = genAI.getGenerativeModel({ model: options.model || "gemini-2.0-flash" });
+      const result = await model.generateContent(prompt);
+      return result.response.text();
     }
-  );
-
-  if (!response.ok) {
-    throw new Error(`Gemini API error: ${response.statusText}`);
+    case "claude": {
+      if (!anthropic) throw new Error("Anthropic API key not configured");
+      const msg = await anthropic.messages.create({
+        model: options.model || "claude-haiku-4-5-20251001",
+        max_tokens: options.maxTokens || 4096,
+        messages: [{ role: "user", content: prompt }],
+      });
+      return msg.content[0].type === "text" ? (msg.content[0] as { type: "text"; text: string }).text : "";
+    }
+    case "groq": {
+      if (!groq) throw new Error("Groq API key not configured");
+      const chat = await groq.chat.completions.create({
+        messages: [{ role: "user", content: prompt }],
+        model: options.model || "llama-3.3-70b-versatile",
+        max_tokens: options.maxTokens,
+        temperature: options.temperature,
+      });
+      return chat.choices[0]?.message?.content || "";
+    }
+    default:
+      throw new Error(`Unsupported AI provider: ${provider}`);
   }
-
-  const data = await response.json();
-  return data.candidates[0]?.content?.parts[0]?.text || "";
 }
 
-// Specialized functions for marketing use cases
-export async function generateAdCopy(
-  product: string,
-  targetAudience: string,
-  tone: string = "professional"
-): Promise<string> {
-  const prompt = `Write compelling ad copy for ${product} targeting ${targetAudience}. 
-    Tone: ${tone}. Include a headline and 2-3 bullet points highlighting key benefits.`;
-  
-  return generateText({ prompt, model: "gpt-3.5-turbo", maxTokens: 300 });
+export async function generateText(prompt: string, options: GenerateOptions = {}): Promise<string> {
+  // Determine starting provider: use explicit option, env default, or best available
+  const envDefault = process.env.DEFAULT_AI_PROVIDER as AIProvider | undefined;
+  const startProvider: AIProvider =
+    options.provider || envDefault || resolveProvider() || "gemini";
+
+  const tried: AIProvider[] = [];
+
+  let current: AIProvider = startProvider;
+
+  while (true) {
+    tried.push(current);
+    try {
+      return await callProvider(current, prompt, options);
+    } catch (error) {
+      console.error(`AI generation error (${current}):`, error);
+
+      // Only fall back automatically on rate limit / quota errors
+      if (!isRateLimitError(error)) throw error;
+
+      // Find next untried provider
+      const next = resolveProvider(tried);
+      if (!next) {
+        console.error("All AI providers exhausted or unavailable.");
+        throw error;
+      }
+
+      console.log(`Provider "${current}" rate-limited — falling back to "${next}"`);
+      current = next;
+    }
+  }
 }
-
-export async function analyzeSEO(content: string): Promise<{
-  keywords: string[];
-  readability: number;
-  suggestions: string[];
-}> {
-  const prompt = `Analyze the following content for SEO:
-    
-${content}
-
-Provide:
-1. Key keywords found
-2. Readability score (1-100)
-3. Top 3 suggestions for improvement`;
-
-  const analysis = await generateText({ prompt, model: "gpt-3.5-turbo", maxTokens: 500 });
-  
-  // Parse the response (in production, use structured output or JSON mode)
-  return {
-    keywords: [],
-    readability: 75,
-    suggestions: [],
-  };
-}
-

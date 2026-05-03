@@ -14,11 +14,8 @@ import {
   Settings,
   Zap,
   MessageSquare,
-  Mail,
   Briefcase,
   TrendingUp,
-  Menu,
-  X,
   LogOut,
   Store,
   CreditCard,
@@ -30,10 +27,10 @@ import {
   CalendarDays,
   FolderOpen,
   SendHorizonal,
-  ClipboardList,
   ChevronDown,
   ChevronRight,
   Users2,
+  Bell,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -61,7 +58,7 @@ const proNavGroups: NavGroup[] = [
     items: [
       { title: "Overview", href: "/pro", icon: LayoutDashboard },
       { title: "Inquiries", href: "/pro/inquiries", icon: MessageSquare },
-      { title: "Messaging", href: "/pro/messaging", icon: Mail },
+      { title: "Notifications", href: "/notifications", icon: Bell },
     ],
   },
   {
@@ -126,7 +123,9 @@ const clientNavGroups: NavGroup[] = [
       { title: "Dashboard", href: "/client", icon: LayoutDashboard },
       { title: "My Pros", href: "/client/my-pros", icon: Briefcase },
       { title: "Projects", href: "/client/projects", icon: FolderKanban },
-      { title: "Project Brief", href: "/client/brief", icon: ClipboardList },
+      { title: "Proposals", href: "/client/proposals", icon: FileText },
+      { title: "Contracts", href: "/client/contracts", icon: FilePenLine },
+      { title: "Invoicing", href: "/client/invoicing", icon: FileCheck2 },
     ],
   },
   {
@@ -134,7 +133,8 @@ const clientNavGroups: NavGroup[] = [
     defaultOpen: true,
     items: [
       { title: "Reports", href: "/client/reports", icon: TrendingUp },
-      { title: "Messages", href: "/messaging", icon: MessageSquare },
+      { title: "Inquiries", href: "/client/inquiries", icon: MessageSquare },
+      { title: "Notifications", href: "/notifications", icon: Bell },
     ],
   },
   {

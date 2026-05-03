@@ -1,13 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { checkAndIncrementAiUsage, AI_DAILY_CAP } from "@/lib/ai-rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-
-    if (!session?.user) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const usage = await checkAndIncrementAiUsage(session.user.id);
+    if (!usage.allowed) {
+      return NextResponse.json(
+        { error: `Daily limit of ${AI_DAILY_CAP} AI requests reached. Resets at midnight.` },
+        { status: 429 }
+      );
     }
 
     const { targetWebsite, targetPage, yourWebsite, approach } = await request.json();
@@ -176,7 +184,7 @@ Best regards,
 
 **Note**: This is a template. Personalize each email based on the specific website and context.`;
 
-    return NextResponse.json({ outreach });
+    return NextResponse.json({ outreach, remaining: usage.remaining });
   } catch (error) {
     console.error("Error generating link building outreach:", error);
     return NextResponse.json(
