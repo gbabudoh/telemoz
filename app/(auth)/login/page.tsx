@@ -2,25 +2,48 @@
 
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { DashboardMockup } from "@/components/ui/DashboardMockup";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState, FormEvent } from "react";
-import { CheckCircle2, X, Loader2, Mail, Lock } from "lucide-react";
+import {
+  CheckCircle2,
+  X,
+  Loader2,
+  Mail,
+  Lock,
+  BarChart3,
+  FileText,
+  ShieldCheck,
+} from "lucide-react";
 import { signIn, getSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 
+const benefits = [
+  {
+    icon: BarChart3,
+    label: "Campaign analytics at a glance",
+  },
+  {
+    icon: FileText,
+    label: "AI-powered white-label reports ready",
+  },
+  {
+    icon: ShieldCheck,
+    label: "Client payments tracked and protected",
+  },
+];
+
 export default function LoginPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  
-  const [isSuccessDismissed, setIsSuccessDismissed] = useState(false);
-  const showSuccess = searchParams.get("registered") === "true" && !isSuccessDismissed;
 
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
+  const [isSuccessDismissed, setIsSuccessDismissed] = useState(false);
+  const showSuccess =
+    searchParams.get("registered") === "true" && !isSuccessDismissed;
+
+  const [formData, setFormData] = useState({ email: "", password: "" });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -50,11 +73,9 @@ export default function LoginPage() {
       }
 
       if (result?.ok) {
-        // Get the session to determine userType
         const session = await getSession();
         const userType = session?.user?.userType;
 
-        // Redirect based on user type
         if (userType === "pro") {
           router.push("/pro");
         } else if (userType === "client") {
@@ -62,7 +83,7 @@ export default function LoginPage() {
         } else if (userType === "admin") {
           router.push("/admin");
         } else {
-          router.push("/pro"); // Default fallback
+          router.push("/pro");
         }
         router.refresh();
       }
@@ -73,201 +94,286 @@ export default function LoginPage() {
     }
   };
 
-  // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
-      transition: { staggerChildren: 0.1, delayChildren: 0.3 }
-    }
+      transition: { staggerChildren: 0.1, delayChildren: 0.2 },
+    },
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
+    hidden: { opacity: 0, y: 16 },
+    show: {
+      opacity: 1,
+      y: 0,
+      transition: { type: "spring" as const, stiffness: 100 },
+    },
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50/50 relative overflow-hidden">
-      {/* Abstract Background Effects */}
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-[#0a9396]/5 via-white to-[#6ece39]/5 relative overflow-hidden">
+      {/* Background blobs */}
       <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-[#0a9396]/10 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-[#6ece39]/8 blur-[120px] pointer-events-none" />
-      
-      <div className="w-full max-w-6xl p-6 lg:p-12 relative z-10">
-        <div className="bg-white/70 backdrop-blur-xl rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-white/60 overflow-hidden flex flex-col lg:flex-row min-h-[700px]">
-          
-          {/* Left Panel: Form */}
-          <div className="w-full lg:w-1/2 p-8 md:p-16 lg:p-20 flex flex-col justify-center relative">
-            <Link href="/" className="absolute top-8 left-8 md:top-12 md:left-16 lg:top-12 lg:left-20 cursor-pointer">
-              <Image 
-                src="/logos/telemoz.png" 
-                alt="Telemoz" 
+
+      <div className="w-full max-w-6xl p-4 sm:p-6 lg:p-12 relative z-10">
+        <div className="bg-white/75 backdrop-blur-xl rounded-[2.5rem] shadow-[0_20px_60px_rgba(0,0,0,0.07)] border border-white/60 overflow-hidden flex flex-col lg:flex-row min-h-[680px]">
+
+          {/* ── Left panel: form ──────────────────────────────────── */}
+          <div className="w-full lg:w-1/2 p-8 md:p-12 lg:p-16 flex flex-col justify-center relative">
+            <Link
+              href="/"
+              className="absolute top-8 left-8 md:top-10 md:left-12 lg:top-12 lg:left-16"
+            >
+              <Image
+                src="/logos/telemoz.png"
+                alt="Telemoz"
                 width={120}
                 height={40}
-                className="h-8 w-auto object-contain hover:opacity-80 transition-opacity cursor-pointer"
+                className="h-8 w-auto object-contain hover:opacity-80 transition-opacity"
               />
             </Link>
 
-            <motion.div 
-              variants={containerVariants} 
-              initial="hidden" 
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
               animate="show"
-              className="w-full max-w-sm mx-auto mt-12 md:mt-0"
+              className="w-full max-w-sm mx-auto mt-14 lg:mt-0"
             >
-              <motion.div variants={itemVariants} className="text-left mb-10">
-                <h1 className="text-4xl font-bold text-gray-900 mb-3 tracking-tight">Welcome Back</h1>
-                <p className="text-gray-500 font-medium">Please enter your details to sign in.</p>
+              {/* Heading */}
+              <motion.div variants={itemVariants} className="mb-8">
+                <h1 className="text-4xl font-bold text-gray-900 mb-2 tracking-tight">
+                  Welcome Back
+                </h1>
+                <p className="text-gray-500 font-medium">
+                  Sign in to pick up where you left off.
+                </p>
               </motion.div>
 
-              {/* Toast Notification */}
+              {/* Success toast */}
               <AnimatePresence>
-              {showSuccess && (
-                <motion.div
-                  initial={{ opacity: 0, y: -20, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -20, scale: 0.95 }}
-                  className="mb-8 p-4 rounded-2xl bg-[#0a9396]/10 border border-[#0a9396]/20 flex items-start gap-3 shadow-sm"
-                >
-                  <div className="mt-0.5 bg-white rounded-full p-1 shadow-sm">
-                    <CheckCircle2 className="h-4 w-4 text-[#0a9396] cursor-pointer" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm text-gray-900 font-bold">Account created!</p>
-                    <p className="text-xs text-gray-600 mt-1">Please sign in with your credentials.</p>
-                  </div>
-                  <button
-                    onClick={() => setIsSuccessDismissed(true)}
-                    className="text-gray-400 hover:text-gray-600 transition-colors p-1 cursor-pointer"
+                {showSuccess && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -16, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -16, scale: 0.96 }}
+                    className="mb-6 p-4 rounded-2xl bg-[#0a9396]/10 border border-[#0a9396]/20 flex items-start gap-3 shadow-sm"
                   >
-                    <X className="h-4 w-4 cursor-pointer" />
-                  </button>
-                </motion.div>
-              )}
+                    <div className="mt-0.5 bg-white rounded-full p-1 shadow-sm shrink-0">
+                      <CheckCircle2 className="h-4 w-4 text-[#0a9396]" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-900 font-bold">Account created!</p>
+                      <p className="text-xs text-gray-600 mt-0.5">
+                        Sign in with your new credentials.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setIsSuccessDismissed(true)}
+                      className="text-gray-400 hover:text-gray-600 transition-colors p-1 shrink-0"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </motion.div>
+                )}
               </AnimatePresence>
 
-              {error && (
-                <motion.div 
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mb-6 p-4 rounded-xl bg-red-50 border border-red-100 flex items-start gap-3"
-                >
-                  <p className="text-sm text-red-600 font-medium">{error}</p>
-                </motion.div>
-              )}
+              {/* Error */}
+              <AnimatePresence>
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    className="mb-5 p-4 rounded-xl bg-red-50 border border-red-100 flex items-center gap-3"
+                  >
+                    <X className="h-4 w-4 text-red-500 shrink-0" />
+                    <p className="text-sm text-red-600 font-medium">{error}</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
+              {/* Form */}
               <form onSubmit={handleSubmit} className="space-y-5">
                 <motion.div variants={itemVariants} className="space-y-4">
-                  <div className="relative group">
-                    <Mail className="absolute left-4 top-9 h-5 w-5 text-gray-400 group-focus-within:text-[#0a9396] transition-colors z-10 cursor-pointer" />
-                    <Input
-                      type="email"
-                      label="Email Address"
-                      placeholder="you@example.com"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      required
-                      className="bg-white/50 border-gray-200 focus:border-[#0a9396] focus:ring-[#0a9396]/20 h-12 text-base transition-all pl-12"
-                    />
+                  {/* Email field */}
+                  <div className="space-y-1.5">
+                    <label className="block text-sm font-semibold text-gray-900">
+                      Email Address
+                    </label>
+                    <div className="relative group">
+                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-[#0a9396] transition-colors z-10 pointer-events-none" />
+                      <Input
+                        type="email"
+                        placeholder="you@example.com"
+                        value={formData.email}
+                        onChange={(e) =>
+                          setFormData({ ...formData, email: e.target.value })
+                        }
+                        required
+                        className="pl-11 h-12 bg-white/60 border-gray-200 focus:border-[#0a9396] focus:ring-[#0a9396]/20 text-base transition-all"
+                      />
+                    </div>
                   </div>
-                  
-                  <div className="relative group">
-                    <Lock className="absolute left-4 top-9 h-5 w-5 text-gray-400 group-focus-within:text-[#0a9396] transition-colors z-10 cursor-pointer" />
-                    <Input
-                      type="password"
-                      label="Password"
-                      placeholder="••••••••"
-                      value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      required
-                      className="bg-white/50 border-gray-200 focus:border-[#0a9396] focus:ring-[#0a9396]/20 h-12 text-base transition-all pl-12"
-                    />
+
+                  {/* Password field */}
+                  <div className="space-y-1.5">
+                    <label className="block text-sm font-semibold text-gray-900">
+                      Password
+                    </label>
+                    <div className="relative group">
+                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-[#0a9396] transition-colors z-10 pointer-events-none" />
+                      <Input
+                        type="password"
+                        placeholder="••••••••"
+                        value={formData.password}
+                        onChange={(e) =>
+                          setFormData({ ...formData, password: e.target.value })
+                        }
+                        required
+                        className="pl-11 h-12 bg-white/60 border-gray-200 focus:border-[#0a9396] focus:ring-[#0a9396]/20 text-base transition-all"
+                      />
+                    </div>
                   </div>
                 </motion.div>
 
-                <motion.div variants={itemVariants} className="flex items-center justify-between text-sm py-2">
-                  <label className="flex items-center gap-3 text-gray-600 font-medium cursor-pointer group">
+                {/* Remember me + forgot password */}
+                <motion.div
+                  variants={itemVariants}
+                  className="flex items-center justify-between text-sm"
+                >
+                  <label className="flex items-center gap-2.5 text-gray-600 font-medium cursor-pointer select-none">
                     <div className="relative flex items-center justify-center">
-                      <input 
-                        type="checkbox" 
-                        className="peer appearance-none w-5 h-5 border-2 border-gray-300 rounded-md checked:bg-[#0a9396] checked:border-[#0a9396] transition-all cursor-pointer" 
+                      <input
+                        type="checkbox"
+                        className="peer appearance-none w-5 h-5 border-2 border-gray-300 rounded-md checked:bg-[#0a9396] checked:border-[#0a9396] transition-all cursor-pointer"
                       />
-                      <svg className="absolute w-3 h-3 text-white opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity" viewBox="0 0 14 14" fill="none">
-                        <path d="M3 8L6 11L11 3.5" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" stroke="currentColor"/>
+                      <svg
+                        className="absolute w-3 h-3 text-white opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity"
+                        viewBox="0 0 14 14"
+                        fill="none"
+                      >
+                        <path
+                          d="M3 8L6 11L11 3.5"
+                          strokeWidth={2}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          stroke="currentColor"
+                        />
                       </svg>
                     </div>
                     Remember me
                   </label>
-                  <Link href="/forgot-password" className="text-[#0a9396] hover:text-[#005f73] font-semibold transition-colors cursor-pointer">
+                  <Link
+                    href="/forgot-password"
+                    className="text-[#0a9396] hover:text-[#005f73] font-semibold transition-colors"
+                  >
                     Forgot password?
                   </Link>
                 </motion.div>
 
-                <motion.div variants={itemVariants} className="pt-4">
+                {/* Submit button */}
+                <motion.div variants={itemVariants} className="pt-2">
                   <Button
                     type="submit"
-                    className="w-full bg-[#0a9396] hover:bg-[#005f73] text-white shadow-lg shadow-[#0a9396]/20 hover:shadow-[#0a9396]/40 hover:-translate-y-0.5 transition-all duration-300 h-14 rounded-xl text-base font-bold disabled:opacity-70 disabled:hover:translate-y-0 cursor-pointer"
+                    className="w-full bg-[#0a9396] hover:bg-[#005f73] text-white shadow-lg shadow-[#0a9396]/20 hover:shadow-[#0a9396]/40 hover:-translate-y-0.5 transition-all duration-300 h-14 rounded-full text-base font-bold disabled:opacity-70 disabled:hover:translate-y-0"
                     disabled={isLoading}
                   >
                     {isLoading ? (
                       <span className="flex items-center justify-center gap-3">
-                        <Loader2 className="h-5 w-5 animate-spin cursor-pointer" />
+                        <Loader2 className="h-5 w-5 animate-spin" />
                         Signing in...
                       </span>
                     ) : (
-                      "Sign In"
+                      "Sign In to Telemoz"
                     )}
                   </Button>
                 </motion.div>
               </form>
 
-              <motion.div variants={itemVariants} className="mt-10 text-center text-sm text-gray-500 font-medium">
+              {/* Sign up link */}
+              <motion.div
+                variants={itemVariants}
+                className="mt-8 text-center text-sm text-gray-500 font-medium"
+              >
                 Don&apos;t have an account?{" "}
-                <Link href="/register" className="text-[#0a9396] hover:text-[#005f73] font-bold transition-colors cursor-pointer">
-                  Sign up
+                <Link
+                  href="/register"
+                  className="text-[#0a9396] hover:text-[#005f73] font-bold transition-colors"
+                >
+                  Sign up free
                 </Link>
               </motion.div>
             </motion.div>
           </div>
 
-          {/* Right Panel: Promotional Image/Marketing */}
-          <div className="hidden lg:block w-1/2 relative bg-linear-to-br from-[#0a9396] to-[#005f73] p-12 overflow-hidden">
-            <div className="absolute inset-0 bg-[#000000]/10 mix-blend-overlay" />
-            
-            {/* Abstract Decorative Circles */}
-            <div className="absolute -top-24 -right-24 w-96 h-96 bg-white/10 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-[#6ece39]/15 rounded-full blur-3xl pointer-events-none" />
-            
-            <div className="relative z-10 h-full flex flex-col justify-center">
-              <motion.div 
-                initial={{ opacity: 0, x: 50 }}
+          {/* ── Right panel: returning-user context ───────────────── */}
+          <div className="hidden lg:flex w-1/2 flex-col justify-between bg-linear-to-br from-[#0a9396] to-[#005f73] p-12 relative overflow-hidden">
+            {/* Decorative blobs */}
+            <div className="absolute -top-24 -right-24 w-80 h-80 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-[#6ece39]/20 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="relative z-10 flex flex-col h-full justify-between">
+              {/* Top: heading + benefits */}
+              <motion.div
+                initial={{ opacity: 0, x: 40 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.8, delay: 0.2, type: "spring" }}
-                className="w-full max-w-lg mx-auto"
+                transition={{ duration: 0.7, delay: 0.15, type: "spring" }}
               >
-                <div className="mb-10 text-white/90">
-                  <h2 className="text-4xl font-bold text-white mb-4">Grow With Expert Marketers</h2>
-                  <p className="text-lg font-light text-white/80">
-                    Connect with top talent, manage projects seamlessly, and scale your digital marketing operations all from one unified hub.
-                  </p>
+                <h2 className="text-3xl font-bold text-white mb-3 leading-tight">
+                  Everything&apos;s Where You Left It
+                </h2>
+                <p className="text-white/75 text-base font-light mb-8 leading-relaxed">
+                  Your campaigns, clients, and reports are ready and waiting.
+                </p>
+
+                <ul className="space-y-3 mb-10">
+                  {benefits.map((b, i) => {
+                    const Icon = b.icon;
+                    return (
+                      <motion.li
+                        key={b.label}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.35 + i * 0.1, duration: 0.5 }}
+                        className="flex items-center gap-3"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center shrink-0">
+                          <Icon className="w-4 h-4 text-white" />
+                        </div>
+                        <span className="text-white/90 text-sm font-medium">{b.label}</span>
+                      </motion.li>
+                    );
+                  })}
+                </ul>
+              </motion.div>
+
+              {/* Middle: floating dashboard mockup */}
+              <motion.div
+                animate={{ y: [-6, 6, -6] }}
+                transition={{ repeat: Infinity, duration: 5, ease: "easeInOut" }}
+                className="relative rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.25)] border border-white/20 bg-white/10 backdrop-blur-md p-2"
+              >
+                <div className="rounded-xl overflow-hidden">
+                  <DashboardMockup />
                 </div>
-                
-                {/* Dashboard Mockup Display */}
-                <motion.div
-                  animate={{ y: [-5, 5, -5] }}
-                  transition={{ repeat: Infinity, duration: 8, ease: "easeInOut" }}
-                  className="relative rounded-2xl overflow-hidden shadow-2xl border border-white/20 bg-white/10 backdrop-blur-md p-2 aspect-[4/3] w-full"
-                >
-                  <div className="relative w-full h-full rounded-xl overflow-hidden">
-                    <Image 
-                      src="/images/mockups/dashboard.png" 
-                      alt="Platform Dashboard Preview" 
-                      fill 
-                      className="object-cover" 
-                      priority
-                    />
-                    <div className="absolute inset-0 bg-linear-to-tr from-[#0a9396]/20 to-transparent mix-blend-overlay" />
-                  </div>
-                </motion.div>
+                {/* Subtle tint overlay to blend into the panel */}
+                <div className="absolute inset-0 bg-linear-to-t from-[#005f73]/30 to-transparent rounded-2xl pointer-events-none" />
+              </motion.div>
+
+              {/* Bottom: platform stat strip */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.8 }}
+                className="mt-8 pt-6 border-t border-white/15 flex items-center justify-between text-white/60 text-xs font-medium"
+              >
+                <span>4+ Enterprise Tools</span>
+                <span className="w-1 h-1 rounded-full bg-white/30" />
+                <span>Free Marketplace</span>
+                <span className="w-1 h-1 rounded-full bg-white/30" />
+                <span>Secure Escrow</span>
               </motion.div>
             </div>
           </div>
@@ -277,4 +383,3 @@ export default function LoginPage() {
     </div>
   );
 }
-

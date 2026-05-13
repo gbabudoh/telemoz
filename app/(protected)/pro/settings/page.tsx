@@ -27,12 +27,16 @@ import {
   MapPin,
   FileText,
   LucideIcon,
+  Share2,
+  Link2,
+  Unlink,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { countriesByRegion, regions } from "@/lib/countries";
 import { DeleteAccountModal } from "@/components/settings/DeleteAccountModal";
 import { useSession, signOut } from "next-auth/react";
+import { SubscriptionPlanSelector } from "@/components/billing/SubscriptionPlanSelector";
 
 // Custom Frosted Glass Input matching digitalbox suite
 const GlassInput = (props: React.InputHTMLAttributes<HTMLInputElement> & { label?: string; error?: string; icon?: LucideIcon }) => {
@@ -127,6 +131,7 @@ export default function SettingsPage() {
     monthlyRate: "",
     availability: "available",
   });
+  const [subscriptionTier, setSubscriptionTier] = useState("free");
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
@@ -155,6 +160,13 @@ export default function SettingsPage() {
   } | null>(null);
   const [isConnectingStripe, setIsConnectingStripe] = useState(false);
 
+  const [integrations, setIntegrations] = useState<{
+    provider: string;
+    status: string;
+    accountName: string | null;
+  }[]>([]);
+  const [isFetchingIntegrations, setIsFetchingIntegrations] = useState(false);
+
   // Fetch user data on mount
   useEffect(() => {
     const fetchUserData = async () => {
@@ -172,6 +184,7 @@ export default function SettingsPage() {
             country: data.user.country || "",
             city: data.user.city || "",
           }));
+          setSubscriptionTier(data.user.subscriptionTier || "free");
           setPreferences((prev) => ({
             ...prev,
             timezone: data.user.timezone || "Europe/London",
@@ -225,6 +238,29 @@ export default function SettingsPage() {
     }
   }, [session, activeTab]);
 
+  // Fetch Integrations
+  useEffect(() => {
+    const fetchIntegrations = async () => {
+      if (!session?.user?.id) return;
+      try {
+        setIsFetchingIntegrations(true);
+        const response = await fetch("/api/integrations");
+        if (response.ok) {
+          const data = await response.json();
+          setIntegrations(data);
+        }
+      } catch (error) {
+        console.error("Error fetching integrations:", error);
+      } finally {
+        setIsFetchingIntegrations(false);
+      }
+    };
+
+    if (activeTab === "integrations") {
+      fetchIntegrations();
+    }
+  }, [session, activeTab]);
+
   const handleStripeOnboarding = async () => {
     setIsConnectingStripe(true);
     try {
@@ -250,8 +286,9 @@ export default function SettingsPage() {
     { id: "account", label: "Account", icon: User },
     { id: "professional", label: "Professional", icon: Briefcase },
     { id: "notifications", label: "Notifications", icon: Bell },
+    { id: "integrations", label: "Integrations", icon: Share2 },
     { id: "security", label: "Security", icon: Shield },
-    { id: "billing", label: "Payouts", icon: CreditCard },
+    { id: "billing", label: "Billing & Payouts", icon: CreditCard },
   ];
 
   const handleSaveAccountInfo = async () => {
@@ -798,6 +835,116 @@ export default function SettingsPage() {
                  </motion.div>
                </motion.div>
             )}
+            {/* 2.5 Integrations */}
+            {activeTab === "integrations" && (
+              <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-6">
+                <motion.div variants={itemVariants} className="bg-white/40 backdrop-blur-2xl rounded-[2.5rem] border border-white/60 shadow-[inset_0_2px_15px_rgb(255,255,255,0.7),0_10px_30px_rgb(0,0,0,0.03)] overflow-hidden">
+                  <div className="p-6 sm:p-8 md:p-10 border-b border-gray-100/50 bg-gradient-to-br from-white/40 to-transparent flex items-center gap-4">
+                    <div className="p-3.5 bg-gradient-to-br from-emerald-400 to-cyan-500 rounded-2xl shadow-lg shadow-emerald-500/20 text-white shrink-0">
+                      <Share2 className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-black text-gray-900 tracking-tight">External Integrations</h2>
+                      <p className="text-gray-500 font-medium text-[14px] mt-1">Connect your marketing platforms to pull live data into Telemoz.</p>
+                    </div>
+                  </div>
+
+                  <div className="p-6 sm:p-8 md:p-10 bg-white/20">
+                    {isFetchingIntegrations ? (
+                      <div className="flex flex-col items-center justify-center py-12 gap-4">
+                        <Loader2 className="h-8 w-8 animate-spin text-[#0a9396]" />
+                        <span className="text-gray-500 font-bold tracking-wide">Fetching connections...</span>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {[
+                          {
+                            id: "google_search_console",
+                            name: "Google Search Console",
+                            desc: "Pull organic search performance, clicks, and impressions.",
+                            icon: Globe,
+                            color: "from-blue-400 to-blue-600",
+                            connectUrl: "/api/integrations/google/connect",
+                          },
+                          {
+                            id: "meta_ads",
+                            name: "Meta Ads Manager",
+                            desc: "Sync Facebook and Instagram ad campaign metrics.",
+                            icon: Sparkles,
+                            color: "from-indigo-400 to-blue-500",
+                            connectUrl: "/api/integrations/meta/connect",
+                          },
+                          {
+                            id: "linkedin_ads",
+                            name: "LinkedIn Ads",
+                            desc: "Track B2B ad performance and conversion data.",
+                            icon: Linkedin,
+                            color: "from-blue-600 to-indigo-700",
+                            connectUrl: "/api/integrations/linkedin/connect",
+                          },
+                        ].map((platform) => {
+                          const integration = integrations.find(i => i.provider === platform.id);
+                          const isConnected = integration?.status === "active";
+
+                          return (
+                            <div key={platform.id} className="relative group p-6 rounded-3xl border border-white/80 bg-white/60 hover:bg-white transition-all hover:shadow-xl hover:shadow-gray-200/50">
+                              <div className="flex items-start justify-between mb-4">
+                                <div className={`p-3 rounded-2xl bg-gradient-to-br ${platform.color} text-white shadow-lg`}>
+                                  <platform.icon className="h-6 w-6" />
+                                </div>
+                                {isConnected ? (
+                                  <Badge className="bg-emerald-50 text-emerald-600 border-emerald-100 font-bold px-3 py-1">Connected</Badge>
+                                ) : (
+                                  <Badge variant="outline" className="text-gray-400 border-gray-200 font-bold px-3 py-1">Not Connected</Badge>
+                                )}
+                              </div>
+                              <h3 className="text-lg font-black text-gray-900 tracking-tight">{platform.name}</h3>
+                              <p className="text-sm font-semibold text-gray-500 mt-1 mb-6 leading-relaxed">{platform.desc}</p>
+                              
+                              {isConnected ? (
+                                <div className="flex items-center justify-between gap-3 pt-4 border-t border-gray-100/50">
+                                  <div className="flex flex-col">
+                                    <span className="text-[10px] uppercase tracking-widest font-black text-gray-400">Account</span>
+                                    <span className="text-xs font-bold text-gray-700 truncate max-w-[120px]">{integration.accountName || "Connected Account"}</span>
+                                  </div>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    className="rounded-xl border-gray-200 text-gray-500 hover:text-red-500 hover:border-red-200 hover:bg-red-50 h-9 px-4 font-bold transition-all"
+                                  >
+                                    <Unlink className="h-3.5 w-3.5 mr-2" /> Disconnect
+                                  </Button>
+                                </div>
+                              ) : (
+                                <Button 
+                                  onClick={() => window.location.href = platform.connectUrl}
+                                  className="w-full bg-gray-900 hover:bg-black text-white rounded-xl h-11 font-bold tracking-wide shadow-lg shadow-gray-200"
+                                >
+                                  <Link2 className="h-4 w-4 mr-2 text-teal-400" /> Connect Platform
+                                </Button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+
+                <motion.div variants={itemVariants} className="p-6 rounded-3xl bg-blue-50/50 border border-blue-100/50 flex items-start gap-4">
+                  <div className="p-2 bg-blue-100 rounded-xl text-blue-600 shrink-0">
+                    <Shield className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-black text-blue-900 tracking-tight">Security & Privacy</h4>
+                    <p className="text-xs font-bold text-blue-800/60 mt-1 leading-relaxed">
+                      Telemoz stores your integration tokens using AES-256-CBC encryption. We only request read-only access to your marketing data for reporting purposes. You can revoke access at any time from this dashboard or your platform settings.
+                    </p>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+
 
             {/* 3. Security */}
             {activeTab === "security" && (
@@ -919,12 +1066,29 @@ export default function SettingsPage() {
                        <CreditCard className="h-6 w-6" />
                      </div>
                      <div>
-                       <h2 className="text-2xl font-black text-gray-900 tracking-tight">Payout Settings</h2>
-                       <p className="text-gray-500 font-medium text-[14px] mt-1">Manage how you receive your earnings.</p>
+                       <h2 className="text-2xl font-black text-gray-900 tracking-tight">Billing & Payouts</h2>
+                       <p className="text-gray-500 font-medium text-[14px] mt-1">Manage your subscription and payout methods.</p>
                      </div>
                    </div>
 
-                   <div className="p-6 sm:p-8 md:p-10 bg-white/20">
+                   <div className="p-6 sm:p-8 md:p-10 bg-white/20 space-y-12">
+                     
+                     {/* Subscription Plan Selection */}
+                     <section className="space-y-6">
+                       <div className="flex items-center gap-3 mb-2">
+                          <h3 className="text-xl font-black text-gray-900 tracking-tight">Subscription Plan</h3>
+                          <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-100 font-bold text-[10px] uppercase tracking-widest px-3 py-1">Zero Commission</Badge>
+                       </div>
+                       <SubscriptionPlanSelector userCountry={formData.country} currentTier={subscriptionTier} />
+                     </section>
+
+                     <div className="h-px bg-gray-200/50 w-full" />
+
+                     {/* Stripe Payouts */}
+                     <section className="space-y-6">
+                       <div className="flex items-center gap-3 mb-2">
+                          <h3 className="text-xl font-black text-gray-900 tracking-tight">Payout Methods</h3>
+                       </div>
                      {!stripeStatus ? (
                        <div className="flex flex-col items-center justify-center py-12 text-center">
                           <div className="h-12 w-12 border-4 border-[#0a9396]/20 border-t-[#0a9396] rounded-full animate-spin mb-4" />
@@ -1007,10 +1171,11 @@ export default function SettingsPage() {
                           </div>
                        </div>
                      )}
+                   </section>
                    </div>
                  </motion.div>
 
-                 <motion.div variants={itemVariants} className="bg-white/40 backdrop-blur-2xl rounded-[2.5rem] border border-white/60 shadow-[inset_0_2px_15px_rgb(255,255,255,0.7),0_10px_30_rgb(0,0,0,0.03)] overflow-hidden">
+                 <motion.div variants={itemVariants} className="bg-white/40 backdrop-blur-2xl rounded-[2.5rem] border border-white/60 shadow-[inset_0_2px_15px_rgb(255,255,255,0.7),0_10px_30px_rgb(0,0,0,0.03)] overflow-hidden">
                    <div className="p-6 sm:p-8 md:p-10 border-b border-gray-100/50 bg-gradient-to-br from-white/40 to-transparent">
                      <h2 className="text-xl font-black text-gray-900 tracking-tight">Financial History</h2>
                      <p className="text-gray-500 font-medium text-[14px] mt-1">View your earnings and tax documents.</p>

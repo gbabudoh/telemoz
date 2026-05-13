@@ -25,10 +25,10 @@ import {
   Lock,
   X,
   AlignLeft,
+  ArrowLeft,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
-
 
 const aiTools = [
   {
@@ -37,7 +37,7 @@ const aiTools = [
     description: "Analyse top-ranking pages and generate comprehensive content outlines",
     icon: Search,
     category: "SEO",
-    color: "from-emerald-500 to-teal-500",
+    color: "from-[#0a9396] to-[#005f73]",
     available: true,
   },
   {
@@ -46,7 +46,7 @@ const aiTools = [
     description: "Get real-time SEO optimisations for your content",
     icon: FileText,
     category: "SEO",
-    color: "from-blue-500 to-cyan-500",
+    color: "from-[#94d2bd] to-[#0a9396]",
     available: true,
   },
   {
@@ -55,7 +55,7 @@ const aiTools = [
     description: "Generate 10 variations of ad copy for Google/Facebook/LinkedIn",
     icon: Sparkles,
     category: "PPC",
-    color: "from-purple-500 to-pink-500",
+    color: "from-[#6ece39] to-[#0a9396]",
     available: true,
   },
   {
@@ -64,7 +64,7 @@ const aiTools = [
     description: "Generate full automation sequences with multiple email drafts",
     icon: MessageSquare,
     category: "Email",
-    color: "from-amber-500 to-orange-500",
+    color: "from-[#0a9396] to-[#94d2bd]",
     available: true,
   },
   {
@@ -73,7 +73,7 @@ const aiTools = [
     description: "Find keywords, search volume, difficulty, and related queries",
     icon: Hash,
     category: "SEO",
-    color: "from-indigo-500 to-purple-500",
+    color: "from-[#005f73] to-[#94d2bd]",
     available: true,
   },
   {
@@ -82,7 +82,7 @@ const aiTools = [
     description: "Generate blog posts, articles, and long-form content",
     icon: PenTool,
     category: "Content",
-    color: "from-green-500 to-emerald-500",
+    color: "from-[#6ece39] to-[#3a8a1f]",
     available: true,
   },
   {
@@ -91,7 +91,7 @@ const aiTools = [
     description: "Generate personalised outreach emails for link building targets",
     icon: Link2,
     category: "SEO",
-    color: "from-cyan-500 to-blue-500",
+    color: "from-[#005f73] to-[#0a9396]",
     available: true,
   },
   {
@@ -100,7 +100,7 @@ const aiTools = [
     description: "Create platform-specific content for Instagram, Twitter, LinkedIn",
     icon: MessageSquare,
     category: "Social",
-    color: "from-pink-500 to-rose-500",
+    color: "from-[#0a9396] to-[#6ece39]",
     available: true,
   },
   {
@@ -109,7 +109,7 @@ const aiTools = [
     description: "Analyse competitor keywords, content strategies, and SEO",
     icon: BarChart3,
     category: "SEO",
-    color: "from-violet-500 to-purple-500",
+    color: "from-[#94d2bd] to-[#005f73]",
     available: true,
   },
   {
@@ -118,7 +118,7 @@ const aiTools = [
     description: "Generate multiple headline variations for A/B testing loops",
     icon: Type,
     category: "Content",
-    color: "from-orange-500 to-red-500",
+    color: "from-[#6ece39] to-[#94d2bd]",
     available: true,
   },
   {
@@ -127,7 +127,7 @@ const aiTools = [
     description: "Create high open-rate email subject lines and preview text",
     icon: Mail,
     category: "Email",
-    color: "from-teal-500 to-cyan-500",
+    color: "from-[#0a9396] to-[#6ece39]",
     available: true,
   },
   {
@@ -136,7 +136,7 @@ const aiTools = [
     description: "Generate conversion-focused landing page copy blocks",
     icon: Target,
     category: "PPC",
-    color: "from-red-500 to-pink-500",
+    color: "from-[#6ece39] to-[#005f73]",
     available: true,
   },
   {
@@ -145,7 +145,7 @@ const aiTools = [
     description: "Paste a client brief and extract structured scope, KPIs, timeline, and deliverables",
     icon: ClipboardList,
     category: "Strategy",
-    color: "from-[#0a9396] to-teal-500",
+    color: "from-[#005f73] to-[#6ece39]",
     available: true,
   },
   {
@@ -154,7 +154,7 @@ const aiTools = [
     description: "Describe a campaign metric change and get an AI explanation with recommended actions",
     icon: AlertTriangle,
     category: "Analytics",
-    color: "from-amber-500 to-yellow-500",
+    color: "from-[#94d2bd] to-[#6ece39]",
     available: true,
   },
 ];
@@ -183,7 +183,7 @@ const GlassSelect = (props: React.SelectHTMLAttributes<HTMLSelectElement>) => (
 const GlassTextarea = (props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) => (
   <textarea
     {...props}
-    className={`w-full px-6 py-5 rounded-[2rem] border border-white/60 bg-white/40 focus:bg-white/90 text-[15px] font-bold text-gray-900 placeholder-gray-400 focus:border-[#0a9396]/40 focus:outline-none focus:ring-8 focus:ring-[#0a9396]/5 transition-all backdrop-blur-xl shadow-[inset_0_2px_10px_rgb(0,0,0,0.03)] resize-y min-h-[120px] ${props.className || ""}`}
+    className={`w-full px-6 py-5 rounded-4xl border border-white/60 bg-white/40 focus:bg-white/90 text-[15px] font-bold text-gray-900 placeholder-gray-400 focus:border-[#0a9396]/40 focus:outline-none focus:ring-8 focus:ring-[#0a9396]/5 transition-all backdrop-blur-xl shadow-[inset_0_2px_10px_rgb(0,0,0,0.03)] resize-y min-h-[120px] ${props.className || ""}`}
   />
 );
 
@@ -259,55 +259,30 @@ export default function AIToolsPage() {
     }
   };
 
-  const handleTopicGapAnalysis = async () => {
-    await handleGenericToolRequest("topic-gap", topicGapData, "analysis");
-  };
-
-  const handleSEOOptimization = async () => {
-    await handleGenericToolRequest("seo-optimize", seoOptData, "optimizations");
-  };
-
-  const handleAdCopyGeneration = async () => {
-    await handleGenericToolRequest("generate-copy", adCopyData, "adCopy");
-  };
-
-  const handleEmailSequence = async () => {
-    await handleGenericToolRequest("email-sequence", emailData, "sequence");
-  };
-
-  const handleKeywordResearch = async () => {
-    await handleGenericToolRequest("keyword-research", keywordData, "keywords");
-  };
-
-  const handleContentGeneration = async () => {
-    await handleGenericToolRequest("content-generator", contentData, "content");
-  };
-
-  const handleLinkBuilding = async () => {
-    await handleGenericToolRequest("link-building", linkBuildingData, "outreach");
-  };
-
-  const handleSocialMedia = async () => {
-    await handleGenericToolRequest("social-media", socialData, "content");
-  };
-
-  const handleCompetitorAnalysis = async () => {
-    await handleGenericToolRequest("competitor-analysis", competitorData, "analysis");
-  };
-
-  const handleHeadlineGeneration = async () => {
-    await handleGenericToolRequest("headline-generator", headlineData, "headlines");
-  };
-
-  const handleSubjectLineOptimization = async () => {
-    await handleGenericToolRequest("subject-line-generator", subjectData, "subjectLines");
-  };
-
-  const handleLandingPageCopy = async () => {
-    await handleGenericToolRequest("landing-page", landingPageData, "copy");
-  };
+  const handleTopicGapAnalysis = async () => { await handleGenericToolRequest("topic-gap", topicGapData, "analysis"); };
+  const handleSEOOptimization = async () => { await handleGenericToolRequest("seo-optimize", seoOptData, "optimizations"); };
+  const handleAdCopyGeneration = async () => { await handleGenericToolRequest("generate-copy", adCopyData, "adCopy"); };
+  const handleEmailSequence = async () => { await handleGenericToolRequest("email-sequence", emailData, "sequence"); };
+  const handleKeywordResearch = async () => { await handleGenericToolRequest("keyword-research", keywordData, "keywords"); };
+  const handleContentGeneration = async () => { await handleGenericToolRequest("content-generator", contentData, "content"); };
+  const handleLinkBuilding = async () => { await handleGenericToolRequest("link-building", linkBuildingData, "outreach"); };
+  const handleSocialMedia = async () => { await handleGenericToolRequest("social-media", socialData, "content"); };
+  const handleCompetitorAnalysis = async () => { await handleGenericToolRequest("competitor-analysis", competitorData, "analysis"); };
+  const handleHeadlineGeneration = async () => { await handleGenericToolRequest("headline-generator", headlineData, "headlines"); };
+  const handleSubjectLineOptimization = async () => { await handleGenericToolRequest("subject-line-generator", subjectData, "subjectLines"); };
+  const handleLandingPageCopy = async () => { await handleGenericToolRequest("landing-page", landingPageData, "copy"); };
 
   const wordCount = results ? results.trim().split(/\s+/).filter(Boolean).length : 0;
+
+  const handleSelectTool = (id: number) => {
+    setActiveTool(id);
+    setResults("");
+  };
+
+  const handleBack = () => {
+    setActiveTool(null);
+    setResults("");
+  };
 
   const renderToolInterface = () => {
     const tool = aiTools.find((t) => t.id === activeTool);
@@ -315,21 +290,21 @@ export default function AIToolsPage() {
     if (!tool) {
       return (
         <div className="h-full flex flex-col items-center justify-center p-8 lg:p-16 text-center rounded-[3rem] bg-white/40 border border-white/60 shadow-[inset_0_2px_25px_rgb(255,255,255,0.8),0_20px_50px_rgb(0,0,0,0.03)] backdrop-blur-3xl relative overflow-hidden group">
-          <div className="absolute inset-0 bg-gradient-to-br from-[#0a9396]/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
+          <div className="absolute inset-0 bg-linear-to-br from-[#0a9396]/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
           <div className="absolute -top-[20%] -right-[20%] w-[60%] h-[60%] rounded-full bg-[#0a9396]/5 blur-[100px] pointer-events-none" />
 
           <motion.div
             initial={{ scale: 0.8, opacity: 0, rotate: -10 }}
             animate={{ scale: 1, opacity: 1, rotate: 0 }}
             transition={{ type: "spring", duration: 1.5 }}
-            className="w-40 h-40 rounded-[2.5rem] bg-gradient-to-br from-white to-[#0a9396]/5 flex items-center justify-center mb-10 shadow-2xl shadow-[#0a9396]/10 border border-white relative z-10 group-hover:scale-110 group-hover:rotate-6 transition-all duration-700"
+            className="w-40 h-40 rounded-[2.5rem] bg-linear-to-br from-white to-[#0a9396]/5 flex items-center justify-center mb-10 shadow-2xl shadow-[#0a9396]/10 border border-white relative z-10 group-hover:scale-110 group-hover:rotate-6 transition-all duration-700"
           >
             <Sparkles className="h-16 w-16 text-[#0a9396] animate-pulse" />
             <div className="absolute -inset-6 bg-[#0a9396]/15 blur-3xl rounded-full opacity-50 group-hover:opacity-100 transition-opacity duration-700" />
           </motion.div>
 
           <h2 className="text-5xl lg:text-6xl font-black tracking-tighter text-gray-900 mb-6 relative z-10">
-            Smart <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#0a9396] to-teal-400">Assistant</span>
+            AI <span className="text-transparent bg-clip-text bg-linear-to-r from-[#0a9396] to-[#6ece39]">Toolkit</span>
           </h2>
           <p className="text-gray-500 font-bold max-w-xl mx-auto mb-14 text-xl leading-relaxed relative z-10 opacity-80">
             Select a specialised AI tool from your library to generate high-performing marketing assets in seconds.
@@ -337,9 +312,9 @@ export default function AIToolsPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 w-full max-w-2xl relative z-10">
             {[
-              { icon: Zap, label: "Instant Output", desc: "Results in seconds", color: "from-amber-400 to-orange-500" },
-              { icon: BarChart3, label: "Data Driven", desc: "Built for conversion", color: "from-teal-400 to-[#0a9396]" },
-              { icon: AlignLeft, label: "8 Tools Live", desc: "More coming soon", color: "from-violet-400 to-purple-500" },
+              { icon: Zap, label: "Instant Output", desc: "Results in seconds", color: "from-[#6ece39] to-[#0a9396]" },
+              { icon: BarChart3, label: "Data Driven", desc: "Built for conversion", color: "from-[#0a9396] to-[#005f73]" },
+              { icon: AlignLeft, label: `${liveCount} Tools Live`, desc: "More coming soon", color: "from-[#005f73] to-[#94d2bd]" },
             ].map((item, i) => (
               <motion.div
                 key={i}
@@ -348,7 +323,7 @@ export default function AIToolsPage() {
                 transition={{ delay: 0.5 + i * 0.1 }}
                 className="p-5 rounded-3xl bg-white/60 border border-white/80 shadow-lg shadow-black/5 flex items-center gap-4 backdrop-blur-xl hover:shadow-2xl hover:-translate-y-2 transition-all cursor-default group/card"
               >
-                <div className={`p-3.5 bg-gradient-to-br ${item.color} rounded-2xl shadow-lg group-hover/card:scale-110 group-hover/card:rotate-3 transition-transform shrink-0`}>
+                <div className={`p-3.5 bg-linear-to-br ${item.color} rounded-2xl shadow-lg group-hover/card:scale-110 group-hover/card:rotate-3 transition-transform shrink-0`}>
                   <item.icon className="h-6 w-6 text-white" />
                 </div>
                 <div className="text-left min-w-0">
@@ -376,15 +351,23 @@ export default function AIToolsPage() {
             className="h-full"
           >
             <div className="h-full border border-white/60 shadow-[inset_0_2px_20px_rgb(255,255,255,0.8),0_20px_50px_rgb(0,0,0,0.05)] bg-white/40 backdrop-blur-3xl overflow-hidden flex flex-col rounded-[3rem] relative">
-              <div className={`absolute top-0 left-0 right-0 h-2 bg-gradient-to-r ${tool.color} opacity-40`} />
+              <div className={`absolute top-0 left-0 right-0 h-2 bg-linear-to-r ${tool.color} opacity-40`} />
+
+              <button
+                onClick={handleBack}
+                className="lg:hidden flex items-center gap-2 mx-6 mt-5 mb-0 px-4 py-2.5 rounded-2xl bg-white/60 border border-white/80 text-sm font-black text-gray-600 hover:text-[#0a9396] transition-colors w-fit"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to Tools
+              </button>
 
               <div className="px-10 py-10 border-b border-white/40 relative z-10 flex items-center gap-8 bg-white/20 opacity-60">
-                <div className={`rounded-[2rem] bg-gradient-to-br ${tool.color} p-6 shadow-2xl shadow-black/10 relative overflow-hidden opacity-60`}>
+                <div className={`rounded-4xl bg-linear-to-br ${tool.color} p-6 shadow-2xl shadow-black/10 relative overflow-hidden opacity-60`}>
                   <Icon className="h-10 w-10 text-white relative z-10" />
                 </div>
                 <div>
                   <div className="flex items-center gap-3 mb-2">
-                    <Badge className={`bg-gradient-to-r ${tool.color} text-white border-none px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] opacity-60`}>
+                    <Badge className={`bg-linear-to-r ${tool.color} text-white border-none px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] opacity-60`}>
                       {tool.category}
                     </Badge>
                   </div>
@@ -394,18 +377,16 @@ export default function AIToolsPage() {
               </div>
 
               <div className="flex-1 flex flex-col items-center justify-center p-12 text-center relative z-10">
-                <div className={`absolute inset-0 bg-gradient-to-br ${tool.color} opacity-[0.04] pointer-events-none`} />
-
+                <div className={`absolute inset-0 bg-linear-to-br ${tool.color} opacity-[0.04] pointer-events-none`} />
                 <motion.div
                   initial={{ scale: 0.7, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ type: "spring", duration: 1 }}
-                  className={`w-24 h-24 rounded-[2rem] bg-gradient-to-br ${tool.color} flex items-center justify-center mb-8 shadow-2xl shadow-black/10 relative`}
+                  className={`w-24 h-24 rounded-4xl bg-linear-to-br ${tool.color} flex items-center justify-center mb-8 shadow-2xl shadow-black/10 relative`}
                 >
                   <Lock className="h-10 w-10 text-white" />
-                  <div className={`absolute -inset-4 bg-gradient-to-br ${tool.color} opacity-20 blur-2xl rounded-full`} />
+                  <div className={`absolute -inset-4 bg-linear-to-br ${tool.color} opacity-20 blur-2xl rounded-full`} />
                 </motion.div>
-
                 <h3 className="text-3xl font-black tracking-tighter text-gray-900 mb-3">Coming Soon</h3>
                 <p className="text-gray-500 font-bold text-lg max-w-sm leading-relaxed mb-2">
                   <span className="text-gray-900">{tool.name}</span> is currently in development.
@@ -413,8 +394,7 @@ export default function AIToolsPage() {
                 <p className="text-gray-400 font-medium text-sm max-w-xs">
                   We&apos;re building this tool to the same quality standard as the rest of the suite. Stay tuned.
                 </p>
-
-                <div className={`mt-10 px-6 py-3 rounded-2xl bg-gradient-to-r ${tool.color} text-white text-sm font-black uppercase tracking-widest opacity-50 cursor-default select-none`}>
+                <div className={`mt-10 px-6 py-3 rounded-2xl bg-linear-to-r ${tool.color} text-white text-sm font-black uppercase tracking-widest opacity-50 cursor-default select-none`}>
                   In Development
                 </div>
               </div>
@@ -435,20 +415,28 @@ export default function AIToolsPage() {
           className="h-full"
         >
           <div className="h-full border border-white/60 shadow-[inset_0_2px_20px_rgb(255,255,255,0.8),0_20px_50px_rgb(0,0,0,0.05)] bg-white/40 backdrop-blur-3xl overflow-hidden flex flex-col rounded-[3rem] relative">
-            <div className={`absolute top-0 left-0 right-0 h-2 bg-gradient-to-r ${tool.color} opacity-90`} />
+            <div className={`absolute top-0 left-0 right-0 h-2 bg-linear-to-r ${tool.color} opacity-90`} />
+
+            <button
+              onClick={handleBack}
+              className="lg:hidden flex items-center gap-2 mx-6 mt-5 mb-0 px-4 py-2.5 rounded-2xl bg-white/60 border border-white/80 text-sm font-black text-gray-600 hover:text-[#0a9396] transition-colors w-fit"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Tools
+            </button>
 
             <div className="px-10 py-10 border-b border-white/40 relative z-10 flex items-center gap-8 bg-white/20">
               <motion.div
                 initial={{ scale: 0.5, rotate: -20 }}
                 animate={{ scale: 1, rotate: 0 }}
-                className={`rounded-[2rem] bg-gradient-to-br ${tool.color} p-6 shadow-2xl shadow-black/10 relative overflow-hidden group shrink-0`}
+                className={`rounded-4xl bg-linear-to-br ${tool.color} p-6 shadow-2xl shadow-black/10 relative overflow-hidden group shrink-0`}
               >
                 <div className="absolute inset-0 bg-white/20 transform -skew-x-12 translate-x-full group-hover:-translate-x-full transition-transform duration-1000" />
                 <Icon className="h-10 w-10 text-white relative z-10" />
               </motion.div>
               <div>
                 <div className="flex items-center gap-3 mb-2">
-                  <Badge className={`bg-gradient-to-r ${tool.color} text-white border-none px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em]`}>
+                  <Badge className={`bg-linear-to-r ${tool.color} text-white border-none px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em]`}>
                     {tool.category}
                   </Badge>
                   <div className="h-1 w-1 rounded-full bg-gray-300" />
@@ -459,7 +447,7 @@ export default function AIToolsPage() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-8 space-y-7 custom-scrollbar relative z-10 bg-gradient-to-b from-white/10 to-transparent">
+            <div className="flex-1 overflow-y-auto p-8 space-y-7 custom-scrollbar relative z-10 bg-linear-to-b from-white/10 to-transparent">
               {/* Topic Gap Analyzer */}
               {activeTool === 1 && (
                 <>
@@ -476,7 +464,7 @@ export default function AIToolsPage() {
                   <Button
                     onClick={handleTopicGapAnalysis}
                     disabled={!topicGapData.url || !topicGapData.keyword || isLoading}
-                    className={`w-full bg-gradient-to-r ${tool.color} text-white shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all cursor-pointer h-14 rounded-2xl text-lg font-black tracking-wide uppercase mt-4 active:scale-[0.98] border border-white/20`}
+                    className={`w-full bg-linear-to-r ${tool.color} text-white shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all cursor-pointer h-14 rounded-2xl text-lg font-black tracking-wide uppercase mt-4 active:scale-[0.98] border border-white/20`}
                   >
                     {isLoading ? <><Loader2 className="mr-3 h-5 w-5 animate-spin" /> Analysing...</> : <><Search className="mr-3 h-5 w-5" /> Analyse Topic Gaps</>}
                   </Button>
@@ -497,7 +485,7 @@ export default function AIToolsPage() {
                   <Button
                     onClick={handleSEOOptimization}
                     disabled={!seoOptData.url || !seoOptData.content || isLoading}
-                    className={`w-full bg-gradient-to-r ${tool.color} text-white shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all cursor-pointer h-14 rounded-2xl text-lg font-black tracking-wide uppercase mt-4 active:scale-[0.98] border border-white/20`}
+                    className={`w-full bg-linear-to-r ${tool.color} text-white shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all cursor-pointer h-14 rounded-2xl text-lg font-black tracking-wide uppercase mt-4 active:scale-[0.98] border border-white/20`}
                   >
                     {isLoading ? <><Loader2 className="mr-3 h-5 w-5 animate-spin" /> Optimising...</> : <><TrendingUp className="mr-3 h-5 w-5" /> Optimise Content</>}
                   </Button>
@@ -535,7 +523,7 @@ export default function AIToolsPage() {
                   <Button
                     onClick={handleAdCopyGeneration}
                     disabled={!adCopyData.product || !adCopyData.targetAudience || isLoading}
-                    className={`w-full bg-gradient-to-r ${tool.color} text-white shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all cursor-pointer h-14 rounded-2xl text-lg font-black tracking-wide uppercase mt-4 active:scale-[0.98] border border-white/20`}
+                    className={`w-full bg-linear-to-r ${tool.color} text-white shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all cursor-pointer h-14 rounded-2xl text-lg font-black tracking-wide uppercase mt-4 active:scale-[0.98] border border-white/20`}
                   >
                     {isLoading ? <><Loader2 className="mr-3 h-5 w-5 animate-spin" /> Generating...</> : <><Sparkles className="mr-3 h-5 w-5" /> Generate Ad Copy</>}
                   </Button>
@@ -567,7 +555,7 @@ export default function AIToolsPage() {
                   <Button
                     onClick={handleEmailSequence}
                     disabled={!emailData.purpose || !emailData.audience || isLoading}
-                    className={`w-full bg-gradient-to-r ${tool.color} text-white shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all cursor-pointer h-14 rounded-2xl text-lg font-black tracking-wide uppercase mt-4 active:scale-[0.98] border border-white/20`}
+                    className={`w-full bg-linear-to-r ${tool.color} text-white shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all cursor-pointer h-14 rounded-2xl text-lg font-black tracking-wide uppercase mt-4 active:scale-[0.98] border border-white/20`}
                   >
                     {isLoading ? <><Loader2 className="mr-3 h-5 w-5 animate-spin" /> Creating...</> : <><MessageSquare className="mr-3 h-5 w-5" /> Create Email Sequence</>}
                   </Button>
@@ -605,7 +593,7 @@ export default function AIToolsPage() {
                   <Button
                     onClick={handleKeywordResearch}
                     disabled={!keywordData.seedKeyword || isLoading}
-                    className={`w-full bg-gradient-to-r ${tool.color} text-white shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all cursor-pointer h-14 rounded-2xl text-lg font-black tracking-wide uppercase mt-4 active:scale-[0.98] border border-white/20`}
+                    className={`w-full bg-linear-to-r ${tool.color} text-white shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all cursor-pointer h-14 rounded-2xl text-lg font-black tracking-wide uppercase mt-4 active:scale-[0.98] border border-white/20`}
                   >
                     {isLoading ? <><Loader2 className="mr-3 h-5 w-5 animate-spin" /> Researching...</> : <><Hash className="mr-3 h-5 w-5" /> Research Keywords</>}
                   </Button>
@@ -654,7 +642,7 @@ export default function AIToolsPage() {
                   <Button
                     onClick={handleContentGeneration}
                     disabled={!contentData.topic || isLoading}
-                    className={`w-full bg-gradient-to-r ${tool.color} text-white shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all cursor-pointer h-14 rounded-2xl text-lg font-black tracking-wide uppercase mt-4 active:scale-[0.98] border border-white/20`}
+                    className={`w-full bg-linear-to-r ${tool.color} text-white shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all cursor-pointer h-14 rounded-2xl text-lg font-black tracking-wide uppercase mt-4 active:scale-[0.98] border border-white/20`}
                   >
                     {isLoading ? <><Loader2 className="mr-3 h-5 w-5 animate-spin" /> Generating...</> : <><PenTool className="mr-3 h-5 w-5" /> Generate Content</>}
                   </Button>
@@ -686,7 +674,7 @@ export default function AIToolsPage() {
                   <Button
                     onClick={handleLinkBuilding}
                     disabled={!linkBuildingData.targetUrl || !linkBuildingData.niche || isLoading}
-                    className={`w-full bg-gradient-to-r ${tool.color} text-white shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all cursor-pointer h-14 rounded-2xl text-lg font-black tracking-wide uppercase mt-4 active:scale-[0.98] border border-white/20`}
+                    className={`w-full bg-linear-to-r ${tool.color} text-white shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all cursor-pointer h-14 rounded-2xl text-lg font-black tracking-wide uppercase mt-4 active:scale-[0.98] border border-white/20`}
                   >
                     {isLoading ? <><Loader2 className="mr-3 h-5 w-5 animate-spin" /> Generating...</> : <><Link2 className="mr-3 h-5 w-5" /> Generate Outreach Email</>}
                   </Button>
@@ -729,7 +717,7 @@ export default function AIToolsPage() {
                   <Button
                     onClick={handleSocialMedia}
                     disabled={!socialData.brandName || !socialData.topic || isLoading}
-                    className={`w-full bg-gradient-to-r ${tool.color} text-white shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all cursor-pointer h-14 rounded-2xl text-lg font-black tracking-wide uppercase mt-4 active:scale-[0.98] border border-white/20`}
+                    className={`w-full bg-linear-to-r ${tool.color} text-white shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all cursor-pointer h-14 rounded-2xl text-lg font-black tracking-wide uppercase mt-4 active:scale-[0.98] border border-white/20`}
                   >
                     {isLoading ? <><Loader2 className="mr-3 h-5 w-5 animate-spin" /> Generating...</> : <><MessageSquare className="mr-3 h-5 w-5" /> Generate Social Posts</>}
                   </Button>
@@ -752,7 +740,7 @@ export default function AIToolsPage() {
                   <Button
                     onClick={handleCompetitorAnalysis}
                     disabled={!competitorData.competitorUrl || isLoading}
-                    className={`w-full bg-gradient-to-r ${tool.color} text-white shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all cursor-pointer h-14 rounded-2xl text-lg font-black tracking-wide uppercase mt-4 active:scale-[0.98] border border-white/20`}
+                    className={`w-full bg-linear-to-r ${tool.color} text-white shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all cursor-pointer h-14 rounded-2xl text-lg font-black tracking-wide uppercase mt-4 active:scale-[0.98] border border-white/20`}
                   >
                     {isLoading ? <><Loader2 className="mr-3 h-5 w-5 animate-spin" /> Analysing...</> : <><BarChart3 className="mr-3 h-5 w-5" /> Analyse Competitor</>}
                   </Button>
@@ -784,7 +772,7 @@ export default function AIToolsPage() {
                   <Button
                     onClick={handleHeadlineGeneration}
                     disabled={!headlineData.topic || isLoading}
-                    className={`w-full bg-gradient-to-r ${tool.color} text-white shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all cursor-pointer h-14 rounded-2xl text-lg font-black tracking-wide uppercase mt-4 active:scale-[0.98] border border-white/20`}
+                    className={`w-full bg-linear-to-r ${tool.color} text-white shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all cursor-pointer h-14 rounded-2xl text-lg font-black tracking-wide uppercase mt-4 active:scale-[0.98] border border-white/20`}
                   >
                     {isLoading ? <><Loader2 className="mr-3 h-5 w-5 animate-spin" /> Generating...</> : <><Type className="mr-3 h-5 w-5" /> Generate Headlines</>}
                   </Button>
@@ -807,7 +795,7 @@ export default function AIToolsPage() {
                   <Button
                     onClick={handleSubjectLineOptimization}
                     disabled={!subjectData.emailTopic || isLoading}
-                    className={`w-full bg-gradient-to-r ${tool.color} text-white shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all cursor-pointer h-14 rounded-2xl text-lg font-black tracking-wide uppercase mt-4 active:scale-[0.98] border border-white/20`}
+                    className={`w-full bg-linear-to-r ${tool.color} text-white shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all cursor-pointer h-14 rounded-2xl text-lg font-black tracking-wide uppercase mt-4 active:scale-[0.98] border border-white/20`}
                   >
                     {isLoading ? <><Loader2 className="mr-3 h-5 w-5 animate-spin" /> Optimising...</> : <><Mail className="mr-3 h-5 w-5" /> Optimise Subject Lines</>}
                   </Button>
@@ -839,7 +827,7 @@ export default function AIToolsPage() {
                   <Button
                     onClick={handleLandingPageCopy}
                     disabled={!landingPageData.product || !landingPageData.audience || isLoading}
-                    className={`w-full bg-gradient-to-r ${tool.color} text-white shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all cursor-pointer h-14 rounded-2xl text-lg font-black tracking-wide uppercase mt-4 active:scale-[0.98] border border-white/20`}
+                    className={`w-full bg-linear-to-r ${tool.color} text-white shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all cursor-pointer h-14 rounded-2xl text-lg font-black tracking-wide uppercase mt-4 active:scale-[0.98] border border-white/20`}
                   >
                     {isLoading ? <><Loader2 className="mr-3 h-5 w-5 animate-spin" /> Generating...</> : <><Target className="mr-3 h-5 w-5" /> Generate Page Copy</>}
                   </Button>
@@ -871,7 +859,7 @@ export default function AIToolsPage() {
                       finally { setIsLoading(false); }
                     }}
                     disabled={!briefData.rawBrief || isLoading}
-                    className={`w-full bg-gradient-to-r ${tool.color} text-white shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all cursor-pointer h-14 rounded-2xl text-lg font-black tracking-wide uppercase mt-4 active:scale-[0.98] border border-white/20`}
+                    className={`w-full bg-linear-to-r ${tool.color} text-white shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all cursor-pointer h-14 rounded-2xl text-lg font-black tracking-wide uppercase mt-4 active:scale-[0.98] border border-white/20`}
                   >
                     {isLoading ? <><Loader2 className="mr-3 h-5 w-5 animate-spin" /> Summarising...</> : <><ClipboardList className="mr-3 h-5 w-5" /> Summarise Brief</>}
                   </Button>
@@ -911,7 +899,7 @@ export default function AIToolsPage() {
                       finally { setIsLoading(false); }
                     }}
                     disabled={!anomalyData.metric || !anomalyData.change || isLoading}
-                    className={`w-full bg-gradient-to-r ${tool.color} text-white shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all cursor-pointer h-14 rounded-2xl text-lg font-black tracking-wide uppercase mt-4 active:scale-[0.98] border border-white/20`}
+                    className={`w-full bg-linear-to-r ${tool.color} text-white shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all cursor-pointer h-14 rounded-2xl text-lg font-black tracking-wide uppercase mt-4 active:scale-[0.98] border border-white/20`}
                   >
                     {isLoading ? <><Loader2 className="mr-3 h-5 w-5 animate-spin" /> Analysing...</> : <><AlertTriangle className="mr-3 h-5 w-5" /> Analyse Anomaly</>}
                   </Button>
@@ -928,14 +916,14 @@ export default function AIToolsPage() {
                     transition={{ type: "spring", stiffness: 200, damping: 20 }}
                     className="mt-10 relative"
                   >
-                    <div className={`absolute -inset-1 bg-gradient-to-r ${tool.color} rounded-[2rem] blur-xl opacity-30 animate-pulse`} />
-                    <div className="relative overflow-hidden rounded-[2rem] border border-white/80 bg-white/60 p-[1px] shadow-[inset_0_2px_15px_rgb(255,255,255,0.7),0_10px_30px_rgb(0,0,0,0.05)] backdrop-blur-3xl">
-                      <div className={`absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r ${tool.color}`} />
+                    <div className={`absolute -inset-1 bg-linear-to-r ${tool.color} rounded-4xl blur-xl opacity-30 animate-pulse`} />
+                    <div className="relative overflow-hidden rounded-4xl border border-white/80 bg-white/60 p-[1px] shadow-[inset_0_2px_15px_rgb(255,255,255,0.7),0_10px_30px_rgb(0,0,0,0.05)] backdrop-blur-3xl">
+                      <div className={`absolute top-0 left-0 right-0 h-1.5 bg-linear-to-r ${tool.color}`} />
 
-                      <div className="bg-gradient-to-b from-white/90 to-white/60 p-6 sm:p-8 rounded-[31px]">
+                      <div className="bg-linear-to-b from-white/90 to-white/60 p-6 sm:p-8 rounded-[31px]">
                         <div className="flex items-center justify-between mb-6 border-b border-gray-200/50 pb-4">
                           <div className="flex items-center gap-3">
-                            <div className={`rounded-full bg-gradient-to-br ${tool.color} p-1.5 shadow-md`}>
+                            <div className={`rounded-full bg-linear-to-br ${tool.color} p-1.5 shadow-md`}>
                               <CheckCircle2 className="h-5 w-5 text-white" />
                             </div>
                             <div>
@@ -965,7 +953,7 @@ export default function AIToolsPage() {
                           </div>
                         </div>
 
-                        <div className="text-[15px] leading-[1.9] text-gray-800 whitespace-pre-wrap max-h-[500px] overflow-y-auto custom-scrollbar p-6 rounded-[1.5rem] bg-white/80 border border-white/60 shadow-[inset_0_2px_15px_rgb(0,0,0,0.03)] backdrop-blur-md font-medium">
+                        <div className="text-[15px] leading-[1.9] text-gray-800 whitespace-pre-wrap max-h-[500px] overflow-y-auto custom-scrollbar p-6 rounded-3xl bg-white/80 border border-white/60 shadow-[inset_0_2px_15px_rgb(0,0,0,0.03)] backdrop-blur-md font-medium">
                           {results}
                         </div>
                       </div>
@@ -1000,21 +988,21 @@ export default function AIToolsPage() {
   return (
     <div className="relative min-h-[calc(100vh-4rem)] bg-gray-50 overflow-hidden pb-12 pt-4 px-4 sm:px-6 lg:px-8">
       <div className="absolute top-[10%] left-[-10%] w-[60%] h-[60%] rounded-full bg-[#0a9396]/10 blur-[140px] pointer-events-none mix-blend-multiply animate-pulse" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-blue-500/10 blur-[130px] pointer-events-none mix-blend-multiply animate-pulse-slow" />
-      <div className="absolute top-[50%] right-[30%] w-[40%] h-[40%] rounded-full bg-violet-400/10 blur-[140px] pointer-events-none mix-blend-multiply animate-float-slow" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-[#6ece39]/10 blur-[130px] pointer-events-none mix-blend-multiply" />
+      <div className="absolute top-[50%] right-[30%] w-[40%] h-[40%] rounded-full bg-[#005f73]/10 blur-[140px] pointer-events-none mix-blend-multiply" />
 
       <div className="relative z-10 max-w-[1600px] mx-auto h-[calc(100vh-8rem)] flex flex-col">
         {/* Header */}
-        <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0 bg-white/40 px-6 py-5 md:px-8 rounded-[2rem] sm:rounded-[2.5rem] border border-white/60 shadow-[inset_0_2px_15px_rgb(255,255,255,0.7),0_8px_30px_rgb(0,0,0,0.02)] backdrop-blur-2xl">
+        <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0 bg-white/40 px-6 py-5 md:px-8 rounded-4xl sm:rounded-[2.5rem] border border-white/60 shadow-[inset_0_2px_15px_rgb(255,255,255,0.7),0_8px_30px_rgb(0,0,0,0.02)] backdrop-blur-2xl">
           <div className="flex items-center gap-5">
-            <div className="p-4 bg-gradient-to-br from-[#0a9396] to-teal-500 rounded-2xl shadow-lg shadow-[#0a9396]/20 relative overflow-hidden group shrink-0">
+            <div className="p-4 bg-linear-to-br from-[#0a9396] to-[#005f73] rounded-2xl shadow-lg shadow-[#0a9396]/20 relative overflow-hidden group shrink-0">
               <div className="absolute inset-0 bg-white/20 w-full h-full transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 pointer-events-none" />
               <Sparkles className="h-7 w-7 text-white relative z-10" />
             </div>
             <div>
               <h1 className="text-3xl sm:text-4xl font-black text-gray-900 tracking-tighter flex items-center gap-3 mb-0.5">
                 AI Tools
-                <Badge variant="primary" size="lg" className="hidden sm:inline-flex bg-gradient-to-r from-teal-400 to-[#0a9396] text-white border-none py-1.5 px-3">
+                <Badge variant="primary" size="lg" className="hidden sm:inline-flex bg-linear-to-r from-[#0a9396] to-[#005f73] text-white border-none py-1.5 px-3">
                   Pro
                 </Badge>
               </h1>
@@ -1047,8 +1035,8 @@ export default function AIToolsPage() {
 
         {/* Main Split View */}
         <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0">
-          {/* Sidebar: Tool Library */}
-          <div className="w-full lg:w-[400px] flex flex-col bg-white/40 backdrop-blur-2xl rounded-[2.5rem] border border-white/60 shadow-[inset_0_2px_15px_rgb(255,255,255,0.7),0_8px_30px_rgb(0,0,0,0.02)] overflow-hidden shrink-0 h-[400px] lg:h-full">
+          {/* Sidebar: Tool Library — hidden on mobile when a tool is active */}
+          <div className={`w-full lg:w-[400px] flex-col bg-white/40 backdrop-blur-2xl rounded-[2.5rem] border border-white/60 shadow-[inset_0_2px_15px_rgb(255,255,255,0.7),0_8px_30px_rgb(0,0,0,0.02)] overflow-hidden shrink-0 h-[400px] lg:h-full ${activeTool !== null ? "hidden lg:flex" : "flex"}`}>
             <div className="p-6 border-b border-white/40 bg-white/40 space-y-5 shrink-0">
               <div className="relative group/search">
                 <div className="absolute inset-0 bg-[#0a9396]/5 blur-xl rounded-2xl opacity-0 group-focus-within/search:opacity-100 transition-opacity pointer-events-none" />
@@ -1056,14 +1044,14 @@ export default function AIToolsPage() {
                 <input
                   type="text"
                   placeholder="Search tools..."
-                  className="w-full pl-13 pr-5 !h-15 rounded-2xl border border-white/60 bg-white/50 backdrop-blur-xl font-black text-gray-900 placeholder-gray-400 outline-none focus:border-[#0a9396]/30 focus:ring-8 focus:ring-[#0a9396]/5 transition-all shadow-[inset_0_2px_10px_rgb(0,0,0,0.02)] relative z-0"
+                  className="w-full pl-13 pr-5 h-14 rounded-2xl border border-white/60 bg-white/50 backdrop-blur-xl font-black text-gray-900 placeholder-gray-400 outline-none focus:border-[#0a9396]/30 focus:ring-8 focus:ring-[#0a9396]/5 transition-all shadow-[inset_0_2px_10px_rgb(0,0,0,0.02)] relative z-0"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
 
               <div className="relative group/slider">
-                <div className="absolute left-0 top-0 bottom-4 w-12 bg-gradient-to-r from-white via-white/40 to-transparent z-10 pointer-events-none" />
+                <div className="absolute left-0 top-0 bottom-4 w-12 bg-linear-to-r from-white via-white/40 to-transparent z-10 pointer-events-none" />
                 <div id="category-slider" className="flex gap-2.5 overflow-x-auto pb-4 pt-1 scroll-smooth no-scrollbar px-10">
                   <button
                     onClick={() => setSelectedCategory(null)}
@@ -1095,7 +1083,7 @@ export default function AIToolsPage() {
                     </button>
                   ))}
                 </div>
-                <div className="absolute right-0 top-0 bottom-4 w-12 bg-gradient-to-l from-white via-white/40 to-transparent z-10 pointer-events-none" />
+                <div className="absolute right-0 top-0 bottom-4 w-12 bg-linear-to-l from-white via-white/40 to-transparent z-10 pointer-events-none" />
                 <div className="absolute inset-y-0 left-0 flex items-center z-20 px-1 pointer-events-none pb-4">
                   <button
                     onClick={() => document.getElementById("category-slider")?.scrollBy({ left: -200, behavior: "smooth" })}
@@ -1115,7 +1103,7 @@ export default function AIToolsPage() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-gradient-to-b from-white/30 to-transparent">
+            <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-linear-to-b from-white/30 to-transparent">
               {filteredTools.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center p-8">
                   <div className="w-20 h-20 rounded-3xl bg-white/40 border border-white/60 shadow-inner flex items-center justify-center mb-6 backdrop-blur-xl">
@@ -1137,10 +1125,7 @@ export default function AIToolsPage() {
                       transition={{ delay: index * 0.03 }}
                     >
                       <button
-                        onClick={() => {
-                          setActiveTool(tool.id);
-                          setResults("");
-                        }}
+                        onClick={() => handleSelectTool(tool.id)}
                         className={`w-full text-left p-4 rounded-[1.75rem] transition-all duration-300 group relative cursor-pointer flex items-center gap-4 ${
                           isActive
                             ? "bg-white border-[#0a9396]/10 shadow-[0_20px_40px_rgb(0,0,0,0.08)] scale-[1.02] z-10"
@@ -1152,12 +1137,12 @@ export default function AIToolsPage() {
                         {isActive && (
                           <motion.div
                             layoutId="active-highlight"
-                            className={`absolute -left-1.5 top-6 bottom-6 w-1.5 rounded-full bg-gradient-to-b ${tool.color} shadow-[0_0_15px_rgb(10,147,150,0.4)]`}
+                            className={`absolute -left-1.5 top-6 bottom-6 w-1.5 rounded-full bg-linear-to-b ${tool.color} shadow-[0_0_15px_rgb(10,147,150,0.4)]`}
                           />
                         )}
 
                         <div className={`relative shrink-0 w-14 h-14 rounded-[1.25rem] transition-all duration-300 overflow-hidden flex items-center justify-center ${isActive ? "scale-110 rotate-3 shadow-xl" : "group-hover:scale-105 group-hover:-rotate-3 shadow-md"} ${!tool.available ? "opacity-60" : ""}`}>
-                          <div className={`absolute inset-0 bg-gradient-to-br ${tool.color} opacity-90`} />
+                          <div className={`absolute inset-0 bg-linear-to-br ${tool.color} opacity-90`} />
                           <div className="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
                           <Icon className="h-6 w-6 text-white relative z-10 drop-shadow-md" />
                           {!tool.available && (
@@ -1201,8 +1186,8 @@ export default function AIToolsPage() {
             </div>
           </div>
 
-          {/* Right: Active Tool Panel */}
-          <div className="flex-1 min-w-0 lg:h-full">
+          {/* Right: Active Tool Panel — hidden on mobile when no tool is selected */}
+          <div className={`flex-1 min-w-0 lg:h-full ${activeTool === null ? "hidden lg:block" : "block"}`}>
             {renderToolInterface()}
           </div>
         </div>

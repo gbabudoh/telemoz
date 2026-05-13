@@ -19,7 +19,8 @@ async function main() {
       email: "professional@demo.com",
       password: hash,
       userType: "pro",
-      subscriptionTier: "starter",
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      subscriptionTier: "free" as any,
       subscriptionStatus: "active",
       timezone: "Europe/London",
     },
@@ -33,7 +34,8 @@ async function main() {
       email: "client@demo.com",
       password: hash,
       userType: "client",
-      subscriptionTier: "starter",
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      subscriptionTier: "free" as any,
       subscriptionStatus: "active",
       timezone: "Europe/London",
     },

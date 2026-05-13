@@ -43,7 +43,7 @@ export async function GET() {
       client: invoice.client,
       project: invoice.project,
       total: invoice.total || 0,
-      commission: (invoice.total || 0) * 0.13,
+      commission: 0,
       status: invoice.status,
       createdAt: invoice.createdAt,
       paidAt: invoice.paidAt,

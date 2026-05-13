@@ -8,13 +8,19 @@ export async function GET() {
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (session.user.userType !== "pro") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const campaigns = await prisma.campaign.findMany({
-    where: { proId: session.user.id },
-    include: { project: { select: { id: true, title: true } } },
-    orderBy: { createdAt: "desc" },
-  });
+  const [campaigns, integrations] = await Promise.all([
+    prisma.campaign.findMany({
+      where: { proId: session.user.id },
+      include: { project: { select: { id: true, title: true } } },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.externalIntegration.findMany({
+      where: { userId: session.user.id, status: "active" },
+      select: { provider: true },
+    })
+  ]);
 
-  return NextResponse.json({ campaigns });
+  return NextResponse.json({ campaigns, integrations });
 }
 
 export async function POST(req: NextRequest) {

@@ -23,7 +23,7 @@ export default function ProtectedLayout({
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-gray-50 via-white to-[#0a9396]/5">
+    <div className="flex h-screen overflow-hidden bg-linear-to-br from-gray-50 via-white to-[#0a9396]/5">
       <DashboardSidebar userType={userType} />
       <div className="flex flex-1 flex-col overflow-hidden relative">
         <DashboardHeader />

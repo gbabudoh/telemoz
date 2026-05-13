@@ -10,20 +10,20 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 });
 
 export const PRICING_PLANS = {
-  starter: {
-    priceId: process.env.STRIPE_STARTER_PRICE_ID || "",
+  client: {
+    priceId: process.env.STRIPE_CLIENT_PRICE_ID || "",
     amount: 0,
-    name: "Starter",
+    name: "Client (Free)",
   },
-  standard: {
-    priceId: process.env.STRIPE_STANDARD_PRICE_ID || "",
-    amount: 4900, // £49 in pence
-    name: "DigitalBOX Standard",
+  africa: {
+    priceId: process.env.STRIPE_AFRICA_PRICE_ID || "",
+    amount: 999, // $9.99 in cents
+    name: "African Markets Tier",
   },
-  pro: {
-    priceId: process.env.STRIPE_PRO_PRICE_ID || "",
-    amount: 9900, // £99 in pence
-    name: "DigitalBOX Pro",
+  international: {
+    priceId: process.env.STRIPE_INTERNATIONAL_PRICE_ID || "",
+    amount: 1999, // $19.99 in cents
+    name: "International Markets Tier",
   },
 };
 

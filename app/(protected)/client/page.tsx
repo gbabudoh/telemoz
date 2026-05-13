@@ -14,11 +14,13 @@ import {
   Trash2,
   Archive,
   AlertTriangle,
+  Store,
 } from "lucide-react";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 import { NewProjectModal, ProjectData } from "@/components/projects/NewProjectModal";
 
 interface Project {
@@ -53,8 +55,6 @@ interface Message {
   time: string;
   unread: boolean;
 }
-
-
 
 export default function ClientDashboard() {
   const { data: session } = useSession();
@@ -114,7 +114,7 @@ export default function ClientDashboard() {
   const handleOnSuccess = (p: ProjectData) => {
     const mapped: Project = {
       id: p.id || "",
-      name: p.title || p.name || "Untitled Product",
+      name: p.title || p.name || "Untitled Project",
       status: p.status || "under_review",
       timeline: p.timeline || p.deadline || null,
       budget: typeof p.budget === "string" ? parseFloat(p.budget) : (p.budget || null),
@@ -122,11 +122,11 @@ export default function ClientDashboard() {
       pro: p.pro?.name ?? null,
       description: p.description || "",
     };
-    
+
     if (editingProject?.id) {
-        setProjects(projects.map(proj => proj.id === p.id ? mapped : proj));
+      setProjects(projects.map((proj) => (proj.id === p.id ? mapped : proj)));
     } else {
-        setProjects([mapped, ...projects]);
+      setProjects([mapped, ...projects]);
     }
   };
 
@@ -137,7 +137,6 @@ export default function ClientDashboard() {
       description: project.description,
       budget: project.budget,
       currency: project.currency,
-      // and other fields if available in the mapped project
     });
     setIsProjectModalOpen(true);
   };
@@ -182,22 +181,45 @@ export default function ClientDashboard() {
   };
 
   const stats = [
-    { title: "Total Projects", value: formatNumber(projects.length), trend: "", isUp: true, icon: LayoutDashboard },
-    { title: "Active Projects", value: formatNumber(projects.filter((p) => p.status === "active").length), trend: "", isUp: true, icon: Wallet },
     {
-      title: "Portfolio ROAS",
+      title: "Total Projects",
+      value: formatNumber(projects.length),
+      trend: null,
+      isUp: true,
+      icon: LayoutDashboard,
+    },
+    {
+      title: "Active Projects",
+      value: formatNumber(projects.filter((p) => p.status === "active").length),
+      trend: null,
+      isUp: true,
+      icon: Wallet,
+    },
+    {
+      title: "Avg. ROAS",
       value: dashStats.portfolioROAS !== null ? `${dashStats.portfolioROAS}x` : "—",
-      trend: "",
+      trend: null,
       isUp: true,
       icon: TrendingUp,
+      hint: "Return on Ad Spend across all active campaigns",
     },
     {
       title: "Pending Invoices",
       value: formatCurrency(dashStats.pendingInvoicesAmount),
-      trend: dashStats.pendingInvoicesCount > 0 ? `${dashStats.pendingInvoicesCount} pending` : "—",
+      trend:
+        dashStats.pendingInvoicesCount > 0
+          ? `${dashStats.pendingInvoicesCount} pending`
+          : null,
       isUp: dashStats.pendingInvoicesCount === 0,
       icon: FileText,
     },
+  ];
+
+  const quickActions = [
+    { label: "Browse Marketplace", href: "/marketplace", icon: Store, bg: "bg-[#0a9396]/10", color: "text-[#0a9396]" },
+    { label: "My Pros", href: "/client/my-pros", icon: Briefcase, bg: "bg-[#6ece39]/10", color: "text-green-700" },
+    { label: "Campaign Reports", href: "/client/reports", icon: TrendingUp, bg: "bg-purple-50", color: "text-purple-600" },
+    { label: "Proposals", href: "/client/proposals", icon: FileText, bg: "bg-amber-50", color: "text-amber-600" },
   ];
 
   return (
@@ -208,7 +230,7 @@ export default function ClientDashboard() {
 
       <div className="space-y-6 relative z-10 max-w-[1600px] mx-auto pb-12">
 
-        {/* Welcome bar */}
+        {/* ── Welcome bar ──────────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -220,9 +242,12 @@ export default function ClientDashboard() {
                 {userName.charAt(0)}
               </div>
               <div>
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-0.5">Client Dashboard</p>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-0.5">
+                  Client Dashboard
+                </p>
                 <h1 className="text-xl font-bold text-gray-900">
-                  Welcome back, <span className="text-[#0a9396]">{userName}</span>
+                  Welcome back,{" "}
+                  <span className="text-[#0a9396]">{userName}</span>
                 </h1>
               </div>
             </div>
@@ -230,13 +255,13 @@ export default function ClientDashboard() {
               onClick={openCreateModal}
               className="h-11 px-6 rounded-xl bg-[#0a9396] hover:bg-[#087579] text-white font-semibold text-sm shadow-sm shadow-[#0a9396]/20 transition-all hover:-translate-y-0.5 flex items-center gap-2"
             >
-              New Product
+              Post a Project
               <ArrowRight className="h-4 w-4" />
             </button>
           </div>
         </motion.div>
 
-        {/* Stats */}
+        {/* ── Stats ────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {stats.map((stat, idx) => (
             <motion.div
@@ -250,43 +275,88 @@ export default function ClientDashboard() {
                 <div className="h-10 w-10 rounded-xl bg-linear-to-br from-[#0a9396]/10 to-[#6ece39]/10 flex items-center justify-center">
                   <stat.icon className="h-5 w-5 text-[#0a9396]" />
                 </div>
-                <div className={`px-2 py-0.5 rounded-lg text-xs font-semibold ${
-                  stat.isUp
-                    ? "bg-[#6ece39]/10 text-green-700 border border-[#6ece39]/25"
-                    : "bg-red-50 text-red-600 border border-red-100"
-                }`}>
-                  {stat.trend}
-                </div>
+                {stat.trend && (
+                  <div
+                    className={`px-2 py-0.5 rounded-lg text-xs font-semibold ${
+                      stat.isUp
+                        ? "bg-[#6ece39]/10 text-green-700 border border-[#6ece39]/25"
+                        : "bg-red-50 text-red-600 border border-red-100"
+                    }`}
+                  >
+                    {stat.trend}
+                  </div>
+                )}
               </div>
-              <p className="text-2xl font-black text-gray-900 tracking-tight mb-1">{stat.value}</p>
+              <p className="text-2xl font-black text-gray-900 tracking-tight mb-1">
+                {stat.value}
+              </p>
               <p className="text-xs font-medium text-gray-500">{stat.title}</p>
+              {"hint" in stat && stat.hint && (
+                <p className="text-[10px] text-gray-400 mt-1">{stat.hint}</p>
+              )}
             </motion.div>
           ))}
         </div>
 
-        {/* Projects + Messages */}
+        {/* ── Quick Actions ─────────────────────────────────────── */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {quickActions.map((action, i) => {
+            const Icon = action.icon;
+            return (
+              <Link key={action.href} href={action.href}>
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.12 + i * 0.05 }}
+                  className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-2xl p-4 shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all cursor-pointer group flex items-center gap-3"
+                >
+                  <div
+                    className={`h-9 w-9 rounded-xl ${action.bg} flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform`}
+                  >
+                    <Icon className={`h-4 w-4 ${action.color}`} />
+                  </div>
+                  <span className="text-sm font-semibold text-gray-700 group-hover:text-gray-900 leading-tight">
+                    {action.label}
+                  </span>
+                </motion.div>
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* ── Projects + Messages ───────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-          {/* Projects */}
+          {/* Projects panel */}
           <div className="lg:col-span-8 flex flex-col min-h-[480px]">
             <div className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-2xl shadow-sm overflow-hidden flex-1 flex flex-col">
 
               <div className="px-6 py-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sticky top-0 z-20 bg-white/80 backdrop-blur-xl">
                 <div>
-                  <h2 className="text-lg font-bold text-gray-900">Active Projects</h2>
-                  <p className="text-xs text-gray-500 mt-0.5">Real-time status of your marketing initiatives</p>
+                  <h2 className="text-lg font-bold text-gray-900">Your Projects</h2>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Real-time status of your marketing initiatives
+                  </p>
                 </div>
                 <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl p-1 shrink-0">
                   <button
                     onClick={() => setViewMode("grid")}
-                    className={`p-2 rounded-lg transition-colors ${viewMode === "grid" ? "bg-white text-[#0a9396] shadow-sm" : "text-gray-400 hover:text-gray-700"}`}
+                    className={`p-2 rounded-lg transition-colors ${
+                      viewMode === "grid"
+                        ? "bg-white text-[#0a9396] shadow-sm"
+                        : "text-gray-400 hover:text-gray-700"
+                    }`}
                   >
                     <LayoutGrid className="h-4 w-4" />
                   </button>
                   <div className="w-px h-4 bg-gray-200 mx-1" />
                   <button
                     onClick={() => setViewMode("list")}
-                    className={`p-2 rounded-lg transition-colors ${viewMode === "list" ? "bg-white text-[#0a9396] shadow-sm" : "text-gray-400 hover:text-gray-700"}`}
+                    className={`p-2 rounded-lg transition-colors ${
+                      viewMode === "list"
+                        ? "bg-white text-[#0a9396] shadow-sm"
+                        : "text-gray-400 hover:text-gray-700"
+                    }`}
                   >
                     <List className="h-4 w-4" />
                   </button>
@@ -306,17 +376,24 @@ export default function ClientDashboard() {
                     </div>
                     <h3 className="text-lg font-bold text-gray-900 mb-2">No projects yet</h3>
                     <p className="text-gray-500 text-sm leading-relaxed mb-6 max-w-xs">
-                      Post your first project to start connecting with verified digital marketing professionals.
+                      Post your first project to start connecting with verified digital marketing
+                      professionals.
                     </p>
                     <button
                       onClick={openCreateModal}
                       className="h-11 px-6 rounded-xl bg-[#0a9396] hover:bg-[#087579] text-white font-semibold text-sm shadow-sm transition-all"
                     >
-                      New Product
+                      Post a Project
                     </button>
                   </div>
                 ) : (
-                  <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 gap-4" : "flex flex-col gap-3"}>
+                  <div
+                    className={
+                      viewMode === "grid"
+                        ? "grid grid-cols-1 md:grid-cols-2 gap-4"
+                        : "flex flex-col gap-3"
+                    }
+                  >
                     <AnimatePresence>
                       {projects.map((project, idx) => (
                         <motion.div
@@ -325,19 +402,33 @@ export default function ClientDashboard() {
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, scale: 0.97 }}
                           transition={{ duration: 0.25, delay: idx * 0.05 }}
-                          className={`bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md hover:border-[#0a9396]/20 transition-all group ${viewMode === "list" ? "flex flex-col md:flex-row" : "p-5"}`}
+                          className={`bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md hover:border-[#0a9396]/20 transition-all group ${
+                            viewMode === "list" ? "flex flex-col md:flex-row" : "p-5"
+                          }`}
                         >
                           {/* Identity */}
-                          <div className={`${viewMode === "list" ? "p-5 md:w-2/5 md:border-r border-gray-100" : "mb-4"}`}>
+                          <div
+                            className={`${
+                              viewMode === "list"
+                                ? "p-5 md:w-2/5 md:border-r border-gray-100"
+                                : "mb-4"
+                            }`}
+                          >
                             <div className="flex items-start justify-between gap-3">
                               <div className="flex-1">
-                                <h4 className="font-bold text-gray-900 leading-snug mb-1.5 group-hover:text-[#0a9396] transition-colors text-sm">{project.name}</h4>
+                                <h4 className="font-bold text-gray-900 leading-snug mb-1.5 group-hover:text-[#0a9396] transition-colors text-sm">
+                                  {project.name}
+                                </h4>
                                 {project.pro && (
                                   <div className="flex items-center gap-1.5">
                                     <div className="h-5 w-5 rounded-lg bg-[#0a9396]/10 flex items-center justify-center shrink-0">
-                                      <span className="text-[9px] font-bold text-[#0a9396]">{project.pro.charAt(0)}</span>
+                                      <span className="text-[9px] font-bold text-[#0a9396]">
+                                        {project.pro.charAt(0)}
+                                      </span>
                                     </div>
-                                    <span className="text-xs text-gray-500 truncate">{project.pro}</span>
+                                    <span className="text-xs text-gray-500 truncate">
+                                      {project.pro}
+                                    </span>
                                   </div>
                                 )}
                               </div>
@@ -355,10 +446,11 @@ export default function ClientDashboard() {
                                   className="h-7 w-7 rounded-lg bg-gray-50 hover:bg-amber-50 text-gray-400 hover:text-amber-500 border border-gray-100 hover:border-amber-200 flex items-center justify-center transition-all disabled:opacity-50"
                                   title="Archive project"
                                 >
-                                  {isArchivingId === project.id
-                                    ? <div className="h-3 w-3 border border-amber-400 border-t-transparent rounded-full animate-spin" />
-                                    : <Archive className="h-3 w-3" />
-                                  }
+                                  {isArchivingId === project.id ? (
+                                    <div className="h-3 w-3 border border-amber-400 border-t-transparent rounded-full animate-spin" />
+                                  ) : (
+                                    <Archive className="h-3 w-3" />
+                                  )}
                                 </button>
                                 <button
                                   onClick={() => setConfirmDeleteId(project.id)}
@@ -372,23 +464,51 @@ export default function ClientDashboard() {
                           </div>
 
                           {/* Metrics */}
-                          <div className={`${viewMode === "list" ? "p-5 flex-1 flex flex-col justify-center" : ""}`}>
-                            <div className={`grid ${viewMode === "list" ? "grid-cols-3 gap-4 items-center" : "grid-cols-2 gap-3"}`}>
+                          <div
+                            className={`${
+                              viewMode === "list"
+                                ? "p-5 flex-1 flex flex-col justify-center"
+                                : ""
+                            }`}
+                          >
+                            <div
+                              className={`grid ${
+                                viewMode === "list"
+                                  ? "grid-cols-3 gap-4 items-center"
+                                  : "grid-cols-2 gap-3"
+                              }`}
+                            >
                               <div>
-                                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Status</p>
+                                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">
+                                  Status
+                                </p>
                                 <span className="inline-flex px-2 py-0.5 rounded-lg border text-[11px] font-semibold bg-gray-50 text-gray-600 border-gray-200">
                                   {project.status.replace("_", " ")}
                                 </span>
                               </div>
                               {project.timeline && (
-                                <div className={viewMode === "list" ? "pl-3 border-l border-gray-100" : ""}>
-                                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Timeline</p>
-                                  <p className="text-xs font-bold text-gray-900">{project.timeline}</p>
+                                <div
+                                  className={
+                                    viewMode === "list" ? "pl-3 border-l border-gray-100" : ""
+                                  }
+                                >
+                                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">
+                                    Timeline
+                                  </p>
+                                  <p className="text-xs font-bold text-gray-900">
+                                    {project.timeline}
+                                  </p>
                                 </div>
                               )}
                               {project.budget !== null && (
-                                <div className={viewMode === "list" ? "text-right" : "col-span-2"}>
-                                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Budget</p>
+                                <div
+                                  className={
+                                    viewMode === "list" ? "text-right" : "col-span-2"
+                                  }
+                                >
+                                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">
+                                    Budget
+                                  </p>
                                   <p className="text-sm font-black text-[#0a9396]">
                                     {formatCurrency(project.budget, project.currency)}
                                   </p>
@@ -405,14 +525,17 @@ export default function ClientDashboard() {
             </div>
           </div>
 
-          {/* Messages */}
+          {/* Messages panel */}
           <div className="lg:col-span-4 flex flex-col">
             <div className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-2xl shadow-sm overflow-hidden flex-1 flex flex-col h-[480px]">
               <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between sticky top-0 z-20 bg-white/80 backdrop-blur-xl">
                 <h2 className="font-bold text-gray-900">Messages</h2>
-                <div className="h-8 w-8 rounded-full bg-gray-50 border border-gray-200 flex items-center justify-center text-gray-200">
-                  <ArrowRight className="h-4 w-4 -rotate-45" />
-                </div>
+                <Link
+                  href="/notifications"
+                  className="h-8 w-8 rounded-full bg-[#0a9396]/10 border border-[#0a9396]/20 flex items-center justify-center text-[#0a9396] hover:bg-[#0a9396]/20 transition-colors"
+                >
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
               </div>
 
               <div className="flex-1 overflow-y-auto p-4 space-y-2">
@@ -441,8 +564,12 @@ export default function ClientDashboard() {
                         </p>
                         <span className="text-xs text-gray-400">{message.time}</span>
                       </div>
-                      <p className="text-xs font-semibold text-gray-700 mb-1 pl-2">{message.subject}</p>
-                      <p className="text-xs text-gray-500 leading-relaxed line-clamp-2 pl-2">{message.preview}</p>
+                      <p className="text-xs font-semibold text-gray-700 mb-1 pl-2">
+                        {message.subject}
+                      </p>
+                      <p className="text-xs text-gray-500 leading-relaxed line-clamp-2 pl-2">
+                        {message.preview}
+                      </p>
                     </motion.div>
                   ))
                 ) : (
@@ -451,7 +578,9 @@ export default function ClientDashboard() {
                       <MessageSquare className="h-5 w-5 text-gray-300" />
                     </div>
                     <p className="text-sm font-semibold text-gray-600 mb-1">No messages yet</p>
-                    <p className="text-xs text-gray-400">Messages from your professionals will appear here.</p>
+                    <p className="text-xs text-gray-400">
+                      Messages from your professionals will appear here.
+                    </p>
                   </div>
                 )}
               </div>
@@ -461,7 +590,7 @@ export default function ClientDashboard() {
         </div>
       </div>
 
-      {/* Confirm Delete Modal */}
+      {/* ── Confirm Delete Modal ──────────────────────────────── */}
       <AnimatePresence>
         {confirmDeleteId && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -491,7 +620,8 @@ export default function ClientDashboard() {
                   </div>
                 </div>
                 <p className="text-sm text-gray-500 leading-relaxed">
-                  This action cannot be undone. All data associated with this project will be permanently removed.
+                  This action cannot be undone. All data associated with this project will be
+                  permanently removed.
                 </p>
               </div>
               <div className="px-6 pb-6 flex items-center gap-3">
@@ -506,10 +636,11 @@ export default function ClientDashboard() {
                   disabled={isDeletingProject}
                   className="flex-1 h-10 rounded-xl bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white text-sm font-semibold flex items-center justify-center gap-2 transition-all"
                 >
-                  {isDeletingProject
-                    ? <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    : <Trash2 className="h-4 w-4" />
-                  }
+                  {isDeletingProject ? (
+                    <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
                   Delete
                 </button>
               </div>
@@ -518,7 +649,7 @@ export default function ClientDashboard() {
         )}
       </AnimatePresence>
 
-      <NewProjectModal 
+      <NewProjectModal
         isOpen={isProjectModalOpen}
         onClose={() => setIsProjectModalOpen(false)}
         onSuccess={handleOnSuccess}

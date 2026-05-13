@@ -62,6 +62,7 @@ export async function GET() {
       marketingEmails,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
+      subscriptionTier: user.subscriptionTier,
       proProfile: user.proProfile,
     };
 

@@ -44,7 +44,7 @@ export async function GET() {
       _sum: { total: true },
     });
     const totalRevenue = revenueAggregation._sum.total || 0;
-    const totalCommission = totalRevenue * 0.13; // 13% commission
+    const totalCommission = 0; // Transitioned to zero-commission subscription model
     const pendingInvoices = await prisma.invoice.count({ 
       where: { status: { in: ["sent", "overdue"] } } 
     });

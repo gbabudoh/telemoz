@@ -13,6 +13,8 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    console.log("DEBUG: Fetching notifications for user:", session?.user?.id);
+    
     // Direct typed access to prisma.notification
     const notifications = await prisma.notification.findMany({
       where: { userId: session.user.id },
@@ -20,8 +22,10 @@ export async function GET() {
       take: 20,
     });
 
+    console.log("DEBUG: Found notifications count:", notifications.length);
     return NextResponse.json({ notifications }, { status: 200 });
   } catch (error: unknown) {
+    console.error("CRITICAL: Error fetching notifications:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     const errorStack = error instanceof Error ? error.stack : undefined;
     

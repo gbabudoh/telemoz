@@ -46,7 +46,8 @@ export async function POST(request: NextRequest) {
           await prisma.user.updateMany({
             where: { stripeCustomerId: customerId },
             data: {
-              subscriptionTier: tier,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              subscriptionTier: tier as any,
               subscriptionStatus: "active",
             },
           });
@@ -62,7 +63,8 @@ export async function POST(request: NextRequest) {
         const status = stripeStatusToLocal(sub.status);
         await prisma.user.updateMany({
           where: { stripeCustomerId: customerId },
-          data: { subscriptionTier: tier, subscriptionStatus: status },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          data: { subscriptionTier: tier as any, subscriptionStatus: status },
         });
         break;
       }
@@ -72,7 +74,8 @@ export async function POST(request: NextRequest) {
         const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
         await prisma.user.updateMany({
           where: { stripeCustomerId: customerId },
-          data: { subscriptionTier: "starter", subscriptionStatus: "canceled" },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          data: { subscriptionTier: "free" as any, subscriptionStatus: "canceled" },
         });
         break;
       }
@@ -141,11 +144,11 @@ export async function POST(request: NextRequest) {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function priceToTier(priceId?: string): "starter" | "standard" | "pro" {
-  if (!priceId) return "starter";
-  if (priceId === process.env.STRIPE_PRO_PRICE_ID) return "pro";
-  if (priceId === process.env.STRIPE_STANDARD_PRICE_ID) return "standard";
-  return "starter";
+function priceToTier(priceId?: string): "free" | "africa" | "international" {
+  if (!priceId) return "free";
+  if (priceId === process.env.STRIPE_AFRICA_PRICE_ID) return "africa";
+  if (priceId === process.env.STRIPE_INTERNATIONAL_PRICE_ID) return "international";
+  return "free";
 }
 
 function stripeStatusToLocal(

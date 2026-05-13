@@ -60,16 +60,19 @@ export default function CampaignsPage() {
   const [saving, setSaving] = useState(false);
   const [filter, setFilter] = useState("all");
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [integrations, setIntegrations] = useState<Array<{ provider: string }>>([]);
 
   useEffect(() => {
     fetch("/api/pro/campaigns")
       .then(r => r.json())
-      .then(d => setCampaigns(d.campaigns ?? []))
+      .then(d => {
+        setCampaigns(d.campaigns ?? []);
+        setIntegrations(d.integrations ?? []);
+      })
       .finally(() => setLoading(false));
   }, []);
 
   const totalSpend = campaigns.reduce((s, c) => s + c.spend, 0);
-  const totalRevenue = campaigns.reduce((s, c) => s + c.revenue, 0);
   const totalImpressions = campaigns.reduce((s, c) => s + c.impressions, 0);
   const totalConversions = campaigns.reduce((s, c) => s + c.conversions, 0);
 
@@ -154,6 +157,33 @@ export default function CampaignsPage() {
           <Plus className="h-4 w-4" /> New Campaign
         </button>
       </div>
+      
+      {/* Integration CTA */}
+      {!loading && integrations.length === 0 && (
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-1 rounded-2xl bg-gradient-to-r from-[#0a9396]/20 via-blue-500/10 to-transparent border border-[#0a9396]/20 backdrop-blur-xl"
+        >
+          <div className="bg-white/40 rounded-[14px] p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-4 text-center sm:text-left">
+              <div className="h-12 w-12 rounded-xl bg-[#0a9396] flex items-center justify-center text-white shadow-lg shrink-0">
+                <TrendingUp className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-gray-900 tracking-tight">Automate Your Tracking</h3>
+                <p className="text-sm text-gray-500 font-medium">Connect Meta, Google, or LinkedIn to pull live performance data automatically.</p>
+              </div>
+            </div>
+            <button 
+              onClick={() => window.location.href = '/pro/settings?activeTab=integrations'}
+              className="h-10 px-6 rounded-xl bg-gray-900 hover:bg-black text-white font-bold text-sm transition-all cursor-pointer shadow-sm shrink-0"
+            >
+              Connect Now
+            </button>
+          </div>
+        </motion.div>
+      )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map(s => (

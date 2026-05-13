@@ -15,9 +15,9 @@ enum UserType {
 }
 
 enum SubscriptionTier {
-  starter
-  standard
-  pro
+  free
+  africa
+  international
 }
 
 enum SubscriptionStatus {
@@ -141,6 +141,13 @@ enum CampaignPlatform {
   other
 }
 
+enum IntegrationProvider {
+  google_ads
+  google_search_console
+  meta_ads
+  linkedin_ads
+}
+
 // ─── Content Enums ────────────────────────────────────────────────────────────
 
 enum ContentType {
@@ -212,7 +219,7 @@ model User {
   timezone           String             @default("Europe/London")
   stripeCustomerId   String?
   stripeAccountId    String?            // Stripe Connect account for pros
-  subscriptionTier   SubscriptionTier   @default(starter)
+  subscriptionTier   SubscriptionTier   @default(free)
   subscriptionStatus SubscriptionStatus @default(active)
   
   // Notification Preferences
@@ -241,6 +248,9 @@ model User {
   // Proposals
   proposalsAsPro     Proposal[]         @relation("ProProposals")
   notifications      Notification[]
+  sentEmails         EmailMessage[]     @relation("SentEmails")
+  receivedEmails     EmailMessage[]     @relation("ReceivedEmails")
+  emailThreads       EmailThread[]      @relation("ThreadParticipants")
   proposalsAsClient  Proposal[]         @relation("ClientProposals")
 
   // Contracts
@@ -283,6 +293,12 @@ model User {
   // Messaging
   sentMessages         Message[]          @relation("SentMessages")
   receivedMessages     Message[]          @relation("ReceivedMessages")
+
+  // Integrations
+  externalIntegrations ExternalIntegration[]
+
+  // Shared Reports
+  reportShares         ReportShare[]
 }
 
 model ProProfile {
@@ -358,6 +374,7 @@ model Project {
   inquiries    Inquiry[]
   scheduledReports ScheduledReport[]
   messages     Message[]
+  reportShares ReportShare[]
 
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
@@ -593,6 +610,10 @@ model Campaign {
   spend        Float           @default(0)
   revenue      Float           @default(0)
 
+  // Integration link
+  integrationId String?
+  integration   ExternalIntegration? @relation("IntegrationCampaigns", fields: [integrationId], references: [id])
+
   dailyMetrics CampaignMetric[]
 
   createdAt   DateTime         @default(now())
@@ -774,4 +795,102 @@ model Message {
   @@index([receiverId])
   @@index([projectId])
   @@index([inquiryId])
+}
+
+model EmailThread {
+  id        String         @id @default(cuid())
+  subject   String
+  inquiryId String?
+  projectId String?
+  messages  EmailMessage[]
+  participants User[]      @relation("ThreadParticipants")
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@index([inquiryId])
+  @@index([projectId])
+}
+
+model EmailMessage {
+  id        String      @id @default(cuid())
+  threadId  String
+  thread    EmailThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  senderId  String
+  sender    User        @relation("SentEmails", fields: [senderId], references: [id])
+  receiverId String
+  receiver   User        @relation("ReceivedEmails", fields: [receiverId], references: [id])
+  content   String      @db.Text
+  isRead    Boolean     @default(false)
+  isArchived Boolean    @default(false)
+  isDeleted Boolean     @default(false)
+  createdAt DateTime    @default(now())
+
+  @@index([threadId])
+  @@index([senderId])
+  @@index([receiverId])
+}
+
+// ─── External Integrations ──────────────────────────────────────────────────
+
+model ExternalIntegration {
+  id                String              @id @default(cuid())
+  userId            String
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider          IntegrationProvider
+  providerAccountId String              // e.g., Google Ads Customer ID or Meta Ad Account ID
+  accountName       String?             // Friendly name for the UI
+  status            String              @default("active") // active, revoked, error
+  
+  credentials       IntegrationCredential?
+  syncJobs          SyncJob[]
+  campaigns         Campaign[]          @relation("IntegrationCampaigns")
+
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  @@unique([userId, provider, providerAccountId])
+}
+
+model IntegrationCredential {
+  id                String              @id @default(cuid())
+  integrationId     String              @unique
+  integration       ExternalIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  
+  accessToken       String              // Encrypted
+  refreshToken      String?             // Encrypted
+  expiresAt         DateTime?
+  tokenType         String?             @default("Bearer")
+  scope             String?             // Scopes granted
+  
+  updatedAt         DateTime            @updatedAt
+}
+
+model SyncJob {
+  id              String              @id @default(cuid())
+  integrationId   String
+  integration     ExternalIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  status          String              @default("pending") // pending, running, completed, failed
+  error           String?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  
+  createdAt       DateTime            @default(now())
+}
+
+model ReportShare {
+  id          String   @id @default(cuid())
+  token       String   @unique @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  proId       String
+  pro         User     @relation(fields: [proId], references: [id], onDelete: Cascade)
+  
+  viewCount   Int      @default(0)
+  expiresAt   DateTime?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([projectId, proId])
+  @@index([token])
 }

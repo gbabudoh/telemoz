@@ -89,7 +89,8 @@ export async function POST(request: NextRequest) {
         country: country || undefined,
         city: city || undefined,
         timezone: timezone || "Europe/London",
-        subscriptionTier: "starter",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        subscriptionTier: "free" as any,
         subscriptionStatus: "active",
       },
     });

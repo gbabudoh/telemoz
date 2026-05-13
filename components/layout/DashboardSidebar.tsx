@@ -30,6 +30,7 @@ import {
   ChevronDown,
   ChevronRight,
   Users2,
+  Mail,
   Bell,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -57,45 +58,35 @@ const proNavGroups: NavGroup[] = [
     defaultOpen: true,
     items: [
       { title: "Overview", href: "/pro", icon: LayoutDashboard },
-      { title: "Inquiries", href: "/pro/inquiries", icon: MessageSquare },
-      { title: "Notifications", href: "/notifications", icon: Bell },
+      { title: "Projects", href: "/pro/projects", icon: FolderKanban },
+      { title: "Communication Hub", href: "/pro/messaging", icon: MessageSquare },
+      { title: "Inbox", href: "/pro/inbox", icon: Mail },
+      { title: "Inquiries", href: "/pro/inquiries", icon: FileText },
+      { title: "Notifications", href: "/pro/notifications", icon: Bell },
     ],
   },
   {
-    label: "Work",
+    label: "DigitalBOX Suite",
     defaultOpen: true,
     items: [
-      { title: "Projects", href: "/pro/projects", icon: FolderKanban },
+      { title: "CRM & Clients", href: "/pro/digitalbox/crm", icon: Users },
+      { title: "Marketing & Ads", href: "/pro/digitalbox/reporting", icon: BarChart3 },
+      { title: "Campaigns", href: "/pro/digitalbox/campaigns", icon: Megaphone },
+      { title: "Invoicing", href: "/pro/digitalbox/invoicing", icon: FileCheck2 },
+      { title: "AI Tools", href: "/pro/digitalbox/ai-tools", icon: Zap },
+      { title: "Automated Reports", href: "/pro/digitalbox/reporting/scheduled", icon: SendHorizonal },
+    ],
+  },
+  {
+    label: "Operations",
+    defaultOpen: false,
+    items: [
       { title: "Proposals", href: "/pro/digitalbox/proposals", icon: FileText },
       { title: "Contracts", href: "/pro/digitalbox/contracts", icon: FilePenLine },
-    ],
-  },
-  {
-    label: "Clients & Finance",
-    defaultOpen: false,
-    items: [
-      { title: "CRM", href: "/pro/digitalbox/crm", icon: Users },
-      { title: "Invoicing", href: "/pro/digitalbox/invoicing", icon: FileCheck2 },
       { title: "Retainers", href: "/pro/digitalbox/retainers", icon: RefreshCw },
       { title: "Time Tracking", href: "/pro/digitalbox/time-tracking", icon: Clock },
-    ],
-  },
-  {
-    label: "Marketing",
-    defaultOpen: false,
-    items: [
-      { title: "Campaigns", href: "/pro/digitalbox/campaigns", icon: Megaphone },
       { title: "Content Calendar", href: "/pro/digitalbox/content-calendar", icon: CalendarDays },
-      { title: "Brand Assets", href: "/pro/digitalbox/assets", icon: FolderOpen },
-    ],
-  },
-  {
-    label: "Analytics & AI",
-    defaultOpen: false,
-    items: [
-      { title: "AI Tools", href: "/pro/digitalbox/ai-tools", icon: Zap },
-      { title: "Reporting", href: "/pro/digitalbox/reporting", icon: BarChart3 },
-      { title: "Auto Reports", href: "/pro/digitalbox/reporting/scheduled", icon: SendHorizonal },
+      { title: "Assets", href: "/pro/digitalbox/assets", icon: FolderOpen },
     ],
   },
   {
@@ -117,24 +108,38 @@ const proNavGroups: NavGroup[] = [
 
 const clientNavGroups: NavGroup[] = [
   {
-    label: "Main",
+    label: "Overview",
     defaultOpen: true,
     items: [
       { title: "Dashboard", href: "/client", icon: LayoutDashboard },
-      { title: "My Pros", href: "/client/my-pros", icon: Briefcase },
-      { title: "Projects", href: "/client/projects", icon: FolderKanban },
-      { title: "Proposals", href: "/client/proposals", icon: FileText },
-      { title: "Contracts", href: "/client/contracts", icon: FilePenLine },
-      { title: "Invoicing", href: "/client/invoicing", icon: FileCheck2 },
+      { title: "Communication Hub", href: "/client/messaging", icon: MessageSquare },
+      { title: "Inbox", href: "/client/inbox", icon: Mail },
+      { title: "Notifications", href: "/client/notifications", icon: Bell },
     ],
   },
   {
-    label: "Reports & Comms",
+    label: "Work",
     defaultOpen: true,
     items: [
-      { title: "Reports", href: "/client/reports", icon: TrendingUp },
-      { title: "Inquiries", href: "/client/inquiries", icon: MessageSquare },
-      { title: "Notifications", href: "/notifications", icon: Bell },
+      { title: "My Pros", href: "/client/my-pros", icon: Briefcase },
+      { title: "Projects", href: "/client/projects", icon: FolderKanban },
+      { title: "Inquiries", href: "/client/inquiries", icon: FileText },
+      { title: "Proposals", href: "/client/proposals", icon: FileText },
+    ],
+  },
+  {
+    label: "Finance",
+    defaultOpen: true,
+    items: [
+      { title: "Contracts", href: "/client/contracts", icon: FilePenLine },
+      { title: "Payments", href: "/client/invoicing", icon: FileCheck2 },
+    ],
+  },
+  {
+    label: "Insights",
+    defaultOpen: true,
+    items: [
+      { title: "Campaign Reports", href: "/client/reports", icon: TrendingUp },
     ],
   },
   {
@@ -175,15 +180,24 @@ const adminNavGroups: NavGroup[] = [
 ];
 
 function NavGroupSection({ group, pathname }: { group: NavGroup; pathname: string }) {
-  const [open, setOpen] = useState(group.defaultOpen ?? false);
-
   // Auto-open if any item in this group is active
   const hasActive = group.items.some(item => {
     const isRoot = item.href === "/pro" || item.href === "/client" || item.href === "/admin";
     return isRoot ? pathname === item.href : pathname === item.href || pathname.startsWith(item.href + "/");
   });
 
-  const isOpen = open || hasActive;
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  const [open, setOpen] = useState(group.defaultOpen || hasActive);
+
+  // Adjust state while rendering if pathname changes (React recommended pattern)
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
+    if (hasActive) {
+      setOpen(true);
+    }
+  }
+
+  const isOpen = open;
 
   return (
     <div>
