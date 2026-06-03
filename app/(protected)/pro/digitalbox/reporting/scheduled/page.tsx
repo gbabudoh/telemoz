@@ -2,9 +2,9 @@
 
 import {
   SendHorizonal, Plus, X, AlertCircle, Trash2,
-  Calendar, Mail, ToggleLeft, ToggleRight, ChevronDown, ChevronUp,
+  Calendar, Mail, ToggleLeft, ToggleRight, Search, Users, Check,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface ScheduledReport {
@@ -19,8 +19,18 @@ interface ScheduledReport {
   createdAt: string;
 }
 
-const emptyForm = { title: "", cadence: "monthly" as "weekly" | "monthly", recipientInput: "", recipients: [] as string[], projectId: "" };
-const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
+interface ConnectedClient {
+  id: string;
+  name: string;
+  email: string;
+}
+
+const emptyForm = {
+  title: "",
+  cadence: "monthly" as "weekly" | "monthly",
+  selectedClients: [] as ConnectedClient[],
+  projectId: "",
+};
 
 export default function ScheduledReportsPage() {
   const [reports, setReports] = useState<ScheduledReport[]>([]);
@@ -31,7 +41,13 @@ export default function ScheduledReportsPage() {
   const [saving, setSaving] = useState(false);
   const [toggling, setToggling] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
-  const [recipientError, setRecipientError] = useState("");
+
+  // Client picker state
+  const [clients, setClients] = useState<ConnectedClient[]>([]);
+  const [clientsLoading, setClientsLoading] = useState(false);
+  const [search, setSearch] = useState("");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetch("/api/pro/reports")
@@ -40,53 +56,76 @@ export default function ScheduledReportsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const addRecipient = (raw = form.recipientInput) => {
-    setRecipientError("");
-    // Support comma or semicolon separated paste
-    const emails = raw.split(/[,;\s]+/).map(e => e.trim()).filter(Boolean);
-    if (emails.length === 0) return;
+  // Load connected clients when modal opens
+  useEffect(() => {
+    if (!isCreating) return;
+    setClientsLoading(true);
+    fetch("/api/users/connected")
+      .then(r => r.json())
+      .then(d => setClients(d.users ?? []))
+      .finally(() => setClientsLoading(false));
+  }, [isCreating]);
 
-    const invalid = emails.find(e => !isValidEmail(e));
-    if (invalid) { setRecipientError(`"${invalid}" is not a valid email address.`); return; }
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
-    const next = [...form.recipients];
-    emails.forEach(e => { if (!next.includes(e)) next.push(e); });
-    setForm(f => ({ ...f, recipients: next, recipientInput: "" }));
+  const toggleClient = (client: ConnectedClient) => {
+    setForm(f => {
+      const already = f.selectedClients.find(c => c.id === client.id);
+      return {
+        ...f,
+        selectedClients: already
+          ? f.selectedClients.filter(c => c.id !== client.id)
+          : [...f.selectedClients, client],
+      };
+    });
+    setFormError("");
   };
+
+  const filteredClients = clients.filter(c =>
+    c.name.toLowerCase().includes(search.toLowerCase()) ||
+    c.email.toLowerCase().includes(search.toLowerCase())
+  );
 
   const handleSave = async () => {
     setFormError("");
-    setRecipientError("");
+    if (!form.title) { setFormError("Please provide a report name."); return; }
+    if (form.selectedClients.length === 0) { setFormError("Please select at least one client to receive this report."); return; }
 
-    // Auto-flush anything typed but not yet added
-    let recipients = form.recipients;
-    if (form.recipientInput.trim()) {
-      const extra = form.recipientInput.split(/[,;\s]+/).map(e => e.trim()).filter(Boolean);
-      const invalid = extra.find(e => !isValidEmail(e));
-      if (invalid) {
-        setRecipientError(`"${invalid}" is not a valid email address.`);
-        return;
-      }
-      recipients = [...new Set([...recipients, ...extra])];
-    }
-
-    if (!form.title || recipients.length === 0) {
-      setFormError("Please provide a report name and at least one recipient.");
-      return;
-    }
     setSaving(true);
     try {
       const res = await fetch("/api/pro/reports", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: form.title, cadence: form.cadence, recipients, projectId: form.projectId || null }),
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: form.title,
+          cadence: form.cadence,
+          recipients: form.selectedClients.map(c => c.email),
+          projectId: form.projectId || null,
+        }),
       });
       if (!res.ok) { setFormError((await res.json()).error ?? "Failed to save"); return; }
       const { report } = await res.json();
       setReports(prev => [report, ...prev]);
-      setIsCreating(false);
-      setForm(emptyForm);
+      closeModal();
     } catch { setFormError("Network error."); }
     finally { setSaving(false); }
+  };
+
+  const closeModal = () => {
+    setIsCreating(false);
+    setForm(emptyForm);
+    setFormError("");
+    setSearch("");
+    setDropdownOpen(false);
   };
 
   const toggleActive = async (id: string, current: boolean) => {
@@ -144,7 +183,7 @@ export default function ScheduledReportsPage() {
           </div>
           <h3 className="text-lg font-black text-gray-900 mb-1">No report schedules yet</h3>
           <p className="text-gray-400 font-medium text-sm max-w-xs mb-6">
-            Set up automated weekly or monthly reports that deliver performance summaries directly to clients.
+            Set up automated weekly or monthly reports delivered directly to your clients on Telemoz.
           </p>
           <button onClick={() => setIsCreating(true)}
             className="h-10 px-5 rounded-xl bg-gray-900 text-white font-bold text-sm flex items-center gap-2 cursor-pointer">
@@ -167,7 +206,7 @@ export default function ScheduledReportsPage() {
                     </span>
                   </div>
                   <div className="flex items-center gap-4 text-xs text-gray-400 flex-wrap">
-                    <span className="flex items-center gap-1"><Mail className="h-3.5 w-3.5" />{report.recipients.length} recipient{report.recipients.length !== 1 ? "s" : ""}</span>
+                    <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" />{report.recipients.length} client{report.recipients.length !== 1 ? "s" : ""}</span>
                     {report.nextSendAt && (
                       <span className="flex items-center gap-1">
                         <Calendar className="h-3.5 w-3.5" />Next: {new Date(report.nextSendAt).toLocaleDateString("en-GB")}
@@ -182,7 +221,7 @@ export default function ScheduledReportsPage() {
                   </div>
                   <div className="flex flex-wrap gap-1.5 mt-2">
                     {report.recipients.map(r => (
-                      <span key={r} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium">{r}</span>
+                      <span key={r} className="text-xs bg-[#0a9396]/10 text-[#0a9396] px-2 py-0.5 rounded-full font-semibold">{r}</span>
                     ))}
                   </div>
                 </div>
@@ -211,13 +250,15 @@ export default function ScheduledReportsPage() {
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <motion.div className="bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto"
               initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95 }}>
+
               <div className="p-6 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10">
                 <h2 className="text-xl font-black text-gray-900">New Report Schedule</h2>
-                <button onClick={() => { setIsCreating(false); setForm(emptyForm); setFormError(""); setRecipientError(""); }}
+                <button onClick={closeModal}
                   className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:text-gray-900 cursor-pointer">
                   <X className="h-4 w-4" />
                 </button>
               </div>
+
               <div className="p-6 space-y-5">
                 <AnimatePresence>
                   {formError && (
@@ -228,15 +269,17 @@ export default function ScheduledReportsPage() {
                   )}
                 </AnimatePresence>
 
+                {/* Report Name */}
                 <div className="space-y-1.5">
                   <label className="block text-[13px] font-black uppercase tracking-wider text-gray-500">
                     Report Name <span className="text-red-400">*</span>
                   </label>
-                  <input type="text" placeholder="e.g. Monthly Campaign Performance Report"
+                  <input type="text" placeholder="e.g. Monthly Campaign Performance"
                     value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
                     className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:border-[#0a9396] focus:ring-4 focus:ring-[#0a9396]/10 transition-all" />
                 </div>
 
+                {/* Cadence */}
                 <div className="space-y-1.5">
                   <label className="block text-[13px] font-black uppercase tracking-wider text-gray-500">Cadence</label>
                   <div className="flex gap-3">
@@ -249,20 +292,22 @@ export default function ScheduledReportsPage() {
                   </div>
                 </div>
 
+                {/* Client selector */}
                 <div className="space-y-2">
                   <label className="block text-[13px] font-black uppercase tracking-wider text-gray-500">
-                    Recipients <span className="text-red-400">*</span>
+                    Send To <span className="text-red-400">*</span>
                   </label>
 
-                  {/* Added recipients as chips */}
-                  {form.recipients.length > 0 && (
+                  {/* Selected client chips */}
+                  {form.selectedClients.length > 0 && (
                     <div className="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-xl border border-gray-100">
-                      {form.recipients.map(r => (
-                        <span key={r} className="inline-flex items-center gap-1.5 bg-white border border-gray-200 text-gray-700 text-xs font-bold px-3 py-1.5 rounded-full shadow-sm">
-                          <Mail className="h-3 w-3 text-[#0a9396]" />
-                          {r}
-                          <button onClick={() => setForm(f => ({ ...f, recipients: f.recipients.filter(x => x !== r) }))}
-                            className="text-gray-400 hover:text-red-500 cursor-pointer transition-colors ml-0.5">
+                      {form.selectedClients.map(c => (
+                        <span key={c.id} className="inline-flex items-center gap-1.5 bg-white border border-[#0a9396]/30 text-gray-800 text-xs font-bold px-3 py-1.5 rounded-full shadow-sm">
+                          <div className="h-4 w-4 rounded-full bg-gradient-to-br from-[#0a9396] to-emerald-400 flex items-center justify-center text-white text-[8px] font-black shrink-0">
+                            {c.name.charAt(0)}
+                          </div>
+                          {c.name}
+                          <button onClick={() => toggleClient(c)} className="text-gray-400 hover:text-red-500 cursor-pointer transition-colors ml-0.5">
                             <X className="h-3 w-3" />
                           </button>
                         </span>
@@ -270,41 +315,95 @@ export default function ScheduledReportsPage() {
                     </div>
                   )}
 
-                  <div className="flex gap-2">
-                    <input
-                      type="email"
-                      placeholder="client@company.com"
-                      value={form.recipientInput}
-                      onChange={e => { setForm(f => ({ ...f, recipientInput: e.target.value })); setRecipientError(""); }}
-                      onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addRecipient(); } if (e.key === ",") { e.preventDefault(); addRecipient(); } }}
-                      className={`flex-1 border rounded-xl px-4 py-3 text-sm font-medium outline-none focus:ring-4 transition-all ${recipientError ? "border-red-300 focus:border-red-400 focus:ring-red-500/10" : "border-gray-200 focus:border-[#0a9396] focus:ring-[#0a9396]/10"}`}
-                    />
+                  {/* Dropdown trigger */}
+                  <div className="relative" ref={dropdownRef}>
                     <button
-                      onClick={() => addRecipient()}
-                      className="h-11 px-4 rounded-xl bg-[#0a9396] text-white font-bold text-sm hover:bg-[#087579] cursor-pointer transition-colors shrink-0"
+                      type="button"
+                      onClick={() => setDropdownOpen(o => !o)}
+                      className="w-full flex items-center gap-2 px-4 py-3 border border-gray-200 rounded-xl text-sm font-medium text-gray-500 hover:border-[#0a9396] hover:text-gray-700 transition-all cursor-pointer"
                     >
-                      Add
+                      <Users className="h-4 w-4 text-[#0a9396]" />
+                      {form.selectedClients.length > 0
+                        ? `${form.selectedClients.length} client${form.selectedClients.length !== 1 ? "s" : ""} selected`
+                        : "Select clients…"}
                     </button>
+
+                    <AnimatePresence>
+                      {dropdownOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 6 }}
+                          className="absolute left-0 right-0 mt-2 bg-white border border-gray-200 rounded-2xl shadow-xl z-20 overflow-hidden"
+                        >
+                          {/* Search */}
+                          <div className="p-3 border-b border-gray-100">
+                            <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-xl">
+                              <Search className="h-3.5 w-3.5 text-gray-400 shrink-0" />
+                              <input
+                                autoFocus
+                                type="text"
+                                placeholder="Search clients…"
+                                value={search}
+                                onChange={e => setSearch(e.target.value)}
+                                className="flex-1 bg-transparent outline-none text-sm font-medium text-gray-700 placeholder-gray-400"
+                              />
+                            </div>
+                          </div>
+
+                          {/* List */}
+                          <div className="max-h-48 overflow-y-auto">
+                            {clientsLoading ? (
+                              <div className="py-8 text-center text-sm text-gray-400 font-medium">Loading clients…</div>
+                            ) : filteredClients.length === 0 ? (
+                              <div className="py-8 text-center">
+                                <Mail className="h-6 w-6 text-gray-300 mx-auto mb-2" />
+                                <p className="text-sm font-bold text-gray-400">
+                                  {clients.length === 0 ? "No connected clients yet" : "No clients match your search"}
+                                </p>
+                                {clients.length === 0 && (
+                                  <p className="text-xs text-gray-400 mt-1">Clients appear here once you&apos;ve started working together on Telemoz</p>
+                                )}
+                              </div>
+                            ) : (
+                              filteredClients.map(client => {
+                                const selected = form.selectedClients.some(c => c.id === client.id);
+                                return (
+                                  <button
+                                    key={client.id}
+                                    type="button"
+                                    onClick={() => toggleClient(client)}
+                                    className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer text-left ${selected ? "bg-[#0a9396]/5" : ""}`}
+                                  >
+                                    <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-[#0a9396] to-emerald-400 flex items-center justify-center text-white font-black text-sm shrink-0">
+                                      {client.name.charAt(0)}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="font-bold text-gray-900 text-sm truncate">{client.name}</p>
+                                      <p className="text-xs text-gray-400 font-medium truncate">{client.email}</p>
+                                    </div>
+                                    {selected && <Check className="h-4 w-4 text-[#0a9396] shrink-0" />}
+                                  </button>
+                                );
+                              })
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
-                  {recipientError ? (
-                    <p className="text-xs text-red-500 font-semibold flex items-center gap-1">
-                      <AlertCircle className="h-3.5 w-3.5 shrink-0" />{recipientError}
-                    </p>
-                  ) : (
-                    <p className="text-xs text-gray-400 font-medium">
-                      Press <kbd className="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-mono text-[10px]">Enter</kbd> or <kbd className="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-mono text-[10px]">,</kbd> to add · Paste multiple comma-separated emails
-                    </p>
-                  )}
+                  <p className="text-xs text-gray-400 font-medium">Only clients connected to your Telemoz account can receive reports.</p>
                 </div>
 
+                {/* Actions */}
                 <div className="flex gap-3 pt-2">
-                  <button onClick={() => { setIsCreating(false); setForm(emptyForm); setFormError(""); setRecipientError(""); }}
+                  <button onClick={closeModal}
                     className="flex-1 h-11 rounded-xl border border-gray-200 text-gray-700 font-bold text-sm hover:bg-gray-50 cursor-pointer">
                     Cancel
                   </button>
                   <button onClick={handleSave} disabled={saving}
-                    className="flex-1 h-11 rounded-xl bg-[#0a9396] hover:bg-[#0a9396]/90 text-white font-bold text-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 shadow-sm shadow-teal-500/20">
-                    <SendHorizonal className="h-4 w-4" />{saving ? "Creating..." : "Create Schedule"}
+                    className="flex-1 h-11 rounded-xl bg-[#0a9396] hover:bg-[#087579] text-white font-bold text-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 shadow-sm shadow-teal-500/20 transition-colors">
+                    <SendHorizonal className="h-4 w-4" />{saving ? "Creating…" : "Create Schedule"}
                   </button>
                 </div>
               </div>
