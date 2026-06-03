@@ -70,7 +70,7 @@ const proNavGroups: NavGroup[] = [
     defaultOpen: true,
     items: [
       { title: "CRM & Clients", href: "/pro/digitalbox/crm", icon: Users },
-      { title: "Marketing & Ads", href: "/pro/digitalbox/reporting", icon: BarChart3 },
+      { title: "Reporting", href: "/pro/digitalbox/reporting", icon: BarChart3 },
       { title: "Campaigns", href: "/pro/digitalbox/campaigns", icon: Megaphone },
       { title: "Invoicing", href: "/pro/digitalbox/invoicing", icon: FileCheck2 },
       { title: "AI Tools", href: "/pro/digitalbox/ai-tools", icon: Zap },

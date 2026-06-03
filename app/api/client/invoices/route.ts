@@ -10,7 +10,11 @@ export async function GET() {
 
   const invoices = await prisma.invoice.findMany({
     where: { clientId: session.user.id, status: { not: "draft" } },
-    include: { pro: { select: { name: true, email: true } }, project: { select: { title: true } } },
+    include: {
+      pro: { select: { name: true, email: true } },
+      project: { select: { title: true } },
+      items: true,
+    },
     orderBy: { createdAt: "desc" },
   });
 
@@ -20,11 +24,15 @@ export async function GET() {
     invoiceNumber: inv.invoiceNumber,
     pro: inv.pro.name,
     project: inv.project?.title || "Direct Billing",
+    items: inv.items ?? [],
+    subtotal: inv.subtotal,
+    tax: inv.tax ?? 0,
     total: inv.total,
     currency: inv.currency,
     status: inv.status,
     dueDate: inv.dueDate.toISOString().split('T')[0],
     createdAt: inv.createdAt.toISOString().split('T')[0],
+    paidAt: inv.paidAt?.toISOString().split('T')[0] ?? null,
     isEscrow: inv.isEscrow,
     escrowStatus: inv.escrowStatus,
     milestoneTitle: inv.milestoneTitle,

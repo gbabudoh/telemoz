@@ -82,6 +82,14 @@ enum ScheduledCallStatus {
   cancelled
 }
 
+enum CallRequestStatus {
+  ringing
+  accepted
+  declined
+  missed
+  ended
+}
+
 // ─── Inquiry Enums ────────────────────────────────────────────────────────────
 
 enum InquiryStatus {
@@ -293,6 +301,8 @@ model User {
   // Messaging
   sentMessages         Message[]          @relation("SentMessages")
   receivedMessages     Message[]          @relation("ReceivedMessages")
+  sentCallRequests     CallRequest[]      @relation("SentCallRequests")
+  receivedCallRequests CallRequest[]      @relation("ReceivedCallRequests")
 
   // Integrations
   externalIntegrations ExternalIntegration[]
@@ -771,6 +781,8 @@ model Inquiry {
   updatedAt DateTime      @updatedAt
   messages  Message[]
 
+  callRequests  CallRequest[]
+
   @@unique([proId, projectId])
   @@index([proId])
   @@index([clientId])
@@ -795,6 +807,24 @@ model Message {
   @@index([receiverId])
   @@index([projectId])
   @@index([inquiryId])
+}
+
+model CallRequest {
+  id        String            @id @default(cuid())
+  fromId    String
+  from      User              @relation("SentCallRequests", fields: [fromId], references: [id], onDelete: Cascade)
+  toId      String
+  to        User              @relation("ReceivedCallRequests", fields: [toId], references: [id], onDelete: Cascade)
+  inquiryId String
+  inquiry   Inquiry           @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  callType  CallType          @default(video)
+  status    CallRequestStatus @default(ringing)
+  roomName  String
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@index([toId, status])
+  @@index([fromId])
 }
 
 model EmailThread {

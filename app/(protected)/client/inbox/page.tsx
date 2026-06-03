@@ -1,22 +1,22 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
-import { 
-  Inbox, 
-  Send, 
-  Archive, 
-  Trash2, 
-  Plus, 
-  Search, 
-  MoreVertical, 
+import {
+  Inbox,
+  Send,
+  Archive,
+  Trash2,
+  Plus,
+  Search,
   RotateCw,
   Clock,
   Paperclip,
-  AlertCircle,
   Loader2,
   Mail,
-  Zap
+  X,
+  ChevronDown,
+  Check,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
@@ -24,7 +24,7 @@ import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
 
-interface Message {
+interface EmailMessage {
   id: string;
   content: string;
   isRead: boolean;
@@ -37,23 +37,39 @@ interface Thread {
   id: string;
   subject: string;
   updatedAt: string;
-  messages: Message[];
-  participants: { id: true; name: string; image: string; email: string; userType: string }[];
+  messages: EmailMessage[];
+  participants: { id: string; name: string; image: string; email: string; userType: string }[];
 }
 
-export default function InboxPage() {
+interface ConnectedUser {
+  id: string;
+  name: string;
+  email: string;
+  userType: string;
+}
+
+export default function ClientInboxPage() {
   const { data: session } = useSession();
-  const [activeFolder, setActiveFolder] = useState<string>("inbox");
+  const [activeFolder, setActiveFolder] = useState("inbox");
   const [threads, setThreads] = useState<Thread[]>([]);
   const [selectedThread, setSelectedThread] = useState<Thread | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isComposeOpen, setIsComposeOpen] = useState(false);
-  const [composeTo, setComposeTo] = useState("");
   const [composeSubject, setComposeSubject] = useState("");
   const [composeContent, setComposeContent] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [sendError, setSendError] = useState("");
+  const [replyContent, setReplyContent] = useState("");
+  const [isReplying, setIsReplying] = useState(false);
+
+  // Recipient picker state
+  const [connectedUsers, setConnectedUsers] = useState<ConnectedUser[]>([]);
+  const [selectedRecipient, setSelectedRecipient] = useState<ConnectedUser | null>(null);
+  const [recipientQuery, setRecipientQuery] = useState("");
+  const [showRecipientDropdown, setShowRecipientDropdown] = useState(false);
+  const recipientRef = useRef<HTMLDivElement>(null);
 
   const fetchThreads = useCallback(async (folder = activeFolder) => {
     setIsLoading(true);
@@ -61,17 +77,32 @@ export default function InboxPage() {
       const res = await fetch(`/api/emails?folder=${folder}`);
       const data = await res.json();
       setThreads(data.threads || []);
-    } catch (error) {
-      console.error("Failed to fetch threads", error);
+    } catch {
+      // silent
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
   }, [activeFolder]);
 
+  useEffect(() => { fetchThreads(); }, [fetchThreads]);
+
   useEffect(() => {
-    fetchThreads();
-  }, [fetchThreads]);
+    fetch("/api/users/connected")
+      .then((r) => r.json())
+      .then((d) => setConnectedUsers(d.users || []));
+  }, []);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (recipientRef.current && !recipientRef.current.contains(e.target as Node)) {
+        setShowRecipientDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -80,18 +111,18 @@ export default function InboxPage() {
 
   const handleSelectThread = async (thread: Thread) => {
     setSelectedThread(thread);
-    // Mark as read in UI
-    setThreads(prev => prev.map(t => 
-      t.id === thread.id 
-        ? { ...t, messages: [{ ...t.messages[0], isRead: true }] } 
-        : t
-    ));
-    // Sync with server
+    setThreads((prev) =>
+      prev.map((t) =>
+        t.id === thread.id
+          ? { ...t, messages: t.messages.map((m) => ({ ...m, isRead: true })) }
+          : t
+      )
+    );
     try {
-      await fetch(`/api/emails/thread/${thread.id}`, { method: "GET" });
-    } catch (error) {
-      console.error("Failed to mark thread as read", error);
-    }
+      const res = await fetch(`/api/emails/thread/${thread.id}`);
+      const data = await res.json();
+      if (data.thread) setSelectedThread(data.thread);
+    } catch { /* silent */ }
   };
 
   const handleFolderChange = (folder: string) => {
@@ -101,25 +132,33 @@ export default function InboxPage() {
 
   const handleSendEmail = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedRecipient || !composeSubject.trim() || !composeContent.trim()) return;
+    setSendError("");
     setIsSending(true);
     try {
       const res = await fetch("/api/emails", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          receiverId: composeTo, // We'll need a searchable user list eventually
+          receiverId: selectedRecipient.id,
           subject: composeSubject,
           content: composeContent,
         }),
       });
-      if (res.ok) {
-        setIsComposeOpen(false);
-        setComposeContent("");
-        setComposeSubject("");
-        fetchThreads();
+      const data = await res.json();
+      if (!res.ok) {
+        setSendError(data.error || "Failed to send message");
+        return;
       }
-    } catch (error) {
-      console.error("Failed to send email", error);
+      setIsComposeOpen(false);
+      setComposeContent("");
+      setComposeSubject("");
+      setSelectedRecipient(null);
+      setRecipientQuery("");
+      fetchThreads("sent");
+      setActiveFolder("sent");
+    } catch {
+      setSendError("Failed to send message. Please try again.");
     } finally {
       setIsSending(false);
     }
@@ -132,25 +171,18 @@ export default function InboxPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isThread: true, isArchived: true }),
       });
-      setThreads(prev => prev.filter(t => t.id !== id));
+      setThreads((prev) => prev.filter((t) => t.id !== id));
       if (selectedThread?.id === id) setSelectedThread(null);
-    } catch (error) {
-      console.error("Failed to archive thread", error);
-    }
+    } catch { /* silent */ }
   };
 
   const handleDeleteThread = async (id: string) => {
     try {
       await fetch(`/api/emails/thread/${id}`, { method: "DELETE" });
-      setThreads(prev => prev.filter(t => t.id !== id));
+      setThreads((prev) => prev.filter((t) => t.id !== id));
       if (selectedThread?.id === id) setSelectedThread(null);
-    } catch (error) {
-      console.error("Failed to delete thread", error);
-    }
+    } catch { /* silent */ }
   };
-
-  const [replyContent, setReplyContent] = useState("");
-  const [isReplying, setIsReplying] = useState(false);
 
   const handleReply = async () => {
     if (!selectedThread || !replyContent.trim()) return;
@@ -159,43 +191,56 @@ export default function InboxPage() {
       const res = await fetch("/api/emails", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          threadId: selectedThread.id,
-          content: replyContent,
-        }),
+        body: JSON.stringify({ threadId: selectedThread.id, content: replyContent }),
       });
       if (res.ok) {
         setReplyContent("");
-        // Reload thread
         const updatedRes = await fetch(`/api/emails/thread/${selectedThread.id}`);
         const updatedData = await updatedRes.json();
-        setSelectedThread(updatedData.thread);
+        if (updatedData.thread) setSelectedThread(updatedData.thread);
         fetchThreads();
       }
-    } catch (error) {
-      console.error("Failed to send reply", error);
-    } finally {
-      setIsReplying(false);
-    }
+    } catch { /* silent */ }
+    finally { setIsReplying(false); }
   };
 
+  const filteredUsers = connectedUsers.filter(
+    (u) =>
+      u.name.toLowerCase().includes(recipientQuery.toLowerCase()) ||
+      u.email.toLowerCase().includes(recipientQuery.toLowerCase())
+  );
+
+  const unreadCount = threads.filter(
+    (t) => t.messages.length > 0 && !t.messages[0].isRead &&
+      t.messages[0].receiver?.email === session?.user?.email
+  ).length;
+
+  const filteredThreads = threads.filter((t) => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      t.subject.toLowerCase().includes(q) ||
+      (t.messages[0]?.sender?.name || "").toLowerCase().includes(q)
+    );
+  });
+
   return (
-    <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-gray-50/30">
-      {/* Sidebar - Folders */}
-      <div className="w-64 bg-white border-r border-gray-100 flex flex-col shrink-0">
-        <div className="p-6">
-          <button 
+    <div className="flex h-full overflow-hidden bg-gray-50/30">
+      {/* Folder sidebar */}
+      <div className="w-56 bg-white border-r border-gray-100 flex flex-col shrink-0">
+        <div className="p-4">
+          <button
             onClick={() => setIsComposeOpen(true)}
-            className="w-full flex items-center justify-center gap-2 bg-[#0a9396] hover:bg-[#087a7c] text-white h-12 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-[#0a9396]/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            className="w-full flex items-center justify-center gap-2 bg-[#0a9396] hover:bg-[#087a7c] text-white h-11 rounded-xl font-bold text-xs shadow-lg shadow-[#0a9396]/20 transition-all hover:scale-[1.01]"
           >
             <Plus className="h-4 w-4" />
             Compose
           </button>
         </div>
 
-        <nav className="flex-1 px-3 space-y-1">
+        <nav className="flex-1 px-2 space-y-0.5">
           {[
-            { id: "inbox", label: "Inbox", icon: Inbox, count: threads.filter(t => !t.messages[0].isRead).length },
+            { id: "inbox", label: "Inbox", icon: Inbox, count: unreadCount },
             { id: "sent", label: "Sent", icon: Send },
             { id: "archive", label: "Archived", icon: Archive },
             { id: "trash", label: "Trash", icon: Trash2 },
@@ -204,311 +249,337 @@ export default function InboxPage() {
               key={folder.id}
               onClick={() => handleFolderChange(folder.id)}
               className={cn(
-                "w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all",
-                activeFolder === folder.id 
-                  ? "bg-[#0a9396]/5 text-[#0a9396]" 
+                "w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all",
+                activeFolder === folder.id
+                  ? "bg-[#0a9396]/8 text-[#0a9396]"
                   : "text-gray-500 hover:bg-gray-50"
               )}
             >
-              <div className="flex items-center gap-3">
-                <folder.icon className={cn("h-5 w-5", activeFolder === folder.id ? "text-[#0a9396]" : "text-gray-400")} />
-                <span className="text-sm font-black uppercase tracking-wider">{folder.label}</span>
+              <div className="flex items-center gap-2.5">
+                <folder.icon className={cn("h-4 w-4", activeFolder === folder.id ? "text-[#0a9396]" : "text-gray-400")} />
+                <span className="text-sm font-semibold">{folder.label}</span>
               </div>
               {folder.count ? (
-                <Badge className="bg-[#0a9396] text-white border-none text-[10px] px-1.5 min-w-[1.25rem] h-5">
+                <Badge className="bg-[#0a9396] text-white border-none text-[10px] px-1.5 min-w-5 h-4">
                   {folder.count}
                 </Badge>
               ) : null}
             </button>
           ))}
         </nav>
-
-        <div className="p-6 border-t border-gray-100">
-           <div className="bg-gray-50 rounded-2xl p-4 flex items-center gap-3">
-              <div className="h-8 w-8 bg-[#0a9396]/10 rounded-full flex items-center justify-center">
-                 <Zap className="h-4 w-4 text-[#0a9396]" />
-              </div>
-              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Internal Engine</span>
-           </div>
-        </div>
       </div>
 
-      {/* Thread List */}
-      <div className="w-[400px] border-r border-gray-100 bg-white flex flex-col shrink-0">
-        <div className="p-4 border-b border-gray-100 flex items-center gap-4">
+      {/* Thread list */}
+      <div className="w-80 border-r border-gray-100 bg-white flex flex-col shrink-0">
+        <div className="p-3 border-b border-gray-100 flex items-center gap-2">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input 
-              placeholder="Search conversations..." 
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+            <Input
+              placeholder="Search..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-10 bg-gray-50 border-none rounded-xl text-xs font-medium"
+              className="pl-8 h-9 bg-gray-50 border-none rounded-lg text-xs"
             />
           </div>
-          <button 
+          <button
             onClick={handleRefresh}
-            className={cn("p-2 hover:bg-gray-50 rounded-xl transition-all", isRefreshing && "animate-spin")}
+            className={cn("p-2 hover:bg-gray-50 rounded-lg transition-all text-gray-400", isRefreshing && "animate-spin")}
           >
-            <RotateCw className="h-4 w-4 text-gray-400" />
+            <RotateCw className="h-3.5 w-3.5" />
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto custom-scrollbar">
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-4">
-              <Loader2 className="h-8 w-8 animate-spin text-[#0a9396]" />
-              <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Syncing Mailbox...</p>
+            <div className="flex flex-col items-center justify-center py-16 gap-3">
+              <Loader2 className="h-6 w-6 animate-spin text-[#0a9396]" />
+              <p className="text-xs text-gray-400">Loading...</p>
             </div>
-          ) : threads.length === 0 ? (
-            <div className="text-center py-20 px-10">
-              <div className="h-16 w-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                 <Mail className="h-8 w-8 text-gray-200" />
+          ) : filteredThreads.length === 0 ? (
+            <div className="text-center py-16 px-6">
+              <div className="h-12 w-12 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Mail className="h-6 w-6 text-gray-200" />
               </div>
-              <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest mb-2">Your inbox is clear</h3>
-              <p className="text-xs text-gray-400 font-bold leading-relaxed">No messages in this folder. Enjoy the productivity!</p>
+              <p className="text-sm font-semibold text-gray-500">
+                {activeFolder === "inbox" ? "Your inbox is empty" : `No ${activeFolder} messages`}
+              </p>
             </div>
           ) : (
-            threads.map((thread) => {
-              const lastMessage = thread.messages[0];
-              const isUnread = !lastMessage.isRead && lastMessage.receiver.email === session?.user?.email;
-
+            filteredThreads.map((thread) => {
+              const lastMsg = thread.messages[0];
+              const isUnread =
+                lastMsg && !lastMsg.isRead && lastMsg.receiver?.email === session?.user?.email;
               return (
-                <button
+                <div
                   key={thread.id}
                   onClick={() => handleSelectThread(thread)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === "Enter" && handleSelectThread(thread)}
                   className={cn(
-                    "w-full p-4 text-left border-b border-gray-50 transition-all relative overflow-hidden group",
+                    "w-full p-4 text-left border-b border-gray-50 transition-all relative group cursor-pointer",
                     selectedThread?.id === thread.id ? "bg-[#0a9396]/5" : "hover:bg-gray-50"
                   )}
                 >
-                  {isUnread && (
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#0a9396]" />
-                  )}
+                  {isUnread && <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-[#0a9396]" />}
                   <div className="flex items-start justify-between mb-1">
-                    <div className="flex items-center gap-2">
-                       <span className={cn("text-xs font-black uppercase tracking-wider", isUnread ? "text-gray-900" : "text-gray-500")}>
-                          {lastMessage.sender.name}
-                       </span>
-                       {thread.messages.length > 1 && (
-                         <Badge variant="outline" className="text-[9px] px-1 h-4 font-bold border-gray-200 text-gray-400">
-                           {thread.messages.length}
-                         </Badge>
-                       )}
-                    </div>
-                    <span className="text-[10px] font-bold text-gray-400 uppercase">
+                    <span className={cn("text-xs font-semibold truncate max-w-[60%]", isUnread ? "text-gray-900 font-bold" : "text-gray-600")}>
+                      {lastMsg?.sender?.name || "Unknown"}
+                    </span>
+                    <span className="text-[10px] text-gray-400 shrink-0">
                       {formatDistanceToNow(new Date(thread.updatedAt))} ago
                     </span>
                   </div>
-                  <h4 className={cn("text-sm mb-1 truncate", isUnread ? "font-black text-gray-900" : "font-bold text-gray-700")}>
+                  <p className={cn("text-sm truncate mb-1", isUnread ? "font-semibold text-gray-900" : "text-gray-700")}>
                     {thread.subject}
-                  </h4>
-                  <p className="text-xs text-gray-400 line-clamp-1 font-medium italic">
-                    {lastMessage.content}
                   </p>
-                  
-                  {/* Quick Actions on Hover */}
+                  <p className="text-xs text-gray-400 truncate">{lastMsg?.content || ""}</p>
+
                   <div className="absolute right-2 bottom-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                     <button onClick={(e) => { e.stopPropagation(); handleArchiveThread(thread.id); }} className="p-1.5 hover:bg-white rounded-lg text-gray-400 hover:text-[#0a9396]">
-                        <Archive className="h-3.5 w-3.5" />
-                     </button>
-                     <button onClick={(e) => { e.stopPropagation(); handleDeleteThread(thread.id); }} className="p-1.5 hover:bg-white rounded-lg text-gray-400 hover:text-rose-500">
-                        <Trash2 className="h-3.5 w-3.5" />
-                     </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleArchiveThread(thread.id); }}
+                      className="p-1 hover:bg-white rounded text-gray-400 hover:text-[#0a9396]"
+                    >
+                      <Archive className="h-3 w-3" />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDeleteThread(thread.id); }}
+                      className="p-1 hover:bg-white rounded text-gray-400 hover:text-rose-500"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
                   </div>
-                </button>
+                </div>
               );
             })
           )}
         </div>
       </div>
 
-      {/* Thread Content */}
-      <div className="flex-1 bg-white flex flex-col relative overflow-hidden">
+      {/* Thread content */}
+      <div className="flex-1 bg-white flex flex-col overflow-hidden">
         {selectedThread ? (
           <>
-            <div className="h-16 px-8 border-b border-gray-100 flex items-center justify-between shrink-0">
-               <div className="flex items-center gap-4">
-                  <h2 className="text-base font-black text-gray-900 uppercase tracking-widest">{selectedThread.subject}</h2>
-                  <Badge variant="outline" className="bg-gray-50 border-gray-100 text-gray-400 font-bold uppercase tracking-tighter text-[9px]">
-                    Internal Thread
-                  </Badge>
-               </div>
-               <div className="flex items-center gap-2">
-                  <button onClick={() => handleArchiveThread(selectedThread.id)} className="p-2.5 hover:bg-gray-50 rounded-2xl text-gray-400 transition-all" title="Archive">
-                     <Archive className="h-5 w-5" />
-                  </button>
-                  <button onClick={() => handleDeleteThread(selectedThread.id)} className="p-2.5 hover:bg-rose-50 rounded-2xl text-gray-400 hover:text-rose-500 transition-all" title="Delete">
-                     <Trash2 className="h-5 w-5" />
-                  </button>
-                  <div className="w-px h-6 bg-gray-100 mx-2" />
-                  <button className="p-2.5 hover:bg-gray-50 rounded-2xl text-gray-400 transition-all">
-                     <MoreVertical className="h-5 w-5" />
-                  </button>
-               </div>
+            <div className="h-14 px-6 border-b border-gray-100 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <h2 className="text-sm font-bold text-gray-900 truncate">{selectedThread.subject}</h2>
+                <Badge variant="outline" className="shrink-0 text-[9px] text-gray-400 border-gray-200">
+                  {selectedThread.messages.length} message{selectedThread.messages.length !== 1 ? "s" : ""}
+                </Badge>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <button onClick={() => handleArchiveThread(selectedThread.id)} className="p-2 hover:bg-gray-50 rounded-lg text-gray-400 transition-all" title="Archive">
+                  <Archive className="h-4 w-4" />
+                </button>
+                <button onClick={() => handleDeleteThread(selectedThread.id)} className="p-2 hover:bg-rose-50 rounded-lg text-gray-400 hover:text-rose-500 transition-all" title="Delete">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
               {selectedThread.messages.map((msg, idx) => (
-                <div key={msg.id} className={cn(
-                  "flex gap-6 relative",
-                  idx !== selectedThread.messages.length - 1 && "pb-8 border-b border-gray-50"
-                )}>
-                  <div className="shrink-0">
-                    <div className="h-12 w-12 rounded-2xl bg-gray-100 flex items-center justify-center text-lg font-black text-gray-400 uppercase">
-                       {msg.sender.name.charAt(0)}
-                    </div>
+                <div
+                  key={msg.id}
+                  className={cn("flex gap-4", idx !== selectedThread.messages.length - 1 && "pb-6 border-b border-gray-50")}
+                >
+                  <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-500 uppercase shrink-0">
+                    {msg.sender.name.charAt(0)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-4">
-                       <div>
-                          <span className="text-sm font-black text-gray-900 mr-2">{msg.sender.name}</span>
-                          <span className="text-xs text-gray-400 font-bold tracking-tight">&lt;{msg.sender.email}&gt;</span>
-                       </div>
-                       <span className="text-[10px] font-black text-gray-300 uppercase">
-                          {new Date(msg.createdAt).toLocaleString()}
-                       </span>
+                    <div className="flex items-center justify-between mb-3 gap-2">
+                      <div className="min-w-0">
+                        <span className="text-sm font-bold text-gray-900">{msg.sender.name}</span>
+                        <span className="text-xs text-gray-400 ml-2">{"<"}{msg.sender.email}{">"}</span>
+                      </div>
+                      <span className="text-[10px] text-gray-400 shrink-0">{new Date(msg.createdAt).toLocaleString()}</span>
                     </div>
-                    <div className="text-sm text-gray-700 leading-relaxed font-medium whitespace-pre-wrap">
-                       {msg.content}
-                    </div>
+                    <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{msg.content}</p>
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* Quick Reply Box */}
-            <div className="p-6 bg-gray-50/50 border-t border-gray-100 shrink-0">
-               <div className="bg-white border border-gray-200 rounded-3xl p-4 shadow-sm focus-within:shadow-xl focus-within:border-[#0a9396]/30 transition-all">
-                  <textarea 
-                    placeholder="Type your reply here..." 
-                    className="w-full resize-none bg-transparent outline-none text-sm font-medium h-24 p-2"
-                    value={replyContent}
-                    onChange={(e) => setReplyContent(e.target.value)}
-                  />
-                  <div className="flex items-center justify-between mt-4">
-                     <div className="flex gap-1">
-                        <button className="p-2 hover:bg-gray-50 rounded-xl text-gray-400 transition-all"><Paperclip className="h-4 w-4" /></button>
-                        <button className="p-2 hover:bg-gray-50 rounded-xl text-gray-400 transition-all"><Clock className="h-4 w-4" /></button>
-                     </div>
-                     <button 
-                       onClick={handleReply}
-                       disabled={isReplying || !replyContent.trim()}
-                       className="flex items-center gap-2 bg-gray-900 text-white h-10 px-6 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
-                     >
-                        {isReplying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-                        Send Reply
-                     </button>
+            <div className="p-4 border-t border-gray-100 bg-gray-50/50 shrink-0">
+              <div className="bg-white border border-gray-200 rounded-2xl p-3 focus-within:border-[#0a9396]/30 focus-within:shadow-lg transition-all">
+                <textarea
+                  placeholder="Type your reply..."
+                  className="w-full resize-none bg-transparent outline-none text-sm h-20 p-1"
+                  value={replyContent}
+                  onChange={(e) => setReplyContent(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleReply(); }}
+                />
+                <div className="flex items-center justify-between mt-2">
+                  <div className="flex gap-1">
+                    <button className="p-1.5 hover:bg-gray-50 rounded-lg text-gray-400"><Paperclip className="h-3.5 w-3.5" /></button>
+                    <button className="p-1.5 hover:bg-gray-50 rounded-lg text-gray-400"><Clock className="h-3.5 w-3.5" /></button>
                   </div>
-               </div>
+                  <button
+                    onClick={handleReply}
+                    disabled={isReplying || !replyContent.trim()}
+                    className="flex items-center gap-2 bg-gray-900 text-white h-9 px-5 rounded-xl font-semibold text-xs hover:bg-black transition-all disabled:opacity-40"
+                  >
+                    {isReplying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                    Send Reply
+                  </button>
+                </div>
+              </div>
             </div>
           </>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-center p-12">
-             <div className="h-48 w-48 bg-gray-50 rounded-[3rem] flex items-center justify-center relative mb-8">
-                <Mail className="h-20 w-20 text-gray-200" />
-                <motion.div 
-                  animate={{ y: [0, -10, 0] }}
-                  transition={{ duration: 3, repeat: Infinity }}
-                  className="absolute -top-4 -right-4 h-16 w-16 bg-[#0a9396]/10 rounded-3xl flex items-center justify-center"
-                >
-                   <Zap className="h-8 w-8 text-[#0a9396]" />
-                </motion.div>
-             </div>
-             <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tighter mb-4">Secure Inbox</h2>
-             <p className="text-gray-400 max-w-sm font-medium leading-relaxed">
-               Select a conversation from the sidebar to view full details. All internal communication is end-to-end encrypted.
-             </p>
+            <div className="h-16 w-16 bg-gray-50 rounded-2xl flex items-center justify-center mb-5">
+              <Mail className="h-8 w-8 text-gray-300" />
+            </div>
+            <h2 className="text-lg font-bold text-gray-900 mb-2">Select a message</h2>
+            <p className="text-sm text-gray-400 max-w-xs">
+              Choose a conversation from the list to read it, or compose a new message to one of your professionals.
+            </p>
+            <button
+              onClick={() => setIsComposeOpen(true)}
+              className="mt-6 flex items-center gap-2 px-4 py-2.5 bg-[#0a9396] text-white rounded-xl font-semibold text-sm hover:bg-[#087a7c] transition-all"
+            >
+              <Plus className="h-4 w-4" />
+              New Message
+            </button>
           </div>
         )}
       </div>
 
-      {/* Compose Modal */}
+      {/* Compose modal */}
       <AnimatePresence>
         {isComposeOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-             <motion.div 
-               initial={{ opacity: 0, scale: 0.95, y: 20 }}
-               animate={{ opacity: 1, scale: 1, y: 0 }}
-               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-               className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden border border-white"
-             >
-                <div className="p-8 border-b border-gray-100 flex items-center justify-between">
-                   <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 bg-[#0a9396]/10 rounded-2xl flex items-center justify-center text-[#0a9396]">
-                         <Plus className="h-6 w-6" />
-                      </div>
-                      <h2 className="text-2xl font-black text-gray-900 tracking-tight">New Internal Message</h2>
-                   </div>
-                   <button onClick={() => setIsComposeOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                      <AlertCircle className="h-6 w-6 text-gray-400 rotate-45" />
-                   </button>
-                </div>
-                
-                <form onSubmit={handleSendEmail} className="p-8 space-y-6">
-                   <div className="space-y-4">
-                      <div className="relative">
-                         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-gray-400 uppercase tracking-widest">To</span>
-                         <Input 
-                           value={composeTo} 
-                           onChange={(e) => setComposeTo(e.target.value)}
-                           className="pl-12 h-14 bg-gray-50 border-none rounded-2xl text-sm font-bold" 
-                           placeholder="Recipient ID or Email"
-                         />
-                      </div>
-                      <div className="relative">
-                         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-gray-400 uppercase tracking-widest">Sub</span>
-                         <Input 
-                           value={composeSubject} 
-                           onChange={(e) => setComposeSubject(e.target.value)}
-                           className="pl-12 h-14 bg-gray-50 border-none rounded-2xl text-sm font-bold" 
-                           placeholder="Message Subject"
-                         />
-                      </div>
-                      <textarea 
-                        value={composeContent}
-                        onChange={(e) => setComposeContent(e.target.value)}
-                        placeholder="Type your message..."
-                        className="w-full h-48 bg-gray-50 border-none rounded-[2rem] p-6 text-sm font-medium resize-none outline-none focus:ring-4 focus:ring-[#0a9396]/10 transition-all"
-                      />
-                   </div>
+          <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 16 }}
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-visible border border-gray-100"
+            >
+              <div className="flex items-center justify-between p-5 border-b border-gray-100">
+                <h2 className="text-base font-bold text-gray-900">New Message</h2>
+                <button onClick={() => { setIsComposeOpen(false); setSendError(""); }} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 transition-colors">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
 
-                   <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
-                      <button 
-                        type="button"
-                        onClick={() => setIsComposeOpen(false)}
-                        className="px-8 h-14 rounded-2xl font-black uppercase tracking-widest text-[11px] text-gray-500 hover:bg-gray-50 transition-all"
-                      >
-                        Discard
-                      </button>
-                      <button 
-                        type="submit"
-                        disabled={isSending}
-                        className="px-10 h-14 bg-[#0a9396] text-white rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-xl shadow-[#0a9396]/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2"
-                      >
-                        {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                        Dispatch Email
-                      </button>
-                   </div>
-                </form>
-             </motion.div>
+              <form onSubmit={handleSendEmail} className="p-5 space-y-4">
+                {/* Recipient picker */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1.5">To</label>
+                  <div ref={recipientRef} className="relative">
+                    {selectedRecipient ? (
+                      <div className="flex items-center gap-2 px-3 py-2.5 bg-[#0a9396]/5 border border-[#0a9396]/20 rounded-xl">
+                        <div className="h-6 w-6 rounded-full bg-[#0a9396] text-white flex items-center justify-center text-[10px] font-bold shrink-0">
+                          {selectedRecipient.name.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="text-sm font-semibold text-gray-900 flex-1">{selectedRecipient.name}</span>
+                        <span className="text-xs text-gray-400">{selectedRecipient.email}</span>
+                        <button type="button" onClick={() => { setSelectedRecipient(null); setRecipientQuery(""); }} className="p-0.5 hover:text-gray-700 text-gray-400">
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                        <input
+                          value={recipientQuery}
+                          onChange={(e) => { setRecipientQuery(e.target.value); setShowRecipientDropdown(true); }}
+                          onFocus={() => setShowRecipientDropdown(true)}
+                          placeholder={connectedUsers.length > 0 ? "Search your contacts..." : "No contacts yet — need an active inquiry first"}
+                          className="w-full pl-9 pr-8 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#0a9396]/40 transition-all"
+                        />
+                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 pointer-events-none" />
+                      </div>
+                    )}
+
+                    {/* Dropdown */}
+                    {showRecipientDropdown && !selectedRecipient && (
+                      <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden max-h-48 overflow-y-auto">
+                        {filteredUsers.length === 0 ? (
+                          <div className="p-4 text-center text-xs text-gray-400">
+                            {connectedUsers.length === 0
+                              ? "You need an active inquiry with a professional before you can message them."
+                              : "No matches found"}
+                          </div>
+                        ) : (
+                          filteredUsers.map((user) => (
+                            <button
+                              key={user.id}
+                              type="button"
+                              onClick={() => { setSelectedRecipient(user); setRecipientQuery(""); setShowRecipientDropdown(false); }}
+                              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 text-left transition-colors"
+                            >
+                              <div className="h-8 w-8 rounded-full bg-[#0a9396]/10 text-[#0a9396] flex items-center justify-center text-xs font-bold shrink-0">
+                                {user.name.charAt(0).toUpperCase()}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-gray-900">{user.name}</p>
+                                <p className="text-xs text-gray-400">{user.email}</p>
+                              </div>
+                              <span className="text-[10px] text-gray-300 capitalize">{user.userType}</span>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Subject */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1.5">Subject</label>
+                  <Input
+                    value={composeSubject}
+                    onChange={(e) => setComposeSubject(e.target.value)}
+                    placeholder="Message subject"
+                    className="h-10 bg-gray-50 border-gray-200 rounded-xl text-sm"
+                  />
+                </div>
+
+                {/* Body */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1.5">Message</label>
+                  <textarea
+                    value={composeContent}
+                    onChange={(e) => setComposeContent(e.target.value)}
+                    placeholder="Type your message..."
+                    className="w-full h-36 bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm resize-none outline-none focus:border-[#0a9396]/40 transition-all"
+                  />
+                </div>
+
+                {sendError && (
+                  <p className="text-xs text-red-500 font-semibold">{sendError}</p>
+                )}
+
+                <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
+                  <button
+                    type="button"
+                    onClick={() => { setIsComposeOpen(false); setSendError(""); }}
+                    className="px-4 h-10 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-50 transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSending || !selectedRecipient || !composeSubject.trim() || !composeContent.trim()}
+                    className="flex items-center gap-2 px-5 h-10 bg-[#0a9396] text-white rounded-xl font-semibold text-sm shadow-md shadow-[#0a9396]/20 hover:bg-[#087a7c] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                    Send
+                  </button>
+                </div>
+              </form>
+            </motion.div>
           </div>
         )}
       </AnimatePresence>
 
       <style jsx global>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(0, 0, 0, 0.05);
-          border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(0, 0, 0, 0.1);
-        }
+        .custom-scrollbar::-webkit-scrollbar { width: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.06); border-radius: 10px; }
+        .bg-\\[\\#0a9396\\]\\/8 { background-color: rgba(10,147,150,0.08); }
       `}</style>
     </div>
   );

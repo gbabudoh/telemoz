@@ -96,15 +96,34 @@ export async function POST(request: NextRequest) {
 
       case "payment_intent.succeeded": {
         const pi = event.data.object as Stripe.PaymentIntent;
-        // Match against Invoice by stripePaymentIntentId and mark paid
-        await prisma.invoice.updateMany({
-          where: { stripePaymentIntentId: pi.id },
-          data: {
-            status: "paid",
-            paidAt: new Date(),
-            paymentMethod: pi.payment_method_types?.[0] ?? "card",
-          },
-        });
+        const invoiceId = pi.metadata?.invoiceId;
+        const isEscrow = pi.metadata?.isEscrow === "true";
+
+        if (invoiceId) {
+          // Matched via metadata (invoice payment flow)
+          await prisma.invoice.update({
+            where: { id: invoiceId },
+            data: {
+              status: isEscrow ? "paid" : "paid",
+              paidAt: new Date(),
+              paymentMethod: pi.payment_method_types?.[0] ?? "card",
+              stripePaymentIntentId: pi.id,
+              // If escrow invoice, move from awaiting_deposit → held_in_escrow
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              ...(isEscrow && { escrowStatus: "held_in_escrow" as any }),
+            },
+          });
+        } else {
+          // Fallback: match by stripePaymentIntentId stored on invoice
+          await prisma.invoice.updateMany({
+            where: { stripePaymentIntentId: pi.id },
+            data: {
+              status: "paid",
+              paidAt: new Date(),
+              paymentMethod: pi.payment_method_types?.[0] ?? "card",
+            },
+          });
+        }
         break;
       }
 
@@ -120,12 +139,22 @@ export async function POST(request: NextRequest) {
       case "account.updated": {
         // A connected account completed or updated their onboarding
         const account = event.data.object as Stripe.Account;
-        if (account.details_submitted && account.charges_enabled) {
-          // Mark the pro as verified/active for payouts
-          await prisma.user.updateMany({
+        // Notify the pro if their account is now fully enabled
+        if (account.details_submitted && account.payouts_enabled) {
+          const pro = await prisma.user.findFirst({
             where: { stripeAccountId: account.id },
-            data: { }, // extend schema with payoutsEnabled if needed
+            select: { id: true },
           });
+          if (pro) {
+            await prisma.notification.create({
+              data: {
+                userId: pro.id,
+                title: "Payouts enabled",
+                message: "Your Stripe account is verified. You can now receive payouts when clients release escrow funds.",
+                type: "system",
+              },
+            });
+          }
         }
         break;
       }

@@ -2,261 +2,404 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
-import { 
-  MessageSquare, 
-  Search, 
-  Video, 
-  Phone, 
-  User,
+import {
+  MessageSquare,
+  Search,
+  Video,
+  Phone,
   Shield,
-  Zap,
   Loader2,
-  ChevronRight,
-  Monitor
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import LiveKitChat from "@/components/communication/LiveKitChat";
+import MessageThread from "@/components/communication/MessageThread";
+import IncomingCallModal from "@/components/communication/IncomingCallModal";
+import CallView from "@/components/communication/CallView";
 import { Input } from "@/components/ui/Input";
+import { format, isToday, isYesterday } from "date-fns";
 
 interface Conversation {
   id: string;
-  roomName: string;
-  participantName: string;
-  lastActive: string;
-  status: string;
+  clientId: string;
+  clientName: string;
   projectName: string;
+  lastMessage: { text: string; senderId: string; createdAt: string } | null;
+  unreadCount: number;
+  time: string;
 }
 
-interface RawInquiry {
-  id: string;
-  client: string;
-  proName?: string;
-  project: string;
-  updatedAt: string;
-  createdAt: string;
-  status: string;
+interface ActiveCall {
+  callRequestId: string;
+  roomName: string;
+  callType: "video" | "audio";
+}
+
+function lastMessagePreview(conv: Conversation, myId: string) {
+  if (!conv.lastMessage) return "No messages yet";
+  const isMine = conv.lastMessage.senderId === myId;
+  const prefix = isMine ? "You: " : "";
+  const text = conv.lastMessage.text;
+  return prefix + (text.length > 40 ? text.slice(0, 40) + "…" : text);
+}
+
+function lastMessageTime(conv: Conversation) {
+  if (!conv.lastMessage) return conv.time;
+  const d = new Date(conv.lastMessage.createdAt);
+  if (isToday(d)) return format(d, "h:mm a");
+  if (isYesterday(d)) return "Yesterday";
+  return format(d, "MMM d");
+}
+
+function getInitials(name: string) {
+  return name
+    .split(" ")
+    .map((p) => p[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 }
 
 export default function ProMessagingPage() {
   const { data: session } = useSession();
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
-  const [selectedInquiry, setSelectedInquiry] = useState<Conversation | null>(null);
+  const [selected, setSelected] = useState<Conversation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeCall, setActiveCall] = useState<ActiveCall | null>(null);
+  const [callingState, setCallingState] = useState<"idle" | "calling">("idle");
+
+  const myId = session?.user?.id ?? "";
 
   const fetchConversations = useCallback(async () => {
     if (!session?.user || session.user.userType !== "pro") return;
     try {
-      const endpoint = "/api/pro/inquiries";
-      const res = await fetch(endpoint);
+      const res = await fetch("/api/pro/inquiries");
       const data = await res.json();
-      
       if (data.inquiries) {
-        const mapped: Conversation[] = data.inquiries.map((item: RawInquiry) => ({
-          id: item.id,
-          roomName: item.id,
-          participantName: item.client,
-          projectName: item.project,
-          lastActive: item.updatedAt || item.createdAt,
-          status: item.status,
-        }));
+        const mapped: Conversation[] = data.inquiries.map(
+          (item: {
+            id: string;
+            clientId: string;
+            client: string;
+            project: string;
+            lastMessage: Conversation["lastMessage"];
+            unreadCount: number;
+            time: string;
+          }) => ({
+            id: item.id,
+            clientId: item.clientId,
+            clientName: item.client,
+            projectName: item.project,
+            lastMessage: item.lastMessage ?? null,
+            unreadCount: item.unreadCount ?? 0,
+            time: item.time,
+          })
+        );
         setConversations(mapped);
+        // Keep selected in sync with refreshed data
+        if (selected) {
+          const fresh = mapped.find((c) => c.id === selected.id);
+          if (fresh) setSelected(fresh);
+        }
       }
     } catch (error) {
       console.error("Failed to fetch conversations", error);
     } finally {
       setIsLoading(false);
     }
-  }, [session]);
+  }, [session, selected]);
 
   useEffect(() => {
     fetchConversations();
   }, [fetchConversations]);
 
-  const filteredConversations = conversations.filter(c => 
-    c.participantName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.projectName.toLowerCase().includes(searchQuery.toLowerCase())
+  // Refresh conversation list every 5s for unread counts
+  useEffect(() => {
+    const interval = setInterval(fetchConversations, 5000);
+    return () => clearInterval(interval);
+  }, [fetchConversations]);
+
+  const filteredConversations = conversations.filter(
+    (c) =>
+      c.clientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.projectName.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleSelectConversation = (conv: Conversation) => {
-    setSelectedRoom(conv.roomName);
-    setSelectedInquiry(conv);
+  const initiateCall = async (type: "video" | "audio") => {
+    if (!selected) return;
+    setCallingState("calling");
+    try {
+      const res = await fetch("/api/messaging/call-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          toId: selected.clientId,
+          inquiryId: selected.id,
+          callType: type,
+        }),
+      });
+      const data = await res.json();
+      if (data.callRequest) {
+        // Poll for acceptance
+        const callRequestId = data.callRequest.id;
+        const roomName = data.callRequest.roomName;
+        let elapsed = 0;
+        const poll = setInterval(async () => {
+          elapsed += 2000;
+          const check = await fetch(`/api/messaging/call-request/${callRequestId}`);
+          const result = await check.json();
+          const status = result.callRequest?.status;
+          if (status === "accepted") {
+            clearInterval(poll);
+            setCallingState("idle");
+            setActiveCall({ callRequestId, roomName, callType: type });
+          } else if (["declined", "missed", "ended"].includes(status) || elapsed >= 32000) {
+            clearInterval(poll);
+            setCallingState("idle");
+          }
+        }, 2000);
+      } else {
+        setCallingState("idle");
+      }
+    } catch {
+      setCallingState("idle");
+    }
+  };
+
+  const handleIncomingAccept = (callRequest: { id: string; roomName: string; callType: "video" | "audio" }) => {
+    setActiveCall({
+      callRequestId: callRequest.id,
+      roomName: callRequest.roomName,
+      callType: callRequest.callType,
+    });
+  };
+
+  const handleCallEnd = () => {
+    setActiveCall(null);
   };
 
   return (
-    <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-[#0A0A0B]">
-      {/* Sidebar - Engine Controller */}
-      <div className="w-80 border-r border-white/5 bg-[#121214] flex flex-col shrink-0 shadow-2xl">
-        <div className="p-6 border-b border-white/5">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 bg-[#0a9396]/20 rounded-xl flex items-center justify-center border border-[#0a9396]/30">
-                <Zap className="h-5 w-5 text-[#0a9396]" />
-              </div>
-              <div>
-                <h1 className="text-sm font-black text-white uppercase tracking-widest">Communication Hub</h1>
-                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">Pro Dashboard</p>
-              </div>
+    <div className="flex h-full overflow-hidden bg-[#0A0A0B]">
+      {/* Incoming call modal (polls for calls to this pro) */}
+      <IncomingCallModal onAccept={handleIncomingAccept} onDecline={() => {}} />
+
+      {/* Sidebar */}
+      <div className="w-[300px] border-r border-white/5 bg-[#111113] flex flex-col shrink-0">
+        {/* Header */}
+        <div className="p-4 border-b border-white/5">
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-base font-bold text-white">Messages</h1>
+            <div className="flex items-center gap-1.5">
+              <div className="h-2 w-2 bg-emerald-500 rounded-full animate-pulse" />
+              <span className="text-[10px] font-semibold text-gray-500">Online</span>
             </div>
-            <div className="h-2 w-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
           </div>
-          
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-            <Input 
-              placeholder="Filter streams..." 
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-500" />
+            <Input
+              placeholder="Search conversations..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 h-12 bg-white/5 border-white/10 rounded-xl text-white text-xs font-medium focus:border-[#0a9396]/50 transition-all"
+              className="pl-9 h-9 bg-white/5 border-white/5 rounded-lg text-white text-xs focus:border-[#0a9396]/40 transition-all"
             />
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+        {/* Conversation list */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center h-40 gap-4">
-              <Loader2 className="h-8 w-8 animate-spin text-[#0a9396]" />
-              <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">Initializing Core...</p>
+            <div className="flex flex-col items-center justify-center h-32 gap-3">
+              <Loader2 className="h-5 w-5 animate-spin text-[#0a9396]" />
+              <p className="text-xs text-gray-600">Loading...</p>
             </div>
           ) : filteredConversations.length === 0 ? (
-            <div className="text-center p-10 bg-white/5 rounded-3xl border border-white/5">
-              <MessageSquare className="h-10 w-10 text-white/10 mx-auto mb-4" />
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">No Active Channels</p>
+            <div className="flex flex-col items-center justify-center h-40 gap-3 p-6 text-center">
+              <MessageSquare className="h-8 w-8 text-white/10" />
+              <p className="text-xs font-semibold text-gray-600">No conversations</p>
+              <p className="text-[10px] text-gray-700">Inquiries from clients will appear here</p>
             </div>
           ) : (
-            filteredConversations.map((conv) => (
-              <button
-                key={conv.id}
-                onClick={() => handleSelectConversation(conv)}
-                className={`w-full group p-4 rounded-2xl flex items-center gap-4 transition-all text-left border relative overflow-hidden ${
-                  selectedRoom === conv.roomName 
-                    ? "bg-[#0a9396] border-[#0a9396] shadow-xl shadow-[#0a9396]/20" 
-                    : "bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/10"
-                }`}
-              >
-                <div className={`h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110 ${
-                  selectedRoom === conv.roomName ? "bg-white/20" : "bg-white/5"
-                }`}>
-                  <User className={`h-6 w-6 ${selectedRoom === conv.roomName ? "text-white" : "text-gray-500"}`} />
-                </div>
-                
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className={`text-sm font-black truncate ${selectedRoom === conv.roomName ? "text-white" : "text-gray-200"}`}>
-                      {conv.participantName}
-                    </span>
-                    <ChevronRight className={`h-3 w-3 transition-transform ${selectedRoom === conv.roomName ? "text-white rotate-90" : "text-gray-600 group-hover:translate-x-1"}`} />
-                  </div>
-                  <p className={`text-[10px] font-bold truncate uppercase tracking-tighter ${selectedRoom === conv.roomName ? "text-white/70" : "text-gray-500"}`}>
-                    {conv.projectName}
-                  </p>
-                </div>
+            <div className="p-2 space-y-0.5">
+              {filteredConversations.map((conv) => {
+                const isActive = selected?.id === conv.id;
+                return (
+                  <button
+                    key={conv.id}
+                    onClick={() => setSelected(conv)}
+                    className={`w-full flex items-center gap-3 p-3 rounded-xl text-left transition-all relative ${
+                      isActive
+                        ? "bg-[#0a9396]/10 border border-[#0a9396]/20"
+                        : "hover:bg-white/5 border border-transparent"
+                    }`}
+                  >
+                    {/* Avatar */}
+                    <div
+                      className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 text-xs font-black ${
+                        isActive
+                          ? "bg-[#0a9396] text-white"
+                          : "bg-white/8 text-gray-400"
+                      }`}
+                    >
+                      {getInitials(conv.clientName)}
+                    </div>
 
-                {selectedRoom === conv.roomName && (
-                   <motion.div 
-                     layoutId="active-indicator"
-                     className="absolute left-0 top-0 bottom-0 w-1 bg-white"
-                   />
-                )}
-              </button>
-            ))
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-0.5">
+                        <span
+                          className={`text-sm font-semibold truncate ${
+                            isActive ? "text-white" : "text-gray-200"
+                          }`}
+                        >
+                          {conv.clientName}
+                        </span>
+                        <span className="text-[10px] text-gray-600 shrink-0 ml-2">
+                          {lastMessageTime(conv)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs text-gray-600 truncate flex-1">
+                          {lastMessagePreview(conv, myId)}
+                        </p>
+                        {conv.unreadCount > 0 && (
+                          <span className="shrink-0 h-4 min-w-4 px-1 rounded-full bg-[#0a9396] text-white text-[9px] font-black flex items-center justify-center">
+                            {conv.unreadCount}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-gray-700 truncate mt-0.5">{conv.projectName}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           )}
         </div>
-        
-        <div className="p-6 border-t border-white/5 bg-black/20">
-           <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                 <Shield className="h-4 w-4 text-emerald-500" />
-              </div>
-              <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">End-to-End Encrypted</span>
-           </div>
+
+        {/* Footer */}
+        <div className="p-3 border-t border-white/5">
+          <div className="flex items-center gap-2">
+            <Shield className="h-3.5 w-3.5 text-emerald-500" />
+            <span className="text-[10px] font-semibold text-gray-600">End-to-end encrypted</span>
+          </div>
         </div>
       </div>
 
-      {/* Main Engine Console */}
-      <div className="flex-1 flex flex-col relative">
+      {/* Main area */}
+      <div className="flex-1 flex flex-col min-w-0">
         <AnimatePresence mode="wait">
-          {selectedRoom ? (
-            <motion.div 
-              key={selectedRoom}
+          {activeCall ? (
+            <motion.div
+              key="call"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="flex-1 flex flex-col h-full"
             >
-              <div className="h-16 border-b border-white/5 bg-[#121214] flex items-center justify-between px-8 shrink-0">
-                 <div className="flex items-center gap-4">
-                    <div className="h-2 w-2 bg-emerald-500 rounded-full" />
-                    <div>
-                      <h2 className="text-sm font-black text-white uppercase tracking-widest">{selectedInquiry?.participantName}</h2>
-                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-tight">{selectedInquiry?.projectName}</p>
+              <CallView
+                room={activeCall.roomName}
+                callType={activeCall.callType}
+                callRequestId={activeCall.callRequestId}
+                onEnd={handleCallEnd}
+              />
+            </motion.div>
+          ) : selected ? (
+            <motion.div
+              key={selected.id}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex-1 flex flex-col h-full min-h-0"
+            >
+              {/* Chat header */}
+              <div className="h-14 border-b border-white/5 bg-[#111113] flex items-center justify-between px-5 shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-full bg-[#0a9396]/20 flex items-center justify-center">
+                    <span className="text-[10px] font-black text-[#0a9396]">
+                      {getInitials(selected.clientName)}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-white">{selected.clientName}</p>
+                    <p className="text-[10px] text-gray-500">{selected.projectName}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {callingState === "calling" ? (
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#0a9396]/10 border border-[#0a9396]/20">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-[#0a9396]" />
+                      <span className="text-xs font-semibold text-[#0a9396]">Calling...</span>
                     </div>
-                 </div>
-                 <div className="flex items-center gap-3">
-                    <div className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
-                       <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Active Stream</span>
-                    </div>
-                 </div>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => initiateCall("audio")}
+                        title="Voice Call"
+                        className="h-8 w-8 rounded-lg bg-white/5 hover:bg-emerald-500/10 hover:text-emerald-400 text-gray-400 flex items-center justify-center transition-all border border-white/5 hover:border-emerald-500/20"
+                      >
+                        <Phone className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => initiateCall("video")}
+                        title="Video Call"
+                        className="h-8 w-8 rounded-lg bg-white/5 hover:bg-[#0a9396]/10 hover:text-[#0a9396] text-gray-400 flex items-center justify-center transition-all border border-white/5 hover:border-[#0a9396]/20"
+                      >
+                        <Video className="h-4 w-4" />
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
-              <div className="flex-1">
-                <LiveKitChat room={selectedRoom} mode="video" />
+
+              {/* Message thread */}
+              <div className="flex-1 min-h-0 overflow-hidden">
+                <MessageThread
+                  inquiryId={selected.id}
+                  otherUserId={selected.clientId}
+                  onVideoCall={() => initiateCall("video")}
+                  onVoiceCall={() => initiateCall("audio")}
+                />
               </div>
             </motion.div>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-center p-12 bg-[#0A0A0B]">
-              <div className="relative mb-12">
-                <div className="h-48 w-48 bg-[#0a9396]/5 rounded-full flex items-center justify-center">
-                   <div className="h-32 w-32 bg-[#0a9396]/10 rounded-full flex items-center justify-center animate-pulse">
-                      <Monitor className="h-16 w-16 text-[#0a9396]" />
-                   </div>
-                </div>
-                <motion.div 
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                  className="absolute inset-0 border-2 border-dashed border-[#0a9396]/20 rounded-full" 
-                />
+            <motion.div
+              key="empty"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex-1 flex flex-col items-center justify-center text-center p-12"
+            >
+              <div className="h-16 w-16 rounded-2xl bg-white/5 flex items-center justify-center mb-6">
+                <MessageSquare className="h-8 w-8 text-gray-600" />
               </div>
-              
-              <h2 className="text-4xl font-black text-white mb-6 tracking-tighter uppercase">Hub Standby</h2>
-              <p className="text-gray-500 max-w-lg font-medium leading-relaxed mb-10 text-sm">
-                The communication infrastructure is ready for initialization. Select a participant from the control panel to establish a secure real-time channel.
+              <h2 className="text-lg font-bold text-white mb-2">Select a conversation</h2>
+              <p className="text-sm text-gray-500 max-w-xs">
+                Choose a client from the list to start messaging or make a call
               </p>
-              
-              <div className="grid grid-cols-3 gap-6 w-full max-w-2xl">
-                 {[
-                   { label: "Neural Audio", icon: Phone, desc: "Ultra-low latency" },
-                   { label: "4K Video Hub", icon: Video, desc: "Lossless stream" },
-                   { label: "Data Channel", icon: MessageSquare, desc: "Real-time sync" }
-                 ].map((feat) => (
-                   <div key={feat.label} className="p-6 bg-white/5 border border-white/5 rounded-[2rem] hover:bg-white/10 transition-all group">
-                      <div className="h-12 w-12 bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-                        <feat.icon className="h-6 w-6 text-[#0a9396]" />
-                      </div>
-                      <p className="text-[10px] font-black text-white uppercase tracking-widest mb-1">{feat.label}</p>
-                      <p className="text-[9px] font-bold text-gray-500 uppercase tracking-tighter">{feat.desc}</p>
-                   </div>
-                 ))}
+              <div className="mt-10 grid grid-cols-3 gap-4 max-w-sm w-full">
+                {[
+                  { icon: MessageSquare, label: "Text Chat" },
+                  { icon: Phone, label: "Voice Call" },
+                  { icon: Video, label: "Video Call" },
+                ].map((f) => (
+                  <div
+                    key={f.label}
+                    className="p-4 bg-white/3 border border-white/5 rounded-2xl flex flex-col items-center gap-2"
+                  >
+                    <f.icon className="h-5 w-5 text-[#0a9396]" />
+                    <p className="text-[10px] font-semibold text-gray-500">{f.label}</p>
+                  </div>
+                ))}
               </div>
-            </div>
+            </motion.div>
           )}
         </AnimatePresence>
       </div>
 
       <style jsx global>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(255, 255, 255, 0.05);
-          border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(255, 255, 255, 0.1);
-        }
+        .custom-scrollbar::-webkit-scrollbar { width: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.05); border-radius: 10px; }
+        .bg-white\/8 { background-color: rgba(255,255,255,0.08); }
+        .bg-white\/3 { background-color: rgba(255,255,255,0.03); }
       `}</style>
     </div>
   );

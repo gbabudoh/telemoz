@@ -69,7 +69,8 @@ export async function POST(request: NextRequest) {
         select: { userType: true }
       });
 
-      const notificationLink = `/messaging?inquiryId=${inquiryId}`;
+      const basePath = receiver?.userType === "pro" ? "/pro/messaging" : "/client/messaging";
+      const notificationLink = `${basePath}?inquiryId=${inquiryId}`;
 
       await prisma.notification.create({
         data: {

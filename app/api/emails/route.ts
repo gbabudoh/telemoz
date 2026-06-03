@@ -101,44 +101,62 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { receiverId, subject, content, inquiryId, projectId, threadId } = body;
+    const { receiverId, receiverEmail, subject, content, inquiryId, projectId, threadId } = body;
 
-    if (!content || (!threadId && (!receiverId || !subject))) {
+    if (!content || (!threadId && (!subject || (!receiverId && !receiverEmail)))) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    // Resolve receiver — accept either a DB id or an email address
+    let resolvedReceiverId = receiverId as string | undefined;
+    if (!resolvedReceiverId && receiverEmail) {
+      const found = await prisma.user.findUnique({
+        where: { email: receiverEmail.trim().toLowerCase() },
+        select: { id: true },
+      });
+      if (!found) {
+        return NextResponse.json({ error: "No user found with that email address" }, { status: 404 });
+      }
+      resolvedReceiverId = found.id;
+    }
+
+    // Prevent self-messaging
+    if (resolvedReceiverId === session.user.id) {
+      return NextResponse.json({ error: "Cannot send a message to yourself" }, { status: 400 });
     }
 
     let thread;
     if (threadId) {
-      // Reply to existing thread
       thread = await db.emailThread.update({
         where: { id: threadId },
-        data: { updatedAt: new Date() }
+        data: { updatedAt: new Date() },
       });
     } else {
-      // Create new thread
       thread = await db.emailThread.create({
         data: {
           subject,
           inquiryId,
           projectId,
           participants: {
-            connect: [
-              { id: session.user.id },
-              { id: receiverId }
-            ]
-          }
-        }
+            connect: [{ id: session.user.id }, { id: resolvedReceiverId }],
+          },
+        },
       });
     }
 
-    // Get receiver ID for replies
-    let messageReceiverId = receiverId;
+    // For replies, find the other participant
+    let messageReceiverId = resolvedReceiverId;
     if (!messageReceiverId && threadId) {
       const existingThread = await db.emailThread.findUnique({
         where: { id: threadId },
-        include: { participants: true }
+        include: { participants: true },
       });
-      messageReceiverId = existingThread?.participants.find((p) => p.id !== session.user.id)?.id || "";
+      messageReceiverId =
+        existingThread?.participants.find((p) => p.id !== session.user.id)?.id || "";
+    }
+
+    if (!messageReceiverId) {
+      return NextResponse.json({ error: "Could not determine recipient" }, { status: 400 });
     }
 
     const message = await db.emailMessage.create({
@@ -146,8 +164,8 @@ export async function POST(request: NextRequest) {
         threadId: thread.id,
         senderId: session.user.id,
         receiverId: messageReceiverId,
-        content
-      }
+        content,
+      },
     });
 
     return NextResponse.json({ thread, message });

@@ -155,7 +155,7 @@ export function NewProjectModal({ isOpen, onClose, onSuccess, title, description
             <div className="p-6 lg:p-8 border-b border-gray-100 flex items-center justify-between shrink-0">
               <div>
                 <h2 className="text-xl font-bold text-gray-900">
-                  {initialData ? "Edit Product" : (title || "New Product")}
+                  {initialData ? "Edit Project" : (title || "New Project")}
                 </h2>
                 <p className="text-sm text-gray-500 mt-0.5">
                   {initialData ? "Update your product details." : (description || "Fill in the details below to get started")}
@@ -365,7 +365,7 @@ export function NewProjectModal({ isOpen, onClose, onSuccess, title, description
                 ) : (
                   <>
                     <CheckCircle2 className="h-4 w-4" />
-                    {initialData ? "Save Changes" : "Create Product"}
+                    {initialData ? "Save Changes" : "Create Project"}
                   </>
                 )}
               </button>

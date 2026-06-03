@@ -1,5 +1,25 @@
 import type { NextConfig } from "next";
 
+const isDev = process.env.NODE_ENV === "development";
+
+const cspDirectives = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' https://fonts.gstatic.com data:",
+  "img-src 'self' data: blob: https: http://149.102.155.247:9000 *.googleusercontent.com",
+  "connect-src 'self' https://api.stripe.com https://novu.feendesk.com https://n8n.feendesk.com wss: ws:",
+  "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
+  "media-src 'self' blob:",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  // upgrade-insecure-requests forces HTTP→HTTPS upgrades.
+  // Must be disabled in development or it will break NextAuth's http://localhost fetches,
+  // causing the client to receive an HTML error page instead of JSON.
+  ...(isDev ? [] : ["upgrade-insecure-requests"]),
+];
+
 const securityHeaders = [
   // Prevent clickjacking
   { key: "X-Frame-Options", value: "SAMEORIGIN" },
@@ -13,10 +33,15 @@ const securityHeaders = [
     value: "camera=(), microphone=(self), geolocation=(), payment=(self)",
   },
   // HSTS — 2 years, include subdomains, preload-ready
-  {
-    key: "Strict-Transport-Security",
-    value: "max-age=63072000; includeSubDomains; preload",
-  },
+  // Only apply in production; in dev there's no TLS cert
+  ...(isDev
+    ? []
+    : [
+        {
+          key: "Strict-Transport-Security",
+          value: "max-age=63072000; includeSubDomains; preload",
+        },
+      ]),
   // XSS protection for older browsers
   { key: "X-XSS-Protection", value: "1; mode=block" },
   // DNS prefetch control
@@ -26,20 +51,7 @@ const securityHeaders = [
   // Tighten further once a nonce-based CSP is ready.
   {
     key: "Content-Security-Policy",
-    value: [
-      "default-src 'self'",
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com",
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      "font-src 'self' https://fonts.gstatic.com data:",
-      "img-src 'self' data: blob: https: http://149.102.155.247:9000 *.googleusercontent.com",
-      "connect-src 'self' https://api.stripe.com https://novu.feendesk.com https://n8n.feendesk.com wss: ws:",
-      "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
-      "media-src 'self' blob:",
-      "object-src 'none'",
-      "base-uri 'self'",
-      "form-action 'self'",
-      "upgrade-insecure-requests",
-    ].join("; "),
+    value: cspDirectives.join("; "),
   },
 ];
 

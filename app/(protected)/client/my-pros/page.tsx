@@ -4,21 +4,22 @@ import {
   Star,
   Search,
   MapPin,
-  Clock,
+  Mail,
   Briefcase,
   Users,
-  Filter,
   Award,
   Wallet,
   ShieldCheck,
   LayoutGrid,
   List,
   ArrowUpRight,
+  MessageSquare,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 interface Pro {
   id: string;
@@ -39,6 +40,7 @@ interface Pro {
 }
 
 export default function MyProsPage() {
+  const router = useRouter();
   const [pros, setPros] = useState<Pro[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -74,7 +76,7 @@ export default function MyProsPage() {
     { title: "Total Pros", value: pros.length, icon: Users },
     { title: "Active Projects", value: totalProjects, icon: Briefcase },
     { title: "Avg. Rating", value: avgRating > 0 ? avgRating.toFixed(1) : "—", suffix: avgRating > 0 ? "/5.0" : undefined, icon: Star },
-    { title: "Total Spent", value: formatCurrency(totalSpent), icon: Wallet },
+    { title: "Amount Paid", value: formatCurrency(totalSpent), icon: Wallet },
   ];
 
   return (
@@ -155,10 +157,6 @@ export default function MyProsPage() {
               />
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              <button className="h-11 px-4 rounded-xl bg-white border border-gray-200 hover:border-[#0a9396]/30 text-gray-500 text-sm font-medium flex items-center gap-2 transition-all">
-                <Filter className="h-4 w-4 text-[#0a9396]" />
-                Filter
-              </button>
               <div className="h-11 bg-white border border-gray-200 rounded-xl p-1 flex items-center gap-0.5">
                 <button
                   onClick={() => setViewMode("grid")}
@@ -211,7 +209,7 @@ export default function MyProsPage() {
                     Clear Search
                   </button>
                 ) : (
-                  <Link href="/client">
+                  <Link href="/client/brief">
                     <button className="px-5 py-2.5 rounded-xl bg-[#0a9396] hover:bg-[#087579] text-white font-semibold text-sm shadow-sm transition-all">
                       Post a Project
                     </button>
@@ -273,12 +271,20 @@ export default function MyProsPage() {
                           )}
                         </div>
                         {pro.profile?.availability && (
-                          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold ${
+                          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold capitalize ${
                             pro.profile.availability === "available"
-                              ? "bg-[#6ece39]/10 border border-[#6ece39]/25 text-green-800"
-                              : "bg-gray-100 border border-gray-200 text-gray-600"
+                              ? "bg-emerald-50 border border-emerald-200 text-emerald-700"
+                              : pro.profile.availability === "busy"
+                              ? "bg-amber-50 border border-amber-200 text-amber-700"
+                              : "bg-gray-100 border border-gray-200 text-gray-500"
                           }`}>
-                            <span className={`h-1.5 w-1.5 rounded-full inline-block ${pro.profile.availability === "available" ? "bg-[#6ece39] animate-pulse" : "bg-gray-400"}`} />
+                            <span className={`h-1.5 w-1.5 rounded-full inline-block ${
+                              pro.profile.availability === "available"
+                                ? "bg-emerald-500 animate-pulse"
+                                : pro.profile.availability === "busy"
+                                ? "bg-amber-500"
+                                : "bg-gray-400"
+                            }`} />
                             {pro.profile.availability}
                           </div>
                         )}
@@ -300,7 +306,7 @@ export default function MyProsPage() {
                             </div>
                           </div>
                           <div>
-                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Total Spent</p>
+                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Amount Paid</p>
                             <div className="p-3 rounded-xl bg-gray-50 border border-gray-100 flex items-center gap-2">
                               <Wallet className="h-4 w-4 text-[#0a9396]" />
                               <span className="font-bold text-gray-900 text-sm">{formatCurrency(pro.totalSpent)}</span>
@@ -342,12 +348,19 @@ export default function MyProsPage() {
 
                       <div className="mt-5 pt-4 border-t border-gray-100 flex flex-col sm:flex-row items-center gap-3">
                         <div className="flex items-center gap-1.5 text-xs text-gray-400 mr-auto">
-                          <Clock className="h-3.5 w-3.5" />
+                          <Mail className="h-3.5 w-3.5" />
                           {pro.email}
                         </div>
                         <div className="flex items-center gap-2 w-full sm:w-auto">
-                          <Link href={`/marketplace/${pro.id}`} className="flex-1 sm:flex-none">
-                            <button className="h-10 w-full sm:px-5 rounded-xl bg-white border border-gray-200 hover:border-[#0a9396]/30 text-gray-600 hover:text-[#0a9396] text-sm font-medium shadow-sm transition-all flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => router.push("/client/messaging")}
+                            className="h-10 px-4 rounded-xl bg-[#0a9396]/8 border border-[#0a9396]/15 hover:bg-[#0a9396]/15 text-[#0a9396] text-sm font-semibold transition-all flex items-center gap-2"
+                          >
+                            <MessageSquare className="h-3.5 w-3.5" />
+                            Message
+                          </button>
+                          <Link href={`/marketplace/${pro.id}`}>
+                            <button className="h-10 px-4 rounded-xl bg-white border border-gray-200 hover:border-[#0a9396]/30 text-gray-600 hover:text-[#0a9396] text-sm font-medium shadow-sm transition-all flex items-center gap-2">
                               View Profile
                             </button>
                           </Link>

@@ -3,7 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 
-const VALID_STATUSES = ["new", "reviewed", "responded", "accepted", "declined"] as const;
+// "accepted" is gated to the client-side accept route only
+const VALID_STATUSES = ["new", "reviewed", "responded", "declined"] as const;
 
 export async function PATCH(
   request: NextRequest,

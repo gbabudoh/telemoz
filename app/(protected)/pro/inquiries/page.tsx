@@ -126,7 +126,7 @@ export default function MarketplaceInquiriesPage() {
   };
 
   const handleOpenChat = useCallback((inquiry: Inquiry) => {
-    router.push(`/messaging?inquiryId=${inquiry.id}`);
+    router.push(`/pro/messaging`);
   }, [router]);
 
   // Handle deep linking to a specific inquiry
@@ -420,7 +420,7 @@ export default function MarketplaceInquiriesPage() {
                                   <div className="absolute inset-[1px] rounded-[15px] bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
                                   <span className="relative z-10 flex items-center justify-center text-white">
                                     {isProcessing ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
-                                    Review & Accept Brief
+                                    Accept to Review
                                   </span>
                                 </button>
                                 <div className="flex gap-3 w-full">
@@ -430,7 +430,7 @@ export default function MarketplaceInquiriesPage() {
                                     className="flex-1 flex items-center justify-center bg-white/80 hover:bg-white shadow-sm rounded-xl border border-gray-100 text-gray-700 h-11 text-[12px] font-black uppercase tracking-wider transition-all disabled:opacity-50"
                                   >
                                     <MessageSquare className="mr-2 h-3.5 w-3.5 text-gray-400" />
-                                    Reply via Hub
+                                    Message Client
                                   </button>
                                   <button
                                     disabled={isProcessing}
@@ -469,12 +469,15 @@ export default function MarketplaceInquiriesPage() {
                             )}
 
                             {inquiry.status === "accepted" && (
-                              <button className="w-full relative group h-14 rounded-2xl overflow-hidden font-black uppercase tracking-[0.1em] text-[13px] shadow-xl shadow-emerald-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); router.push(`/pro/projects/${inquiry.projectId}`); }}
+                                className="w-full relative group h-14 rounded-2xl overflow-hidden font-black uppercase tracking-[0.1em] text-[13px] shadow-xl shadow-emerald-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                              >
                                 <div className="absolute inset-0 bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-600 bg-[length:200%_auto] group-hover:animate-gradient" />
                                 <div className="absolute inset-[1px] rounded-[15px] bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
                                 <span className="relative z-10 flex items-center justify-center text-white">
                                   <Building2 className="mr-2 h-4 w-4" />
-                                  Begin Onboarding
+                                  Open Project
                                 </span>
                               </button>
                             )}
@@ -679,7 +682,7 @@ export default function MarketplaceInquiriesPage() {
                 <XCircle className="h-6 w-6 text-gray-400" />
               </button>
             </div>
-            <CallScheduler proId={session?.user?.id || ""} onScheduled={() => setIsSchedulerOpen(false)} />
+            <CallScheduler proId={selectedInquiry?.clientId || ""} onScheduled={() => setIsSchedulerOpen(false)} />
           </div>
         </Modal>
       )}

@@ -40,6 +40,7 @@ interface ProDetails {
   availability: string;
   certifications: Certification[];
   deliverables: string[];
+  profileComplete: boolean;
 }
 
 export default function ProProfilePage() {
@@ -227,6 +228,21 @@ export default function ProProfilePage() {
             transition={{ delay: 0.1 }}
             className="lg:col-span-8 space-y-5"
           >
+
+            {/* Incomplete profile notice */}
+            {!proData.profileComplete && (
+              <div className={`${panelClass} p-5 flex items-start gap-4 border-amber-200 bg-amber-50/60`}>
+                <div className="h-10 w-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+                  <Shield className="h-5 w-5 text-amber-500" />
+                </div>
+                <div>
+                  <p className="font-semibold text-amber-800 text-sm">Profile setup in progress</p>
+                  <p className="text-amber-700 text-xs mt-0.5">
+                    This professional hasn&apos;t completed their profile yet. You can still express interest and they will be notified.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Security banner */}
             <div className={`${panelClass} p-6 flex flex-col sm:flex-row items-start gap-5`}>

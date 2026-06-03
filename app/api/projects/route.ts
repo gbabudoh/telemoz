@@ -43,12 +43,55 @@ export async function GET(request: NextRequest) {
       include: {
         pro: { select: { id: true, name: true, email: true, image: true } },
         client: { select: { id: true, name: true, email: true, image: true } },
-        _count: { select: { proposals: true } },
+        milestones: {
+          select: { id: true, title: true, status: true, dueDate: true },
+          orderBy: { dueDate: "asc" },
+        },
+        deliverables: {
+          select: { id: true, title: true, approvalStatus: true },
+        },
+        invoices: {
+          where: { status: "paid" },
+          select: { total: true },
+        },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { updatedAt: "desc" },
     });
 
-    return NextResponse.json({ projects });
+    // Compute real progress per project
+    const enriched = projects.map((p) => {
+      const totalMilestones = p.milestones.length;
+      const completedMilestones = p.milestones.filter((m) => m.status === "completed").length;
+      const totalDeliverables = p.deliverables.length;
+      const approvedDeliverables = p.deliverables.filter((d) => d.approvalStatus === "approved").length;
+      const amountPaid = p.invoices.reduce((sum, inv) => sum + inv.total, 0);
+
+      let progress = 0;
+      if (totalMilestones > 0) {
+        progress = Math.round((completedMilestones / totalMilestones) * 100);
+      } else if (totalDeliverables > 0) {
+        progress = Math.round((approvedDeliverables / totalDeliverables) * 100);
+      } else if (p.status === "completed") {
+        progress = 100;
+      }
+      // 0% when no milestones or deliverables — honest, not a fake status-based guess
+
+      const nextMilestone = p.milestones.find((m) => m.status !== "completed");
+
+      return {
+        ...p,
+        progress,
+        totalMilestones,
+        completedMilestones,
+        totalDeliverables,
+        approvedDeliverables,
+        amountPaid,
+        nextMilestoneName: nextMilestone?.title ?? null,
+        nextMilestoneDue: nextMilestone?.dueDate ?? null,
+      };
+    });
+
+    return NextResponse.json({ projects: enriched });
   } catch (error: unknown) {
     console.error("Error fetching projects:", error);
     return NextResponse.json(

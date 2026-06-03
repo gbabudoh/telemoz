@@ -82,12 +82,16 @@ export async function POST(req: Request) {
 
     // To create an invoice, we need a clientId.
     // If the clientEmail is provided, we look up the user.
-    const clientUser = await prisma.user.findUnique({
-      where: { email: body.clientEmail }
-    });
+    // Accept clientId directly (internal flow) or fall back to email lookup
+    let clientUser: { id: string } | null = null;
+    if (body.clientId) {
+      clientUser = await prisma.user.findUnique({ where: { id: body.clientId }, select: { id: true } });
+    } else if (body.clientEmail) {
+      clientUser = await prisma.user.findUnique({ where: { email: body.clientEmail }, select: { id: true } });
+    }
 
     if (!clientUser) {
-      return NextResponse.json({ error: "Client not found. Please ensure the client has a Telemoz account." }, { status: 404 });
+      return NextResponse.json({ error: "Client not found." }, { status: 404 });
     }
 
     const invoice = await prisma.invoice.create({

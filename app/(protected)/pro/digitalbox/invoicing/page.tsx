@@ -58,15 +58,19 @@ export default function InvoicingPage() {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isNewInvoiceOpen, setIsNewInvoiceOpen] = useState(false);
   const [newInvoiceData, setNewInvoiceData] = useState({
-    client: "",
-    clientEmail: "",
+    clientId: "",
+    clientName: "",
+    projectId: "",
     project: "",
     dueDate: "",
     notes: "",
     isEscrow: false,
     milestoneTitle: "",
+    notifyOnCompletion: false,
     sendImmediately: false,
   });
+  const [connectedClients, setConnectedClients] = useState<{ id: string; name: string; email: string }[]>([]);
+  const [clientProjects, setClientProjects] = useState<{ id: string; title: string }[]>([]);
   const [newInvoiceItems, setNewInvoiceItems] = useState([
     { description: "", quantity: 1, unitPrice: 0 },
   ]);
@@ -127,19 +131,36 @@ export default function InvoicingPage() {
 
 
 
-  const handleCreateInvoice = () => {
-    setNewInvoiceData({ 
-      client: "", 
-      clientEmail: "", 
-      project: "", 
-      dueDate: "", 
-      notes: "", 
-      isEscrow: false, 
-      milestoneTitle: "", 
-      sendImmediately: false 
+  const handleCreateInvoice = async () => {
+    setNewInvoiceData({
+      clientId: "", clientName: "", projectId: "", project: "",
+      dueDate: "", notes: "", isEscrow: false, milestoneTitle: "",
+      notifyOnCompletion: false, sendImmediately: false,
     });
     setNewInvoiceItems([{ description: "", quantity: 1, unitPrice: 0 }]);
+    setClientProjects([]);
+    // Load connected clients
+    try {
+      const r = await fetch("/api/users/connected");
+      const d = await r.json();
+      setConnectedClients(d.users ?? []);
+    } catch { setConnectedClients([]); }
     setIsNewInvoiceOpen(true);
+  };
+
+  const handleClientSelect = async (clientId: string) => {
+    const client = connectedClients.find(c => c.id === clientId);
+    setNewInvoiceData(prev => ({ ...prev, clientId, clientName: client?.name ?? "", projectId: "", project: "" }));
+    if (!clientId) { setClientProjects([]); return; }
+    // Load projects shared with this client
+    try {
+      const r = await fetch("/api/projects?userType=pro");
+      const d = await r.json();
+      const filtered = (d.projects ?? [])
+        .filter((p: { clientId: string; title: string; id: string }) => p.clientId === clientId)
+        .map((p: { id: string; title: string }) => ({ id: p.id, title: p.title }));
+      setClientProjects(filtered);
+    } catch { setClientProjects([]); }
   };
 
   const addInvoiceItem = () => {
@@ -162,15 +183,19 @@ export default function InvoicingPage() {
   );
 
   const handleSaveNewInvoice = async () => {
-    if (!newInvoiceData.client.trim() || !newInvoiceData.project.trim() || !newInvoiceData.dueDate) {
-      showNotification("Missing Fields", "Please fill in client name, project, and due date.", "error");
+    if (!newInvoiceData.clientId) {
+      showNotification("Missing Fields", "Please select a client.", "error");
+      return;
+    }
+    if (!newInvoiceData.dueDate) {
+      showNotification("Missing Fields", "Please set a payment deadline.", "error");
       return;
     }
     if (newInvoiceItems.some((i) => !i.description.trim())) {
       showNotification("Missing Fields", "Please fill in a description for each line item.", "error");
       return;
     }
-    
+
     setIsLoading(true);
     try {
       const nextNumber = `INV-${String(invoicesList.length + 1).padStart(6, "0")}`;
@@ -181,13 +206,14 @@ export default function InvoicingPage() {
         total: i.quantity * i.unitPrice,
       }));
       const subtotal = items.reduce((s, i) => s + i.total, 0);
-      
+
       const res = await fetch("/api/pro/invoices", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           invoiceNumber: nextNumber,
-          clientEmail: newInvoiceData.clientEmail,
+          clientId: newInvoiceData.clientId,          // direct ID — no email lookup needed
+          projectId: newInvoiceData.projectId || null,
           projectTitle: newInvoiceData.project,
           items,
           subtotal,
@@ -197,7 +223,9 @@ export default function InvoicingPage() {
           status: newInvoiceData.sendImmediately ? "sent" : "draft",
           dueDate: newInvoiceData.dueDate,
           isEscrow: newInvoiceData.isEscrow,
-          milestoneTitle: newInvoiceData.milestoneTitle,
+          milestoneTitle: newInvoiceData.milestoneTitle || null,
+          notifyOnCompletion: newInvoiceData.notifyOnCompletion,
+          notes: newInvoiceData.notes || null,
         }),
       });
 
@@ -646,7 +674,7 @@ export default function InvoicingPage() {
       {/* New Invoice Modal */}
       <AnimatePresence>
         {isNewInvoiceOpen && (
-          <div className="fixed inset-0 z-50 flex items-start justify-center p-4 overflow-y-auto">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -655,11 +683,11 @@ export default function InvoicingPage() {
               onClick={() => setIsNewInvoiceOpen(false)}
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 30 }}
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 30 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ type: "spring", stiffness: 260, damping: 22 }}
-              className="relative z-10 w-full max-w-2xl my-8 bg-white rounded-3xl shadow-[0_30px_80px_-10px_rgba(0,0,0,0.35)] border border-gray-200 overflow-hidden"
+              className="relative z-10 w-full max-w-2xl max-h-[82vh] flex flex-col bg-white rounded-3xl shadow-[0_30px_80px_-10px_rgba(0,0,0,0.35)] border border-gray-200 overflow-hidden"
             >
               {/* Header */}
               <div className="bg-gray-900 px-7 py-5 flex items-center justify-between">
@@ -680,48 +708,66 @@ export default function InvoicingPage() {
                 </button>
               </div>
 
-              <div className="p-7 space-y-7 max-h-[calc(100vh-12rem)] overflow-y-auto">
+              <div className="flex-1 overflow-y-auto p-5 space-y-5">
 
                 {/* Client & Project */}
                 <div>
-                  <p className="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-3">Client Details</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <p className="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-3">Client & Project</p>
+                  <div className="space-y-3">
+                    {/* Client picker */}
                     <div className="space-y-1.5">
                       <label className="text-[13px] font-bold text-gray-600 flex items-center gap-1.5">
-                        <User className="h-3.5 w-3.5" /> Client Name <span className="text-red-400">*</span>
+                        <User className="h-3.5 w-3.5" /> Select Client <span className="text-red-400">*</span>
                       </label>
-                      <input
-                        type="text"
-                        placeholder="e.g. TechStart Inc."
-                        value={newInvoiceData.client}
-                        onChange={(e) => setNewInvoiceData({ ...newInvoiceData, client: e.target.value })}
-                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium text-gray-900 placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all"
-                      />
+                      {connectedClients.length === 0 ? (
+                        <div className="w-full bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-700 font-medium">
+                          No connected clients yet. You need an accepted inquiry before you can invoice a client.
+                        </div>
+                      ) : (
+                        <select
+                          value={newInvoiceData.clientId}
+                          onChange={(e) => handleClientSelect(e.target.value)}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium text-gray-900 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all appearance-none cursor-pointer"
+                        >
+                          <option value="">— Choose a client —</option>
+                          {connectedClients.map(c => (
+                            <option key={c.id} value={c.id}>{c.name} ({c.email})</option>
+                          ))}
+                        </select>
+                      )}
                     </div>
-                    <div className="space-y-1.5">
-                      <label className="text-[13px] font-bold text-gray-600 flex items-center gap-1.5">
-                        <Mail className="h-3.5 w-3.5" /> Client Email
-                      </label>
-                      <input
-                        type="email"
-                        placeholder="e.g. hello@client.com"
-                        value={newInvoiceData.clientEmail}
-                        onChange={(e) => setNewInvoiceData({ ...newInvoiceData, clientEmail: e.target.value })}
-                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium text-gray-900 placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all"
-                      />
-                    </div>
-                    <div className="space-y-1.5 sm:col-span-2">
-                      <label className="text-[13px] font-bold text-gray-600 flex items-center gap-1.5">
-                        <Briefcase className="h-3.5 w-3.5" /> Project / Description <span className="text-red-400">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="e.g. SEO Optimisation Campaign"
-                        value={newInvoiceData.project}
-                        onChange={(e) => setNewInvoiceData({ ...newInvoiceData, project: e.target.value })}
-                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium text-gray-900 placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all"
-                      />
-                    </div>
+
+                    {/* Project picker — only shown once client selected */}
+                    {newInvoiceData.clientId && (
+                      <div className="space-y-1.5">
+                        <label className="text-[13px] font-bold text-gray-600 flex items-center gap-1.5">
+                          <Briefcase className="h-3.5 w-3.5" /> Project
+                        </label>
+                        {clientProjects.length === 0 ? (
+                          <input
+                            type="text"
+                            placeholder="e.g. SEO Campaign Q4"
+                            value={newInvoiceData.project}
+                            onChange={(e) => setNewInvoiceData({ ...newInvoiceData, project: e.target.value })}
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium text-gray-900 placeholder-gray-400 focus:border-emerald-500 outline-none transition-all"
+                          />
+                        ) : (
+                          <select
+                            value={newInvoiceData.projectId}
+                            onChange={(e) => {
+                              const proj = clientProjects.find(p => p.id === e.target.value);
+                              setNewInvoiceData({ ...newInvoiceData, projectId: e.target.value, project: proj?.title ?? "" });
+                            }}
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium text-gray-900 focus:border-emerald-500 outline-none transition-all appearance-none cursor-pointer"
+                          >
+                            <option value="">— Select a project —</option>
+                            {clientProjects.map(p => (
+                              <option key={p.id} value={p.id}>{p.title}</option>
+                            ))}
+                          </select>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -791,7 +837,9 @@ export default function InvoicingPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-[13px] font-bold text-gray-600 flex items-center gap-1.5">
-                      <Calendar className="h-3.5 w-3.5" /> Due Date <span className="text-red-400">*</span>
+                      <Calendar className="h-3.5 w-3.5" />
+                      {newInvoiceData.isEscrow ? "Escrow Payment Deadline" : "Due Date"}
+                      <span className="text-red-400">*</span>
                     </label>
                     <input
                       type="date"
@@ -800,6 +848,9 @@ export default function InvoicingPage() {
                       onChange={(e) => setNewInvoiceData({ ...newInvoiceData, dueDate: e.target.value })}
                       className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium text-gray-900 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all"
                     />
+                    {newInvoiceData.isEscrow && (
+                      <p className="text-xs text-amber-600 font-medium">Client must fund escrow by this date.</p>
+                    )}
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[13px] font-bold text-gray-600">Notes <span className="text-gray-400 font-medium">(optional)</span></label>
@@ -814,8 +865,8 @@ export default function InvoicingPage() {
                 </div>
 
                 {/* Escrow & Milestone */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <label className="flex items-center gap-3 p-4 bg-gray-50 border border-gray-100 rounded-xl cursor-pointer group">
+                <div className="space-y-3">
+                  <label className="flex items-center gap-3 p-4 bg-gray-50 border border-gray-100 rounded-xl cursor-pointer">
                     <input
                       type="checkbox"
                       checked={newInvoiceData.isEscrow}
@@ -824,19 +875,34 @@ export default function InvoicingPage() {
                     />
                     <div>
                       <p className="text-sm font-bold text-gray-800">Enable Escrow</p>
-                      <p className="text-xs text-gray-500 font-medium mt-0.5">Funds held until milestone release</p>
+                      <p className="text-xs text-gray-500 font-medium mt-0.5">Funds held securely until client approves delivery</p>
                     </div>
                   </label>
+
                   {newInvoiceData.isEscrow && (
-                    <div className="space-y-1.5">
-                      <label className="text-[13px] font-bold text-gray-600">Milestone Title</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Phase 1 Completion"
-                        value={newInvoiceData.milestoneTitle}
-                        onChange={(e) => setNewInvoiceData({ ...newInvoiceData, milestoneTitle: e.target.value })}
-                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium text-gray-900 focus:border-emerald-500 outline-none transition-all"
-                      />
+                    <div className="pl-1 space-y-3">
+                      <div className="space-y-1.5">
+                        <label className="text-[13px] font-bold text-gray-600">Milestone / Deliverable Title</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Phase 1 — SEO Audit Complete"
+                          value={newInvoiceData.milestoneTitle}
+                          onChange={(e) => setNewInvoiceData({ ...newInvoiceData, milestoneTitle: e.target.value })}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium text-gray-900 focus:border-emerald-500 outline-none transition-all"
+                        />
+                      </div>
+                      <label className="flex items-center gap-3 p-4 bg-emerald-50 border border-emerald-100 rounded-xl cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={newInvoiceData.notifyOnCompletion}
+                          onChange={(e) => setNewInvoiceData({ ...newInvoiceData, notifyOnCompletion: e.target.checked })}
+                          className="h-4 w-4 accent-emerald-500 cursor-pointer"
+                        />
+                        <div>
+                          <p className="text-sm font-bold text-gray-800">Notify client to release payment on project completion</p>
+                          <p className="text-xs text-gray-500 mt-0.5">Client receives a prompt to release escrow funds when all milestones are marked complete</p>
+                        </div>
+                      </label>
                     </div>
                   )}
                 </div>

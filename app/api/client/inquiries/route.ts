@@ -24,11 +24,11 @@ export async function GET() {
     const inquiries = await prisma.inquiry.findMany({
       where: { clientId: session.user.id },
       include: {
-        pro: { 
-          select: { 
-            id: true, 
-            name: true, 
-            city: true, 
+        pro: {
+          select: {
+            id: true,
+            name: true,
+            city: true,
             country: true,
             proProfile: {
               select: {
@@ -38,7 +38,7 @@ export async function GET() {
                 reviewCount: true,
               }
             }
-          } 
+          }
         },
         project: {
           select: {
@@ -50,25 +50,40 @@ export async function GET() {
             category: true,
           },
         },
+        messages: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: { text: true, senderId: true, createdAt: true, read: true },
+        },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { updatedAt: "desc" },
     });
 
+    const unreadCounts = await Promise.all(
+      inquiries.map((i) =>
+        prisma.message.count({
+          where: { inquiryId: i.id, receiverId: session.user.id, read: false },
+        })
+      )
+    );
+
     return NextResponse.json({
-      inquiries: inquiries.map((i) => ({
+      inquiries: inquiries.map((i, idx) => ({
         id: i.id,
         proName: i.pro?.name || "Pending Assignment",
         proProfile: i.pro?.proProfile || null,
         project: i.project.title,
         budget: i.project.budget ?? 0,
         status: i.status,
-        time: relativeTime(i.createdAt),
+        time: relativeTime(i.updatedAt),
         receivedDate: i.createdAt.toISOString(),
         description: i.project.description,
         requirements: i.project.category ? [i.project.category] : [],
         projectId: i.project.id,
         proId: i.pro?.id,
         message: i.message ?? "",
+        lastMessage: i.messages[0] ?? null,
+        unreadCount: unreadCounts[idx],
       })),
     });
   } catch (error) {

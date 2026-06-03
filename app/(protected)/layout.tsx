@@ -22,15 +22,17 @@ export default function ProtectedLayout({
     return <>{children}</>;
   }
 
+  const isMessagingRoute = pathname?.includes("/messaging") || pathname?.includes("/inbox");
+
   return (
     <div className="flex h-screen overflow-hidden bg-linear-to-br from-gray-50 via-white to-[#0a9396]/5">
       <DashboardSidebar userType={userType} />
       <div className="flex flex-1 flex-col overflow-hidden relative">
         <DashboardHeader />
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 md:pb-6">
+        <main className={`flex-1 ${isMessagingRoute ? "overflow-hidden p-0" : "overflow-y-auto p-4 md:p-6 pb-24 md:pb-6"}`}>
           {children}
         </main>
-        
+
         {/* Mobile-Only Bottom Navigation */}
         <MobileBottomNav userType={userType} />
       </div>

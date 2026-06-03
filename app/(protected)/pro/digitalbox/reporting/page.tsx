@@ -335,7 +335,7 @@ export default function ReportingPage() {
   };
 
   return (
-    <div id="reporting-content" className="relative min-h-[calc(100vh-4rem)] bg-gray-50 overflow-hidden pb-32">
+    <div id="reporting-content" className="relative min-h-[calc(100vh-4rem)] bg-gray-50 overflow-x-hidden pb-32">
        {/* Ambient Global Lighting Elements */}
        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-emerald-400/10 blur-[120px] pointer-events-none mix-blend-multiply animate-pulse-slow" />
        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-[#0a9396]/10 blur-[120px] pointer-events-none mix-blend-multiply animate-pulse-slower" />
@@ -344,7 +344,7 @@ export default function ReportingPage() {
        <div className="relative z-10 space-y-8 max-w-[1600px] mx-auto p-4 sm:p-6 lg:p-8">
         
         {/* Ultra-Premium Glass Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 bg-white/40 p-8 rounded-[2.5rem] border border-white/60 shadow-[inset_0_2px_15px_rgb(255,255,255,0.7),0_8px_30px_rgb(0,0,0,0.02)] backdrop-blur-2xl">
+        <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 bg-white/40 p-8 rounded-[2.5rem] border border-white/60 shadow-[inset_0_2px_15px_rgb(255,255,255,0.7),0_8px_30px_rgb(0,0,0,0.02)] backdrop-blur-2xl">
           <div>
             <div className="flex items-center gap-4">
                <div className="p-4 bg-gradient-to-br from-[#0a9396] to-[#015f63] rounded-2xl shadow-lg shadow-[#0a9396]/20 relative overflow-hidden group">
@@ -395,13 +395,14 @@ export default function ReportingPage() {
                Date Range
              </Button>
              <div className="relative">
-                <Button 
+                <button
                   onClick={() => setShowExportDropdown(!showExportDropdown)}
-                  className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white shadow-xl shadow-gray-900/20 hover:shadow-2xl hover:shadow-gray-900/40 transition-all rounded-2xl h-full px-8 shrink-0 w-full sm:w-auto font-bold tracking-wide bg-[length:200%_auto] hover:animate-gradient active:scale-95 relative overflow-hidden group"
+                  className="group flex items-center gap-2.5 h-11 px-5 rounded-xl bg-[#0a9396] hover:bg-[#087579] text-white text-sm font-semibold shadow-md shadow-[#0a9396]/25 hover:shadow-lg hover:shadow-[#0a9396]/30 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
                 >
-                  <div className="absolute inset-[1px] rounded-[15px] bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
-                  <span className="relative z-10 flex items-center"><Download className="mr-2 h-5 w-5" /> Export Report</span>
-                </Button>
+                  <Download className="h-4 w-4 transition-transform group-hover:-translate-y-0.5" />
+                  Export Report
+                  <span className="ml-0.5 opacity-60 text-xs">▾</span>
+                </button>
 
                 {showExportDropdown && (
                   <motion.div 

@@ -24,23 +24,35 @@ export async function GET() {
     include: {
       client: { select: { id: true, name: true, city: true, country: true } },
       project: {
-        include: {
-          brief: true,
-        },
+        include: { brief: true },
+      },
+      messages: {
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: { text: true, senderId: true, createdAt: true, read: true },
       },
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: { updatedAt: "desc" },
   });
 
+  const unreadCounts = await Promise.all(
+    inquiries.map((i) =>
+      prisma.message.count({
+        where: { inquiryId: i.id, receiverId: session.user.id, read: false },
+      })
+    )
+  );
+
   return NextResponse.json({
-    inquiries: inquiries.map((i) => ({
+    inquiries: inquiries.map((i, idx) => ({
       id: i.id,
       client: i.client.name,
+      clientId: i.client.id,
       company: i.client.name,
       project: i.project.title,
       budget: i.project.budget ?? 0,
       status: i.status,
-      time: relativeTime(i.createdAt),
+      time: relativeTime(i.updatedAt),
       receivedDate: i.createdAt.toISOString(),
       description: i.project.description,
       objective: i.project.brief?.objective ?? i.project.description,
@@ -49,8 +61,9 @@ export async function GET() {
       deliverables: i.project.brief?.deliverables ?? [],
       requirements: i.project.category ? [i.project.category] : [],
       projectId: i.project.id,
-      clientId: i.client.id,
       message: i.message ?? "",
+      lastMessage: i.messages[0] ?? null,
+      unreadCount: unreadCounts[idx],
     })),
   });
 }
