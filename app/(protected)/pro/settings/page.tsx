@@ -30,6 +30,8 @@ import {
   Share2,
   Link2,
   Unlink,
+  BarChart3,
+  TrendingUp,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
@@ -260,6 +262,37 @@ export default function SettingsPage() {
       fetchIntegrations();
     }
   }, [session, activeTab]);
+
+  // Show toast from OAuth redirect query params
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const success = params.get("success");
+    const error = params.get("error");
+    if (success || error) {
+      setSaveSuccess(success ? "Integration connected successfully!" : null);
+      setSaveError(error ? "Failed to connect integration. Please try again." : null);
+      // Clean query params without reload
+      const clean = new URL(window.location.href);
+      clean.searchParams.delete("success");
+      clean.searchParams.delete("error");
+      window.history.replaceState({}, "", clean.toString());
+    }
+  }, []);
+
+  const handleDisconnect = async (provider: string) => {
+    try {
+      const res = await fetch(`/api/integrations/disconnect?provider=${provider}`, { method: "DELETE" });
+      if (res.ok) {
+        setIntegrations(prev => prev.filter(i => i.provider !== provider));
+        setSaveSuccess("Integration disconnected.");
+      } else {
+        setSaveError("Failed to disconnect. Please try again.");
+      }
+    } catch {
+      setSaveError("Failed to disconnect. Please try again.");
+    }
+  };
 
   const handleStripeOnboarding = async () => {
     setIsConnectingStripe(true);
@@ -859,11 +892,27 @@ export default function SettingsPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {[
                           {
+                            id: "google_analytics",
+                            name: "Google Analytics (GA4)",
+                            desc: "Pull sessions, users, page views, bounce rate, and conversions from GA4.",
+                            icon: BarChart3,
+                            color: "from-orange-400 to-yellow-500",
+                            connectUrl: "/api/integrations/google-analytics/connect",
+                          },
+                          {
+                            id: "google_ads",
+                            name: "Google Ads",
+                            desc: "Sync campaign performance, spend, clicks, and conversions from Google Ads.",
+                            icon: TrendingUp,
+                            color: "from-blue-400 to-blue-600",
+                            connectUrl: "/api/integrations/google-ads/connect",
+                          },
+                          {
                             id: "google_search_console",
                             name: "Google Search Console",
                             desc: "Pull organic search performance, clicks, and impressions.",
                             icon: Globe,
-                            color: "from-blue-400 to-blue-600",
+                            color: "from-green-400 to-emerald-600",
                             connectUrl: "/api/integrations/google/connect",
                           },
                           {
@@ -881,6 +930,22 @@ export default function SettingsPage() {
                             icon: Linkedin,
                             color: "from-blue-600 to-indigo-700",
                             connectUrl: "/api/integrations/linkedin/connect",
+                          },
+                          {
+                            id: "bing_ads",
+                            name: "Microsoft Advertising",
+                            desc: "Import Bing Ads campaign stats, spend, and conversion data.",
+                            icon: Globe,
+                            color: "from-cyan-500 to-blue-600",
+                            connectUrl: "/api/integrations/bing/connect",
+                          },
+                          {
+                            id: "twitter_ads",
+                            name: "X (Twitter) Ads",
+                            desc: "Track promoted tweet performance, spend, and engagement metrics.",
+                            icon: Share2,
+                            color: "from-gray-800 to-black",
+                            connectUrl: "/api/integrations/twitter/connect",
                           },
                         ].map((platform) => {
                           const integration = integrations.find(i => i.provider === platform.id);
@@ -900,23 +965,24 @@ export default function SettingsPage() {
                               </div>
                               <h3 className="text-lg font-black text-gray-900 tracking-tight">{platform.name}</h3>
                               <p className="text-sm font-semibold text-gray-500 mt-1 mb-6 leading-relaxed">{platform.desc}</p>
-                              
+
                               {isConnected ? (
                                 <div className="flex items-center justify-between gap-3 pt-4 border-t border-gray-100/50">
                                   <div className="flex flex-col">
                                     <span className="text-[10px] uppercase tracking-widest font-black text-gray-400">Account</span>
                                     <span className="text-xs font-bold text-gray-700 truncate max-w-[120px]">{integration.accountName || "Connected Account"}</span>
                                   </div>
-                                  <Button 
-                                    variant="outline" 
+                                  <Button
+                                    variant="outline"
                                     size="sm"
+                                    onClick={() => handleDisconnect(platform.id)}
                                     className="rounded-xl border-gray-200 text-gray-500 hover:text-red-500 hover:border-red-200 hover:bg-red-50 h-9 px-4 font-bold transition-all"
                                   >
                                     <Unlink className="h-3.5 w-3.5 mr-2" /> Disconnect
                                   </Button>
                                 </div>
                               ) : (
-                                <Button 
+                                <Button
                                   onClick={() => window.location.href = platform.connectUrl}
                                   className="w-full bg-gray-900 hover:bg-black text-white rounded-xl h-11 font-bold tracking-wide shadow-lg shadow-gray-200"
                                 >

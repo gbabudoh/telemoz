@@ -151,9 +151,12 @@ enum CampaignPlatform {
 
 enum IntegrationProvider {
   google_ads
+  google_analytics
   google_search_console
   meta_ads
   linkedin_ads
+  bing_ads
+  twitter_ads
 }
 
 // ─── Content Enums ────────────────────────────────────────────────────────────
