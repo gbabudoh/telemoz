@@ -7,6 +7,8 @@ declare module "next-auth" {
       email: string;
       name: string;
       userType: "pro" | "client" | "admin";
+      agencyId: string | null;   // set when user is a staff member of an agency
+      teamRole: string | null;   // "manager" | "contributor" when agencyId is set
     };
   }
 
@@ -22,5 +24,7 @@ declare module "next-auth/jwt" {
   interface JWT {
     id: string;
     userType: "pro" | "client" | "admin";
+    agencyId?: string | null;
+    teamRole?: string | null;
   }
 }

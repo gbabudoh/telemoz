@@ -208,6 +208,13 @@ enum TeamRole {
   contributor
 }
 
+enum InviteStatus {
+  pending
+  accepted
+  revoked
+  expired
+}
+
 // ─── Report Cadence ───────────────────────────────────────────────────────────
 
 enum ReportCadence {
@@ -312,6 +319,10 @@ model User {
 
   // Shared Reports
   reportShares         ReportShare[]
+
+  // Team invites
+  sentInvites          TeamInvite[]          @relation("AgencyInvites")
+  acceptedInvites      TeamInvite[]          @relation("AcceptedInvites")
 }
 
 model ProProfile {
@@ -722,15 +733,35 @@ model ProjectBrief {
 // ─── Team Member (Agency Accounts) ───────────────────────────────────────────
 
 model TeamMember {
-  id        String    @id @default(cuid())
-  agencyId  String
-  agency    User      @relation("AgencyTeam", fields: [agencyId], references: [id], onDelete: Cascade)
-  memberId  String
-  member    User      @relation("MemberOf", fields: [memberId], references: [id], onDelete: Cascade)
-  role      TeamRole  @default(contributor)
-  createdAt DateTime  @default(now())
+  id                      String    @id @default(cuid())
+  agencyId                String
+  agency                  User      @relation("AgencyTeam", fields: [agencyId], references: [id], onDelete: Cascade)
+  memberId                String
+  member                  User      @relation("MemberOf", fields: [memberId], references: [id], onDelete: Cascade)
+  role                    TeamRole  @default(contributor)
+  stripeSubscriptionItemId String?  // Stripe subscription item for this seat
+  createdAt               DateTime  @default(now())
 
   @@unique([agencyId, memberId])
+}
+
+model TeamInvite {
+  id         String       @id @default(cuid())
+  agencyId   String
+  agency     User         @relation("AgencyInvites", fields: [agencyId], references: [id], onDelete: Cascade)
+  email      String
+  role       TeamRole     @default(contributor)
+  token      String       @unique @default(cuid())
+  status     InviteStatus @default(pending)
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  memberId   String?
+  member     User?        @relation("AcceptedInvites", fields: [memberId], references: [id], onDelete: SetNull)
+  createdAt  DateTime     @default(now())
+
+  @@index([token])
+  @@index([agencyId])
+  @@index([email])
 }
 
 // ─── Scheduled Report ─────────────────────────────────────────────────────────

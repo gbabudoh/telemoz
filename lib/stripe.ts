@@ -64,3 +64,60 @@ export async function getSubscription(customerId: string) {
   return subscriptions.data[0] || null;
 }
 
+// ── Per-seat billing ──────────────────────────────────────────────────────────
+
+export const SEAT_PRICE_ID = process.env.STRIPE_SEAT_PRICE_ID || "";
+
+// Seat limits per subscription tier (0 = seats not allowed on free plan)
+export const SEAT_LIMITS: Record<string, number> = {
+  free: 0,
+  africa: 5,
+  international: 20,
+};
+
+export async function addSeat(customerId: string): Promise<string> {
+  const subscription = await getSubscription(customerId);
+  if (!subscription) throw new Error("No active subscription found");
+
+  // Check if a seat item already exists on this subscription and increment
+  const existingItem = subscription.items.data.find(
+    (item) => item.price.id === SEAT_PRICE_ID
+  );
+
+  if (existingItem) {
+    const updated = await stripe.subscriptionItems.update(existingItem.id, {
+      quantity: (existingItem.quantity ?? 0) + 1,
+    });
+    return updated.id;
+  }
+
+  // First seat — add a new subscription item
+  const item = await stripe.subscriptionItems.create({
+    subscription: subscription.id,
+    price: SEAT_PRICE_ID,
+    quantity: 1,
+  });
+  return item.id;
+}
+
+export async function removeSeat(
+  customerId: string,
+  subscriptionItemId: string
+): Promise<void> {
+  const subscription = await getSubscription(customerId);
+  if (!subscription) return;
+
+  const item = subscription.items.data.find((i) => i.id === subscriptionItemId);
+  if (!item) return;
+
+  if ((item.quantity ?? 1) > 1) {
+    await stripe.subscriptionItems.update(subscriptionItemId, {
+      quantity: (item.quantity ?? 1) - 1,
+    });
+  } else {
+    await stripe.subscriptionItems.del(subscriptionItemId, {
+      proration_behavior: "create_prorations",
+    });
+  }
+}
+

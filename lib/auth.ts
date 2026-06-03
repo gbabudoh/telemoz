@@ -88,6 +88,13 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.userType = (user as { userType: "pro" | "client" | "admin" }).userType;
+        // Check if this user is a staff member of an agency
+        const membership = await prisma.teamMember.findFirst({
+          where: { memberId: user.id },
+          select: { agencyId: true, role: true },
+        });
+        token.agencyId = membership?.agencyId ?? null;
+        token.teamRole = membership?.role ?? null;
       }
       return token;
     },
@@ -95,6 +102,8 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.id = token.id as string;
         session.user.userType = token.userType as "pro" | "client" | "admin";
+        session.user.agencyId = (token.agencyId as string | null) ?? null;
+        session.user.teamRole = (token.teamRole as string | null) ?? null;
       }
       return session;
     },

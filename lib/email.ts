@@ -100,6 +100,40 @@ export function reportReadyEmail(
   };
 }
 
+export function teamInviteEmail(
+  agencyName: string,
+  role: string,
+  acceptUrl: string
+): Pick<SendEmailOptions, "subject" | "html"> {
+  const roleLabel = role === "manager" ? "Manager" : "Contributor";
+  return {
+    subject: `You've been invited to join ${agencyName} on Telemoz`,
+    html: `
+      <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px 24px">
+        <div style="margin-bottom:32px">
+          <div style="display:inline-block;background:#0a9396;color:#fff;padding:8px 16px;border-radius:8px;font-weight:700;font-size:15px">Telemoz</div>
+        </div>
+        <h2 style="font-size:24px;font-weight:800;color:#111827;margin:0 0 12px">You've been invited!</h2>
+        <p style="color:#4b5563;font-size:15px;line-height:1.6;margin:0 0 8px">
+          <strong>${agencyName}</strong> has invited you to join their team on Telemoz as a <strong>${roleLabel}</strong>.
+        </p>
+        <p style="color:#4b5563;font-size:14px;line-height:1.6;margin:0 0 32px">
+          As a ${roleLabel}, you'll have access to ${agencyName}'s workspace — projects, clients, and campaigns — all within their account.
+        </p>
+        <a href="${acceptUrl}"
+           style="display:inline-block;padding:14px 28px;background:#0a9396;color:#fff;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px">
+          Accept Invitation
+        </a>
+        <p style="color:#9ca3af;font-size:13px;margin-top:32px;line-height:1.6">
+          This invitation expires in 7 days. If you don't have a Telemoz account yet, you'll be prompted to create one after clicking the link.
+        </p>
+        <p style="color:#d1d5db;font-size:12px;margin-top:16px">
+          If you weren't expecting this invitation, you can safely ignore this email.
+        </p>
+      </div>`,
+  };
+}
+
 export function passwordResetEmail(
   name: string,
   resetUrl: string

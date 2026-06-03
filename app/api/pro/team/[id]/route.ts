@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { removeSeat } from "@/lib/stripe";
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -36,6 +37,21 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   const { id } = await params;
   const member = await prisma.teamMember.findUnique({ where: { id } });
   if (!member || member.agencyId !== session.user.id) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  // Remove Stripe seat billing if applicable
+  if (member.stripeSubscriptionItemId) {
+    const agency = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { stripeCustomerId: true },
+    });
+    if (agency?.stripeCustomerId) {
+      try {
+        await removeSeat(agency.stripeCustomerId, member.stripeSubscriptionItemId);
+      } catch (err) {
+        console.error("Failed to remove Stripe seat item:", err);
+      }
+    }
+  }
 
   await prisma.teamMember.delete({ where: { id } });
   return NextResponse.json({ success: true });
