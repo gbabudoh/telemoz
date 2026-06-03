@@ -2,7 +2,8 @@
 
 import {
   SendHorizonal, Plus, X, AlertCircle, Trash2,
-  Calendar, Mail, ToggleLeft, ToggleRight, Search, Users, Check, FolderKanban, ChevronDown,
+  Calendar, Mail, ToggleLeft, ToggleRight, Search, Users, Check,
+  FolderKanban, ChevronDown, Loader2, CheckCircle2,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -48,6 +49,8 @@ export default function ScheduledReportsPage() {
   const [saving, setSaving] = useState(false);
   const [toggling, setToggling] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [sending, setSending] = useState<string | null>(null);
+  const [sendResult, setSendResult] = useState<{ id: string; text: string; ok: boolean } | null>(null);
 
   // Client picker state
   const [clients, setClients] = useState<ConnectedClient[]>([]);
@@ -168,6 +171,26 @@ export default function ScheduledReportsPage() {
     setDeleting(null);
   };
 
+  const handleSendNow = async (id: string) => {
+    setSending(id);
+    setSendResult(null);
+    try {
+      const res = await fetch(`/api/pro/reports/${id}/send`, { method: "POST" });
+      const data = await res.json();
+      if (res.ok) {
+        setSendResult({ id, text: `Sent to ${data.delivered} client${data.delivered !== 1 ? "s" : ""} · ${data.period}`, ok: true });
+        setReports(prev => prev.map(r => r.id === id ? { ...r, lastSentAt: new Date().toISOString() } : r));
+      } else {
+        setSendResult({ id, text: data.error ?? "Failed to send", ok: false });
+      }
+    } catch {
+      setSendResult({ id, text: "Network error. Please try again.", ok: false });
+    } finally {
+      setSending(null);
+      setTimeout(() => setSendResult(null), 5000);
+    }
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -246,6 +269,19 @@ export default function ScheduledReportsPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 ml-4 shrink-0">
+                  {/* Send Now */}
+                  <button
+                    onClick={() => handleSendNow(report.id)}
+                    disabled={sending === report.id}
+                    title="Send report to clients now"
+                    className="h-9 px-3 rounded-xl border border-[#0a9396]/30 bg-[#0a9396]/5 text-[#0a9396] hover:bg-[#0a9396] hover:text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-all"
+                  >
+                    {sending === report.id
+                      ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      : <SendHorizonal className="h-3.5 w-3.5" />}
+                    {sending === report.id ? "Sending…" : "Send Now"}
+                  </button>
+
                   <button onClick={() => toggleActive(report.id, report.active)} disabled={toggling === report.id}
                     className="text-gray-400 hover:text-gray-700 cursor-pointer disabled:opacity-50">
                     {report.active
@@ -258,6 +294,25 @@ export default function ScheduledReportsPage() {
                   </button>
                 </div>
               </div>
+
+              {/* Send result banner */}
+              <AnimatePresence>
+                {sendResult?.id === report.id && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className={`mt-3 pt-3 border-t flex items-center gap-2 text-sm font-semibold ${sendResult.ok ? "border-emerald-100 text-emerald-700" : "border-red-100 text-red-600"}`}>
+                      {sendResult.ok
+                        ? <CheckCircle2 className="h-4 w-4 shrink-0" />
+                        : <AlertCircle className="h-4 w-4 shrink-0" />}
+                      {sendResult.text}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           ))}
         </div>
