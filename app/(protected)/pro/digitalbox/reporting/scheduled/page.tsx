@@ -331,10 +331,10 @@ export default function ScheduledReportsPage() {
                     <AnimatePresence>
                       {dropdownOpen && (
                         <motion.div
-                          initial={{ opacity: 0, y: 6 }}
+                          initial={{ opacity: 0, y: -6 }}
                           animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: 6 }}
-                          className="absolute left-0 right-0 mt-2 bg-white border border-gray-200 rounded-2xl shadow-xl z-20 overflow-hidden"
+                          exit={{ opacity: 0, y: -6 }}
+                          className="absolute left-0 right-0 bottom-full mb-2 bg-white border border-gray-200 rounded-2xl shadow-xl z-20 overflow-hidden"
                         >
                           {/* Search */}
                           <div className="p-3 border-b border-gray-100">
