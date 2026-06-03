@@ -2,7 +2,7 @@
 
 import {
   SendHorizonal, Plus, X, AlertCircle, Trash2,
-  Calendar, Mail, ToggleLeft, ToggleRight, Search, Users, Check,
+  Calendar, Mail, ToggleLeft, ToggleRight, Search, Users, Check, FolderKanban, ChevronDown,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -23,6 +23,13 @@ interface ConnectedClient {
   id: string;
   name: string;
   email: string;
+}
+
+interface Project {
+  id: string;
+  title: string;
+  status: string;
+  client: { name: string } | null;
 }
 
 const emptyForm = {
@@ -49,6 +56,10 @@ export default function ScheduledReportsPage() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Project picker state
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [projectsLoading, setProjectsLoading] = useState(false);
+
   useEffect(() => {
     fetch("/api/pro/reports")
       .then(r => r.json())
@@ -56,14 +67,19 @@ export default function ScheduledReportsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Load connected clients when modal opens
+  // Load connected clients and projects when modal opens
   useEffect(() => {
     if (!isCreating) return;
     setClientsLoading(true);
+    setProjectsLoading(true);
     fetch("/api/users/connected")
       .then(r => r.json())
       .then(d => setClients(d.users ?? []))
       .finally(() => setClientsLoading(false));
+    fetch("/api/projects?userType=pro")
+      .then(r => r.json())
+      .then(d => setProjects(Array.isArray(d) ? d : (d.projects ?? [])))
+      .finally(() => setProjectsLoading(false));
   }, [isCreating]);
 
   // Close dropdown on outside click
@@ -128,6 +144,8 @@ export default function ScheduledReportsPage() {
     setFormError("");
     setSearch("");
     setDropdownOpen(false);
+    setProjects([]);
+    setClients([]);
   };
 
   const toggleActive = async (id: string, current: boolean) => {
@@ -292,6 +310,40 @@ export default function ScheduledReportsPage() {
                       </button>
                     ))}
                   </div>
+                </div>
+
+                {/* Project selector */}
+                <div className="space-y-1.5">
+                  <label className="block text-[13px] font-black uppercase tracking-wider text-gray-500">
+                    Linked Project <span className="text-gray-300 font-medium normal-case tracking-normal">(optional)</span>
+                  </label>
+                  {projectsLoading ? (
+                    <div className="h-11 border border-gray-200 rounded-xl flex items-center px-4 gap-2 text-sm text-gray-400 font-medium">
+                      <FolderKanban className="h-4 w-4 animate-pulse" /> Loading projects…
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <select
+                        value={form.projectId}
+                        onChange={e => setForm(f => ({ ...f, projectId: e.target.value }))}
+                        className="w-full appearance-none border border-gray-200 rounded-xl px-4 py-3 pr-10 text-sm font-medium outline-none focus:border-[#0a9396] focus:ring-4 focus:ring-[#0a9396]/10 transition-all text-gray-700 cursor-pointer"
+                      >
+                        <option value="">No specific project</option>
+                        {projects.map(p => (
+                          <option key={p.id} value={p.id}>
+                            {p.title}{p.client ? ` — ${p.client.name}` : ""}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                    </div>
+                  )}
+                  {form.projectId && (
+                    <p className="text-xs text-[#0a9396] font-semibold flex items-center gap-1">
+                      <FolderKanban className="h-3.5 w-3.5" />
+                      Report will include data for the selected project
+                    </p>
+                  )}
                 </div>
 
                 {/* Client selector */}
