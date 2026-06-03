@@ -26,6 +26,7 @@ export default function TeamPage() {
   const [saving, setSaving] = useState(false);
   const [editingRole, setEditingRole] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [actionError, setActionError] = useState("");
 
   useEffect(() => {
     fetch("/api/pro/team")
@@ -54,6 +55,7 @@ export default function TeamPage() {
   };
 
   const handleRoleChange = async (id: string, newRole: string) => {
+    setActionError("");
     const res = await fetch(`/api/pro/team/${id}`, {
       method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ role: newRole }),
@@ -61,14 +63,21 @@ export default function TeamPage() {
     if (res.ok) {
       const { member } = await res.json();
       setMembers(prev => prev.map(m => m.id === id ? { ...m, ...member } : m));
+    } else {
+      setActionError("Failed to update role. Please try again.");
     }
     setEditingRole(null);
   };
 
   const handleRemove = async (id: string) => {
+    setActionError("");
     setDeleting(id);
     const res = await fetch(`/api/pro/team/${id}`, { method: "DELETE" });
-    if (res.ok) setMembers(prev => prev.filter(m => m.id !== id));
+    if (res.ok) {
+      setMembers(prev => prev.filter(m => m.id !== id));
+    } else {
+      setActionError("Failed to remove member. Please try again.");
+    }
     setDeleting(null);
   };
 
@@ -98,6 +107,12 @@ export default function TeamPage() {
         ))}
       </div>
 
+      {actionError && (
+        <div className="flex items-center gap-2.5 p-3 rounded-xl bg-red-50 border border-red-100 text-red-600 text-sm font-medium">
+          <AlertCircle className="h-4 w-4 shrink-0" />{actionError}
+        </div>
+      )}
+
       {loading ? (
         <div className="text-center py-16 text-gray-400 font-medium">Loading team...</div>
       ) : members.length === 0 ? (
@@ -125,7 +140,7 @@ export default function TeamPage() {
                   <img src={m.member.image} alt={m.member.name}
                     className="h-12 w-12 rounded-2xl object-cover shrink-0" />
                 ) : (
-                  <div className="h-12 w-12 rounded-2xl bg-linear-to-br from-[#0a9396] to-emerald-400 flex items-center justify-center text-white font-black text-lg shrink-0">
+                  <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-[#0a9396] to-emerald-400 flex items-center justify-center text-white font-black text-lg shrink-0">
                     {m.member.name.charAt(0)}
                   </div>
                 )}
@@ -222,7 +237,7 @@ export default function TeamPage() {
                 </div>
 
                 <div className="flex gap-3 pt-2">
-                  <button onClick={() => { setIsInviting(false); setEmail(""); }}
+                  <button onClick={() => { setIsInviting(false); setEmail(""); setFormError(""); }}
                     className="flex-1 h-11 rounded-xl border border-gray-200 text-gray-700 font-bold text-sm hover:bg-gray-50 cursor-pointer">
                     Cancel
                   </button>

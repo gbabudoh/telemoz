@@ -11,6 +11,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { id } = await params;
   const body = await req.json();
 
+  const allowedRoles = ["manager", "contributor"];
+  if (!body.role || !allowedRoles.includes(body.role)) {
+    return NextResponse.json({ error: "Invalid role" }, { status: 400 });
+  }
+
   const member = await prisma.teamMember.findUnique({ where: { id } });
   if (!member || member.agencyId !== session.user.id) return NextResponse.json({ error: "Not found" }, { status: 404 });
 

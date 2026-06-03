@@ -27,6 +27,11 @@ export async function POST(req: NextRequest) {
 
   if (!memberEmail) return NextResponse.json({ error: "memberEmail is required" }, { status: 400 });
 
+  const allowedRoles = ["manager", "contributor"];
+  if (role && !allowedRoles.includes(role)) {
+    return NextResponse.json({ error: "Invalid role" }, { status: 400 });
+  }
+
   // Look up member by email
   const memberUser = await prisma.user.findUnique({ where: { email: memberEmail } });
   if (!memberUser) {
