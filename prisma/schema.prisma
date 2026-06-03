@@ -16,6 +16,7 @@ enum UserType {
 
 enum SubscriptionTier {
   free
+  starter  // legacy value — treat as free
   africa
   international
 }

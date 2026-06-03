@@ -71,6 +71,7 @@ export const SEAT_PRICE_ID = process.env.STRIPE_SEAT_PRICE_ID || "";
 // Seat limits per subscription tier (0 = seats not allowed on free plan)
 export const SEAT_LIMITS: Record<string, number> = {
   free: 0,
+  starter: 0, // legacy — same as free
   africa: 5,
   international: 20,
 };
