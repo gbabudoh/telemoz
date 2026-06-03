@@ -324,6 +324,10 @@ model User {
   // Team invites
   sentInvites          TeamInvite[]          @relation("AgencyInvites")
   acceptedInvites      TeamInvite[]          @relation("AcceptedInvites")
+
+  // Report snapshots
+  proReportSnapshots   ReportSnapshot[]      @relation("ProReportSnapshots")
+  clientReportSnapshots ReportSnapshot[]     @relation("ClientReportSnapshots")
 }
 
 model ProProfile {
@@ -399,7 +403,8 @@ model Project {
   inquiries    Inquiry[]
   scheduledReports ScheduledReport[]
   messages     Message[]
-  reportShares ReportShare[]
+  reportShares    ReportShare[]
+  reportSnapshots ReportSnapshot[]
 
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
@@ -776,13 +781,39 @@ model ScheduledReport {
 
   title       String
   cadence     ReportCadence @default(monthly)
-  recipients  String[]      // email addresses
+  recipients  String[]      // Telemoz user emails
   lastSentAt  DateTime?
   nextSendAt  DateTime?
   active      Boolean       @default(true)
 
+  snapshots   ReportSnapshot[]
+
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
+}
+
+model ReportSnapshot {
+  id                String          @id @default(cuid())
+  scheduledReportId String
+  scheduledReport   ScheduledReport @relation(fields: [scheduledReportId], references: [id], onDelete: Cascade)
+  projectId         String?
+  project           Project?        @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  proId             String
+  pro               User            @relation("ProReportSnapshots", fields: [proId], references: [id], onDelete: Cascade)
+  clientId          String
+  client            User            @relation("ClientReportSnapshots", fields: [clientId], references: [id], onDelete: Cascade)
+
+  title             String
+  period            String          // e.g. "June 2026" or "Week of 2 Jun 2026"
+  cadence           String
+  data              Json            // structured report payload
+  viewedAt          DateTime?
+
+  createdAt         DateTime        @default(now())
+
+  @@index([clientId])
+  @@index([proId])
+  @@index([scheduledReportId])
 }
 
 model Notification {

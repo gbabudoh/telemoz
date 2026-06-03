@@ -140,6 +140,7 @@ const clientNavGroups: NavGroup[] = [
     defaultOpen: true,
     items: [
       { title: "Campaign Reports", href: "/client/reports", icon: TrendingUp },
+      { title: "Performance Reports", href: "/client/reports/snapshots", icon: BarChart3 },
     ],
   },
   {
