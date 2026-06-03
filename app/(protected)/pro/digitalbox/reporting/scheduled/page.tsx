@@ -20,6 +20,7 @@ interface ScheduledReport {
 }
 
 const emptyForm = { title: "", cadence: "monthly" as "weekly" | "monthly", recipientInput: "", recipients: [] as string[], projectId: "" };
+const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
 
 export default function ScheduledReportsPage() {
   const [reports, setReports] = useState<ScheduledReport[]>([]);
@@ -30,6 +31,7 @@ export default function ScheduledReportsPage() {
   const [saving, setSaving] = useState(false);
   const [toggling, setToggling] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [recipientError, setRecipientError] = useState("");
 
   useEffect(() => {
     fetch("/api/pro/reports")
@@ -38,24 +40,45 @@ export default function ScheduledReportsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const addRecipient = () => {
-    const email = form.recipientInput.trim();
-    if (!email || !/\S+@\S+\.\S+/.test(email)) return;
-    if (form.recipients.includes(email)) return;
-    setForm(f => ({ ...f, recipients: [...f.recipients, email], recipientInput: "" }));
+  const addRecipient = (raw = form.recipientInput) => {
+    setRecipientError("");
+    // Support comma or semicolon separated paste
+    const emails = raw.split(/[,;\s]+/).map(e => e.trim()).filter(Boolean);
+    if (emails.length === 0) return;
+
+    const invalid = emails.find(e => !isValidEmail(e));
+    if (invalid) { setRecipientError(`"${invalid}" is not a valid email address.`); return; }
+
+    const next = [...form.recipients];
+    emails.forEach(e => { if (!next.includes(e)) next.push(e); });
+    setForm(f => ({ ...f, recipients: next, recipientInput: "" }));
   };
 
   const handleSave = async () => {
     setFormError("");
-    if (!form.title || form.recipients.length === 0) {
-      setFormError("Please provide a title and at least one recipient email.");
+    setRecipientError("");
+
+    // Auto-flush anything typed but not yet added
+    let recipients = form.recipients;
+    if (form.recipientInput.trim()) {
+      const extra = form.recipientInput.split(/[,;\s]+/).map(e => e.trim()).filter(Boolean);
+      const invalid = extra.find(e => !isValidEmail(e));
+      if (invalid) {
+        setRecipientError(`"${invalid}" is not a valid email address.`);
+        return;
+      }
+      recipients = [...new Set([...recipients, ...extra])];
+    }
+
+    if (!form.title || recipients.length === 0) {
+      setFormError("Please provide a report name and at least one recipient.");
       return;
     }
     setSaving(true);
     try {
       const res = await fetch("/api/pro/reports", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: form.title, cadence: form.cadence, recipients: form.recipients, projectId: form.projectId || null }),
+        body: JSON.stringify({ title: form.title, cadence: form.cadence, recipients, projectId: form.projectId || null }),
       });
       if (!res.ok) { setFormError((await res.json()).error ?? "Failed to save"); return; }
       const { report } = await res.json();
@@ -190,7 +213,7 @@ export default function ScheduledReportsPage() {
               initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95 }}>
               <div className="p-6 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10">
                 <h2 className="text-xl font-black text-gray-900">New Report Schedule</h2>
-                <button onClick={() => { setIsCreating(false); setForm(emptyForm); setFormError(""); }}
+                <button onClick={() => { setIsCreating(false); setForm(emptyForm); setFormError(""); setRecipientError(""); }}
                   className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:text-gray-900 cursor-pointer">
                   <X className="h-4 w-4" />
                 </button>
@@ -230,33 +253,52 @@ export default function ScheduledReportsPage() {
                   <label className="block text-[13px] font-black uppercase tracking-wider text-gray-500">
                     Recipients <span className="text-red-400">*</span>
                   </label>
-                  <div className="flex gap-2">
-                    <input type="email" placeholder="client@company.com"
-                      value={form.recipientInput} onChange={e => setForm(f => ({ ...f, recipientInput: e.target.value }))}
-                      onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addRecipient(); } }}
-                      className="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:border-[#0a9396] focus:ring-4 focus:ring-[#0a9396]/10 transition-all" />
-                    <button onClick={addRecipient}
-                      className="h-11 px-4 rounded-xl bg-gray-100 text-gray-700 font-bold text-sm hover:bg-gray-200 cursor-pointer">
-                      Add
-                    </button>
-                  </div>
+
+                  {/* Added recipients as chips */}
                   {form.recipients.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-xl border border-gray-100">
                       {form.recipients.map(r => (
-                        <span key={r} className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 text-xs font-bold px-3 py-1.5 rounded-full">
+                        <span key={r} className="inline-flex items-center gap-1.5 bg-white border border-gray-200 text-gray-700 text-xs font-bold px-3 py-1.5 rounded-full shadow-sm">
+                          <Mail className="h-3 w-3 text-[#0a9396]" />
                           {r}
                           <button onClick={() => setForm(f => ({ ...f, recipients: f.recipients.filter(x => x !== r) }))}
-                            className="text-gray-400 hover:text-gray-700 cursor-pointer">
+                            className="text-gray-400 hover:text-red-500 cursor-pointer transition-colors ml-0.5">
                             <X className="h-3 w-3" />
                           </button>
                         </span>
                       ))}
                     </div>
                   )}
+
+                  <div className="flex gap-2">
+                    <input
+                      type="email"
+                      placeholder="client@company.com"
+                      value={form.recipientInput}
+                      onChange={e => { setForm(f => ({ ...f, recipientInput: e.target.value })); setRecipientError(""); }}
+                      onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addRecipient(); } if (e.key === ",") { e.preventDefault(); addRecipient(); } }}
+                      className={`flex-1 border rounded-xl px-4 py-3 text-sm font-medium outline-none focus:ring-4 transition-all ${recipientError ? "border-red-300 focus:border-red-400 focus:ring-red-500/10" : "border-gray-200 focus:border-[#0a9396] focus:ring-[#0a9396]/10"}`}
+                    />
+                    <button
+                      onClick={() => addRecipient()}
+                      className="h-11 px-4 rounded-xl bg-[#0a9396] text-white font-bold text-sm hover:bg-[#087579] cursor-pointer transition-colors shrink-0"
+                    >
+                      Add
+                    </button>
+                  </div>
+                  {recipientError ? (
+                    <p className="text-xs text-red-500 font-semibold flex items-center gap-1">
+                      <AlertCircle className="h-3.5 w-3.5 shrink-0" />{recipientError}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-gray-400 font-medium">
+                      Press <kbd className="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-mono text-[10px]">Enter</kbd> or <kbd className="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-mono text-[10px]">,</kbd> to add · Paste multiple comma-separated emails
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex gap-3 pt-2">
-                  <button onClick={() => { setIsCreating(false); setForm(emptyForm); }}
+                  <button onClick={() => { setIsCreating(false); setForm(emptyForm); setFormError(""); setRecipientError(""); }}
                     className="flex-1 h-11 rounded-xl border border-gray-200 text-gray-700 font-bold text-sm hover:bg-gray-50 cursor-pointer">
                     Cancel
                   </button>
