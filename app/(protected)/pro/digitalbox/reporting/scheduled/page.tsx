@@ -88,6 +88,8 @@ export default function ScheduledReportsPage() {
       };
     });
     setFormError("");
+    setDropdownOpen(false);
+    setSearch("");
   };
 
   const filteredClients = clients.filter(c =>
