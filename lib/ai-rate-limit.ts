@@ -38,6 +38,7 @@ export async function checkAndIncrementAiUsage(userId: string): Promise<{
       aiRequestsToday: isNewDay ? 1 : { increment: 1 },
       aiLastRequestDate: new Date(),
     },
+    select: { id: true }, // avoid deserializing subscriptionTier enum on return
   });
 
   const used = currentCount + 1;
