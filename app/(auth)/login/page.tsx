@@ -131,7 +131,6 @@ export default function LoginPage() {
                 alt="Telemoz"
                 width={120}
                 height={40}
-                style={{ width: "auto" }}
                 className="h-8 w-auto object-contain hover:opacity-80 transition-opacity"
               />
             </Link>

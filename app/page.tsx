@@ -37,7 +37,7 @@ function MarketingFooter() {
                 priority
                 quality={100}
                 className="h-10 w-auto object-contain"
-                style={{ width: "auto", imageRendering: "crisp-edges" }}
+                style={{ imageRendering: "crisp-edges" }}
               />
             </div>
             <p className="text-gray-700 text-[15px] font-medium leading-relaxed max-w-xs">

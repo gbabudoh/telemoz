@@ -35,7 +35,7 @@ export function MarketingHeader() {
               priority
               quality={100}
               className="h-10 w-auto object-contain"
-              style={{ width: "auto", imageRendering: 'crisp-edges' }}
+              style={{ imageRendering: 'crisp-edges' }}
             />
           </Link>
           
