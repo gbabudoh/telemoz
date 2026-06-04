@@ -8,7 +8,7 @@ const cspDirectives = [
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com data:",
   "img-src 'self' data: blob: https: http://149.102.155.247:9000 *.googleusercontent.com",
-  "connect-src 'self' https://api.stripe.com https://novu.feendesk.com https://n8n.feendesk.com wss: ws:",
+  "connect-src 'self' https://api.stripe.com https://fonts.googleapis.com https://fonts.gstatic.com https://novu.feendesk.com https://n8n.feendesk.com wss: ws:",
   "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
   "media-src 'self' blob:",
   "object-src 'none'",

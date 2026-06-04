@@ -36,7 +36,7 @@ export default function MarketingLayout({
                   priority
                   quality={100}
                   className="h-10 w-auto object-contain"
-                  style={{ imageRendering: 'crisp-edges' }}
+                  style={{ width: "auto", imageRendering: 'crisp-edges' }}
                 />
               </div>
               <p className="text-gray-700 text-[15px] font-medium leading-relaxed max-w-xs">

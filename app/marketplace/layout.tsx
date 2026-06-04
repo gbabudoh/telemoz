@@ -33,6 +33,7 @@ export default function MarketplaceLayout({
                 alt="Telemoz" 
                 width={120}
                 height={40}
+                style={{ width: "auto" }}
                 priority
                 className="h-9 w-auto object-contain"
               />

@@ -288,7 +288,7 @@ export function DashboardSidebar({ userType = "pro" }: DashboardSidebarProps) {
                 priority
                 quality={100}
                 className="h-10 w-auto object-contain cursor-pointer"
-                style={{ imageRendering: "crisp-edges" }}
+                style={{ width: "auto", imageRendering: "crisp-edges" }}
               />
             </Link>
           </div>
