@@ -89,10 +89,36 @@ export const authOptions: NextAuthOptions = {
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   callbacks: {
+    async signIn({ user, account }) {
+      if (account?.provider === "google") {
+        if (!user.email) return false;
+
+        const emailLower = user.email.toLowerCase();
+        let dbUser = await prisma.user.findUnique({
+          where: { email: emailLower },
+        });
+
+        if (!dbUser) {
+          dbUser = await prisma.user.create({
+            data: {
+              email: emailLower,
+              name: user.name || "Google User",
+              image: user.image,
+              userType: "client",
+              emailVerified: new Date(),
+            },
+          });
+        }
+
+        user.id = dbUser.id;
+        (user as any).userType = dbUser.userType;
+      }
+      return true;
+    },
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.userType = (user as { userType: "pro" | "client" | "admin" }).userType;
+        token.userType = (user as any).userType;
         // Check if this user is a staff member of an agency
         const membership = await prisma.teamMember.findFirst({
           where: { memberId: user.id },

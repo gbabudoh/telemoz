@@ -19,6 +19,7 @@ import {
 import { countriesByRegion, regions } from "@/lib/countries";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
+import { signIn } from "next-auth/react";
 
 const userTypes = [
   {
@@ -386,6 +387,42 @@ export default function RegisterPage() {
                   </Button>
                 </motion.div>
               </form>
+
+              {/* Divider */}
+              <motion.div variants={itemVariants} className="relative flex items-center my-5">
+                <div className="flex-grow border-t border-gray-200"></div>
+                <span className="flex-shrink mx-4 text-gray-400 text-xs font-semibold uppercase tracking-wider">or</span>
+                <div className="flex-grow border-t border-gray-200"></div>
+              </motion.div>
+
+              {/* Google Sign Up */}
+              <motion.div variants={itemVariants}>
+                <button
+                  type="button"
+                  onClick={() => signIn("google", { callbackUrl: `/api/auth/google-callback?role=${userType}` })}
+                  className="w-full flex items-center justify-center gap-3 px-4 h-13 border border-gray-200 rounded-xl text-gray-700 bg-white hover:bg-gray-50 active:bg-gray-100 transition-all font-semibold shadow-sm hover:shadow-md cursor-pointer duration-300"
+                >
+                  <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                    <path
+                      fill="#EA4335"
+                      d="M12 5.04c1.66 0 3.2.57 4.38 1.69l3.27-3.27C17.67 1.61 14.98 1 12 1 7.24 1 3.2 3.73 1.24 7.7l3.96 3.07C6.15 7.7 8.84 5.04 12 5.04z"
+                    />
+                    <path
+                      fill="#4285F4"
+                      d="M23.49 12.27c0-.81-.07-1.59-.2-2.36H12v4.51h6.46c-.29 1.48-1.14 2.73-2.42 3.58l3.77 2.92c2.2-2.03 3.68-5.02 3.68-8.65z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M5.2 14.3C4.94 13.52 4.8 12.7 4.8 11.85c0-.85.14-1.67.4-2.45L1.24 7.7C.45 9.29 0 11.07 0 12.95c0 1.88.45 3.66 1.24 5.25l3.96-3.9z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M12 23c3.24 0 5.97-1.08 7.96-2.92l-3.77-2.92c-1.04.7-2.38 1.12-4.19 1.12-3.16 0-5.85-2.66-6.8-5.73L1.24 16.5C3.2 20.47 7.24 23 12 23z"
+                    />
+                  </svg>
+                  Continue with Google
+                </button>
+              </motion.div>
 
               <motion.div variants={itemVariants} className="mt-8 text-center text-sm text-gray-500">
                 Already have an account?{" "}
