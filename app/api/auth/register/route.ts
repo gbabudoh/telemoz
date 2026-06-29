@@ -3,6 +3,8 @@ import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { rateLimit } from "@/lib/rate-limit";
 import { upsertSubscriber } from "@/lib/novu";
+import crypto from "crypto";
+import { sendEmail, verificationEmail } from "@/lib/email";
 
 type UserTypeLocal = "pro" | "client" | "admin";
 
@@ -108,6 +110,34 @@ export async function POST(request: NextRequest) {
       // We don't fail the whole registration if Novu fails
     }
 
+    // Generate Verification Token
+    try {
+      const token = crypto.randomBytes(32).toString("hex");
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+      const db = prisma as any;
+      await db.verificationToken.create({
+        data: {
+          email: newUser.email,
+          token,
+          expiresAt,
+        },
+      });
+
+      const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+      const verifyUrl = `${baseUrl}/verify-email?token=${token}&email=${encodeURIComponent(newUser.email)}`;
+      const emailOpts = verificationEmail(newUser.name, verifyUrl);
+
+      await sendEmail({
+        to: newUser.email,
+        subject: emailOpts.subject,
+        html: emailOpts.html,
+      });
+    } catch (emailError) {
+      console.error("Failed to send verification email:", emailError);
+      // We will allow registration to succeed, but user will need to request verification resend if needed
+    }
+
     const userResponse = {
       id: newUser.id,
       name: newUser.name,
@@ -118,7 +148,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       {
-        message: "User registered successfully",
+        message: "User registered successfully. Please check your email to verify your account.",
         user: userResponse,
       },
       { status: 201 }

@@ -67,7 +67,11 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        setError("Invalid email or password. Please try again.");
+        if (result.error === "CredentialsSignin" || result.error.includes("Cannot read properties")) {
+          setError("Invalid email or password. Please try again.");
+        } else {
+          setError(result.error);
+        }
         setIsLoading(false);
         return;
       }

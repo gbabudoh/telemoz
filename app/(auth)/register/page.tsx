@@ -107,7 +107,6 @@ export default function RegisterPage() {
       }
 
       setSuccess(true);
-      setTimeout(() => router.push("/login?registered=true"), 2000);
     } catch (err) {
       console.error("Registration error:", err);
       setError("Registration failed. Please check your connection and try again.");
@@ -129,9 +128,11 @@ export default function RegisterPage() {
           <div className="h-16 w-16 rounded-full bg-[#0a9396]/10 flex items-center justify-center mx-auto mb-5">
             <CheckCircle2 className="h-8 w-8 text-[#0a9396]" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Account Created!</h1>
-          <p className="text-gray-500 mb-5">Redirecting you to sign in...</p>
-          <Loader2 className="h-5 w-5 text-[#0a9396] animate-spin mx-auto" />
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Registration Successful!</h1>
+          <p className="text-gray-500 mb-5">A verification link has been sent to your email. Please verify your email address to activate your account.</p>
+          <Link href="/login" className="inline-block px-6 py-2.5 rounded-xl bg-[#0a9396] text-white text-sm font-semibold hover:bg-[#0a9396]/95 transition-all">
+            Go to Sign In
+          </Link>
         </motion.div>
       </div>
     );

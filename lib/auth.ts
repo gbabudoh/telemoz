@@ -33,7 +33,7 @@ export const authOptions: NextAuthOptions = {
         try {
           const user = await prisma.user.findUnique({
             where: { email: credentials.email.toLowerCase() },
-            select: { id: true, email: true, name: true, password: true, userType: true },
+            select: { id: true, email: true, name: true, password: true, userType: true, emailVerified: true },
           });
 
           if (!user || !user.password) return null;
@@ -57,6 +57,10 @@ export const authOptions: NextAuthOptions = {
           }
 
           if (!passwordValid) return null;
+
+          if (user.userType !== "admin" && !user.emailVerified) {
+            throw new Error("Please verify your email address before logging in.");
+          }
 
           return {
             id: user.id,
@@ -101,10 +105,11 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id as string;
-        session.user.userType = token.userType as "pro" | "client" | "admin";
-        session.user.agencyId = (token.agencyId as string | null) ?? null;
-        session.user.teamRole = (token.teamRole as string | null) ?? null;
+        const u = session.user as any;
+        u.id = token.id as string;
+        u.userType = token.userType as "pro" | "client" | "admin";
+        u.agencyId = (token.agencyId as string | null) ?? null;
+        u.teamRole = (token.teamRole as string | null) ?? null;
       }
       return session;
     },

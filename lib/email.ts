@@ -154,3 +154,32 @@ export function passwordResetEmail(
       </div>`,
   };
 }
+
+export function verificationEmail(
+  name: string,
+  verifyUrl: string
+): Pick<SendEmailOptions, "subject" | "html"> {
+  return {
+    subject: "Verify your Telemoz email address",
+    html: `
+      <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px 24px">
+        <div style="margin-bottom:32px">
+          <div style="display:inline-block;background:#0a9396;color:#fff;padding:8px 16px;border-radius:8px;font-weight:700;font-size:15px">Telemoz</div>
+        </div>
+        <h2 style="font-size:24px;font-weight:800;color:#111827;margin:0 0 12px">Please verify your email address</h2>
+        <p style="color:#4b5563;font-size:15px;line-height:1.6;margin:0 0 8px">
+          Hi ${name},
+        </p>
+        <p style="color:#4b5563;font-size:15px;line-height:1.6;margin:0 0 32px">
+          Thanks for signing up for Telemoz! Please verify your email address by clicking the button below. This link expires in 24 hours.
+        </p>
+        <a href="${verifyUrl}"
+           style="display:inline-block;padding:14px 28px;background:#0a9396;color:#fff;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px">
+          Verify Email Address
+        </a>
+        <p style="color:#9ca3af;font-size:13px;margin-top:32px;line-height:1.6">
+          If you didn't create a Telemoz account, you can safely ignore this email.
+        </p>
+      </div>`,
+  };
+}
