@@ -57,7 +57,7 @@ export async function initializeAfricaSubscription({
       customizations: {
         title: "Telemoz African Tier",
         description: "Monthly Pro Subscription - Local African Rails",
-        logo: `${process.env.NEXTAUTH_URL}/logos/telemoz.png`,
+        logo: `${process.env.NEXTAUTH_URL}/logos/logo.png`,
       },
     }),
   });

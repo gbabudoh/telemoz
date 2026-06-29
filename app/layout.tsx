@@ -24,8 +24,8 @@ export const metadata: Metadata = {
   keywords: "digital marketing, SEO, PPC, social media marketing, marketing automation",
   manifest: "/manifest.json",
   icons: {
-    icon: "/favicon.png",
-    apple: "/logos/telemoz.png",
+    icon: "/favicon.ico",
+    apple: "/logos/logo.png",
   },
 };
 

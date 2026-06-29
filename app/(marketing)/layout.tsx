@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   title: "Telemoz - Professional Digital Marketing Platform",
   description: "The All-in-One Professional Hub for Digital Marketing Success",
   icons: {
-    icon: "/favicon.png",
+    icon: "/favicon.ico",
   },
 };
 
@@ -29,14 +29,13 @@ export default function MarketingLayout({
             <div className="flex flex-col items-center md:items-start">
               <div className="flex items-center gap-2 mb-6">
                 <Image 
-                  src="/logos/telemoz.png" 
+                  src="/logos/logo.png" 
                   alt="Telemoz" 
                   width={120}
                   height={40}
                   priority
                   quality={100}
                   className="h-10 w-auto object-contain"
-                  style={{ imageRendering: 'crisp-edges' }}
                 />
               </div>
               <p className="text-gray-700 text-[15px] font-medium leading-relaxed max-w-xs">

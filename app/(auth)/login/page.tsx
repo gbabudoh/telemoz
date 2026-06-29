@@ -131,10 +131,11 @@ export default function LoginPage() {
               className="absolute top-8 left-8 md:top-10 md:left-12 lg:top-12 lg:left-16"
             >
               <Image
-                src="/logos/telemoz.png"
+                src="/logos/logo.png"
                 alt="Telemoz"
                 width={120}
                 height={40}
+                quality={100}
                 className="h-8 w-auto object-contain hover:opacity-80 transition-opacity"
               />
             </Link>

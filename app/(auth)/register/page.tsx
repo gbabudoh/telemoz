@@ -152,10 +152,11 @@ export default function RegisterPage() {
           <div className="w-full lg:w-1/2 p-8 md:p-16 lg:p-20 flex flex-col justify-center relative">
             <Link href="/" className="absolute top-8 left-8 md:top-12 md:left-16 lg:top-12 lg:left-20">
               <Image
-                src="/logos/telemoz.png"
+                src="/logos/logo.png"
                 alt="Telemoz"
                 width={120}
                 height={40}
+                quality={100}
                 className="h-8 w-auto object-contain hover:opacity-80 transition-opacity"
               />
             </Link>

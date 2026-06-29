@@ -29,11 +29,12 @@ export default function MarketplaceLayout({
           <div className="flex items-center gap-6">
             <Link href="/" className="flex items-center gap-2">
               <Image 
-                src="/logos/telemoz.png" 
+                src="/logos/logo.png" 
                 alt="Telemoz" 
                 width={120}
                 height={40}
                 priority
+                quality={100}
                 className="h-9 w-auto object-contain"
               />
             </Link>

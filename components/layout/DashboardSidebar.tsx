@@ -281,14 +281,13 @@ export function DashboardSidebar({ userType = "pro" }: DashboardSidebarProps) {
           <div className="flex h-16 items-center border-b border-gray-200 px-6 shrink-0">
             <Link href={`/${userType}`} className="flex items-center gap-2">
               <Image
-                src="/logos/telemoz.png"
+                src="/logos/logo.png"
                 alt="Telemoz"
                 width={120}
                 height={40}
                 priority
                 quality={100}
                 className="h-10 w-auto object-contain cursor-pointer"
-                style={{ imageRendering: "crisp-edges" }}
               />
             </Link>
           </div>
