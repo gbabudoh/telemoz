@@ -258,6 +258,7 @@ model User {
 
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
+  lastActiveAt       DateTime?
 
   proProfile         ProProfile?
   projectsAsPro      Project[]          @relation("ProProjects")

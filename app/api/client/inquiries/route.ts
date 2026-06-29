@@ -21,7 +21,7 @@ export async function GET() {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const inquiries = await prisma.inquiry.findMany({
+    const inquiries: any[] = await prisma.inquiry.findMany({
       where: { clientId: session.user.id },
       include: {
         pro: {
@@ -30,6 +30,8 @@ export async function GET() {
             name: true,
             city: true,
             country: true,
+            // @ts-ignore
+            lastActiveAt: true,
             proProfile: {
               select: {
                 bio: true,
@@ -67,24 +69,34 @@ export async function GET() {
       )
     );
 
+    const FIVE_MINUTES_MS = 5 * 60 * 1000;
+
     return NextResponse.json({
-      inquiries: inquiries.map((i, idx) => ({
-        id: i.id,
-        proName: i.pro?.name || "Pending Assignment",
-        proProfile: i.pro?.proProfile || null,
-        project: i.project.title,
-        budget: i.project.budget ?? 0,
-        status: i.status,
-        time: relativeTime(i.updatedAt),
-        receivedDate: i.createdAt.toISOString(),
-        description: i.project.description,
-        requirements: i.project.category ? [i.project.category] : [],
-        projectId: i.project.id,
-        proId: i.pro?.id,
-        message: i.message ?? "",
-        lastMessage: i.messages[0] ?? null,
-        unreadCount: unreadCounts[idx],
-      })),
+      inquiries: inquiries.map((i, idx) => {
+        const pro = i.pro as any;
+        const isOnline = pro?.lastActiveAt
+          ? (Date.now() - new Date(pro.lastActiveAt).getTime()) < FIVE_MINUTES_MS
+          : false;
+
+        return {
+          id: i.id,
+          proName: pro?.name || "Pending Assignment",
+          proProfile: pro?.proProfile || null,
+          project: i.project.title,
+          budget: i.project.budget ?? 0,
+          status: i.status,
+          time: relativeTime(i.updatedAt),
+          receivedDate: i.createdAt.toISOString(),
+          description: i.project.description,
+          requirements: i.project.category ? [i.project.category] : [],
+          projectId: i.project.id,
+          proId: pro?.id,
+          message: i.message ?? "",
+          lastMessage: i.messages[0] ?? null,
+          unreadCount: unreadCounts[idx],
+          isOnline,
+        };
+      }),
     });
   } catch (error) {
     console.error("Error fetching client inquiries:", error);

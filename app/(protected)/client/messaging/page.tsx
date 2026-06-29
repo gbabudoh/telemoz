@@ -25,6 +25,7 @@ interface Conversation {
   lastMessage: { text: string; senderId: string; createdAt: string } | null;
   unreadCount: number;
   time: string;
+  isOnline?: boolean;
 }
 
 interface ActiveCall {
@@ -84,6 +85,7 @@ export default function ClientMessagingPage() {
             lastMessage: Conversation["lastMessage"];
             unreadCount: number;
             time: string;
+            isOnline?: boolean;
           }) => ({
             id: item.id,
             proId: item.proId,
@@ -92,6 +94,7 @@ export default function ClientMessagingPage() {
             lastMessage: item.lastMessage ?? null,
             unreadCount: item.unreadCount ?? 0,
             time: item.time,
+            isOnline: item.isOnline,
           })
         );
         setConversations(mapped);
@@ -226,12 +229,17 @@ export default function ClientMessagingPage() {
                         : "hover:bg-white/5 border-transparent"
                     }`}
                   >
-                    <div
-                      className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 text-xs font-black ${
-                        isActive ? "bg-[#0a9396] text-white" : "bg-white/8 text-gray-400"
-                      }`}
-                    >
-                      {getInitials(conv.proName)}
+                    <div className="relative shrink-0">
+                      <div
+                        className={`h-10 w-10 rounded-full flex items-center justify-center text-xs font-black ${
+                          isActive ? "bg-[#0a9396] text-white" : "bg-white/8 text-gray-400"
+                        }`}
+                      >
+                        {getInitials(conv.proName)}
+                      </div>
+                      {conv.isOnline && (
+                        <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-500 border-2 border-[#111113]" />
+                      )}
                     </div>
 
                     <div className="flex-1 min-w-0">
@@ -303,13 +311,21 @@ export default function ClientMessagingPage() {
               {/* Chat header */}
               <div className="h-14 border-b border-white/5 bg-[#111113] flex items-center justify-between px-5 shrink-0">
                 <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-full bg-[#0a9396]/20 flex items-center justify-center">
-                    <span className="text-[10px] font-black text-[#0a9396]">
-                      {getInitials(selected.proName)}
-                    </span>
+                  <div className="relative">
+                    <div className="h-8 w-8 rounded-full bg-[#0a9396]/20 flex items-center justify-center">
+                      <span className="text-[10px] font-black text-[#0a9396]">
+                        {getInitials(selected.proName)}
+                      </span>
+                    </div>
+                    {selected.isOnline && (
+                      <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 border border-[#111113]" />
+                    )}
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-white">{selected.proName}</p>
+                    <p className="text-sm font-bold text-white flex items-center gap-1.5">
+                      {selected.proName}
+                      <span className={`h-1.5 w-1.5 rounded-full ${selected.isOnline ? "bg-emerald-500 animate-pulse" : "bg-gray-600"}`} />
+                    </p>
                     <p className="text-[10px] text-gray-500">{selected.projectName}</p>
                   </div>
                 </div>

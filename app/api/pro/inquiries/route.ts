@@ -19,10 +19,17 @@ export async function GET() {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const inquiries = await prisma.inquiry.findMany({
+  const inquiries: any[] = await prisma.inquiry.findMany({
     where: { proId: session.user.id },
     include: {
-      client: { select: { id: true, name: true, city: true, country: true } },
+      client: { select: {
+        id: true,
+        name: true,
+        city: true,
+        country: true,
+        // @ts-ignore
+        lastActiveAt: true
+      } },
       project: {
         include: { brief: true },
       },
@@ -43,27 +50,37 @@ export async function GET() {
     )
   );
 
+  const FIVE_MINUTES_MS = 5 * 60 * 1000;
+
   return NextResponse.json({
-    inquiries: inquiries.map((i, idx) => ({
-      id: i.id,
-      client: i.client.name,
-      clientId: i.client.id,
-      company: i.client.name,
-      project: i.project.title,
-      budget: i.project.budget ?? 0,
-      status: i.status,
-      time: relativeTime(i.updatedAt),
-      receivedDate: i.createdAt.toISOString(),
-      description: i.project.description,
-      objective: i.project.brief?.objective ?? i.project.description,
-      targetAudience: i.project.brief?.targetAudience ?? "",
-      platforms: i.project.brief?.platforms ?? [],
-      deliverables: i.project.brief?.deliverables ?? [],
-      requirements: i.project.category ? [i.project.category] : [],
-      projectId: i.project.id,
-      message: i.message ?? "",
-      lastMessage: i.messages[0] ?? null,
-      unreadCount: unreadCounts[idx],
-    })),
+    inquiries: inquiries.map((i, idx) => {
+      const client = i.client as any;
+      const isOnline = client?.lastActiveAt
+        ? (Date.now() - new Date(client.lastActiveAt).getTime()) < FIVE_MINUTES_MS
+        : false;
+
+      return {
+        id: i.id,
+        client: client.name,
+        clientId: client.id,
+        company: client.name,
+        project: i.project.title,
+        budget: i.project.budget ?? 0,
+        status: i.status,
+        time: relativeTime(i.updatedAt),
+        receivedDate: i.createdAt.toISOString(),
+        description: i.project.description,
+        objective: i.project.brief?.objective ?? i.project.description,
+        targetAudience: i.project.brief?.targetAudience ?? "",
+        platforms: i.project.brief?.platforms ?? [],
+        deliverables: i.project.brief?.deliverables ?? [],
+        requirements: i.project.category ? [i.project.category] : [],
+        projectId: i.project.id,
+        message: i.message ?? "",
+        lastMessage: i.messages[0] ?? null,
+        unreadCount: unreadCounts[idx],
+        isOnline,
+      };
+    }),
   });
 }
